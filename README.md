@@ -44,7 +44,7 @@ The Jaide GUI requires *all* of the command line prerequisites. In addition, Jai
 
 ## Usage: 
 #### Jaide GUI Users:
-To launch and use the GUI, there are two methods available. Either use the compiled version for your operating system [here](). **(Need link to compiled versions)**. You can also initiate the GUI by navigating to the folder with jgui.py in a terminal window and executing: `python jgui.py`. Further information on the Jaide GUI and operating it can be found in the GUI help file [here](examples/working-with-jgui.html).  
+To launch and use the GUI, there are two methods available. Either use the compiled version for your operating system for [Windows](https://github.com/geoffrhodes/jaide-windows-compile) and [Mac](https://github.com/geoffrhodes/jaide-osx-compile). You can also initiate the GUI by navigating to the folder with jgui.py in a terminal window and executing: `python jgui.py`. Further information on the Jaide GUI and operating it can be found in the GUI help file [here](examples/working-with-jgui.html).  
 
 #### Jaide.py Command Line Arguments:
 There are many combinations of arguments that can be used to perform all functions available using the Jaide.py command line tool. Two arguments are always required: the `-i` target device(s), and one of the arguments for performing a given function [ -c | -e | --health | --info | -s | --scp | --shell ]. These functions are detailed below in the second table. 

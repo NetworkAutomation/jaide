@@ -15,6 +15,7 @@ try:
     # further to run concurrent instances of the Jaide script when manipulating multiple devices. 
     import multiprocessing as mp
     ### Basic functions and manipulation. 
+    import webbrowser  # for opening URL in a web browser. 
     import re  # for regex testing in input validation.
     import os  # needed for opening files, file validation, getting directory names, etc.
     import sys  # needed for checking OS type.
@@ -482,8 +483,8 @@ class JaideGUI(tk.Tk):
         """
         aboutInfo = tk.Toplevel()
         aboutInfoLabel = tk.Label(aboutInfo, text="The Jaide GUI Application is a GUI wrapper for the jaide.py script.\n\r"
-            "Version 1.0\n\rContributors: Geoff Rhodes and Nathan Printz\n\rMore information about Jaide and the Jaide"
-            " GUI can be found at www.github.com/", padx=50, pady=50)
+            "Version 0.9.0\n\rContributors: Geoff Rhodes and Nathan Printz\n\rMore information about Jaide and the Jaide"
+            " GUI can be found at https://github.com/nprintz/jaide", padx=50, pady=50)
         aboutInfoLabel.pack()
 
 
@@ -499,22 +500,28 @@ class JaideGUI(tk.Tk):
             if os.path.isfile(readme):
                 subprocess.call(('open', readme))
             else:
-                #TODO: open web browser link to the github readme page. 
-                pass
+                try:
+                    webbrowser.open('https://github.com/nprintz/jaide')
+                except webbrowser.Error:
+                    pass
         elif os.name == 'nt':
             readme += "\\README.html"
             if os.path.isfile(readme):
                 os.startfile(readme)  # this works on windows, not sure why pylint shows an error. 
             else: 
-                #TODO: open web browser link to github readme page.
-                pass
+                try:
+                    webbrowser.open('https://github.com/nprintz/jaide')
+                except webbrowser.Error:
+                    pass
         elif os.name == 'posix':
             readme += "/README.html"
             if os.path.isfile(readme):
                 subprocess.call(('xdg-open', readme))
             else: 
-                #TODO: open web browser link to github readme page.
-                pass
+                try:
+                    webbrowser.open('https://github.com/nprintz/jaide')
+                except webbrowser.Error:
+                    pass
 
 
     def show_examples(self):
@@ -528,22 +535,28 @@ class JaideGUI(tk.Tk):
             if os.path.isdir(examples):
                 subprocess.call(('open', examples))
             else:
-                #TODO: open web browser link to the github examples page. 
-                pass
+                try:
+                    webbrowser.open('https://github.com/nprintz/jaide/examples')
+                except webbrowser.Error:
+                    pass
         elif os.name == 'nt':
             examples += "\\examples\\"
             if os.path.isdir(examples):
                 os.startfile(examples)  # this works on windows, not sure why pylint shows an error. 
             else: 
-                #TODO: open web browser link to github examples page.
-                pass
+                try:
+                    webbrowser.open('https://github.com/nprintz/jaide/examples')
+                except webbrowser.Error:
+                    pass
         elif os.name == 'posix':
             examples += "/examples/"
             if os.path.isdir(examples):
                 subprocess.call(('xdg-open', examples))
             else: 
-                #TODO: open web browser link to github examples page.
-                pass
+                try:
+                    webbrowser.open('https://github.com/nprintz/jaide/examples')
+                except webbrowser.Error:
+                    pass
 
 
     def write_to_output_area(self, output):
