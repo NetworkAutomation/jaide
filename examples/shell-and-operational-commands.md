@@ -86,7 +86,7 @@ Operational commands can be sent to any number of Junos devices using the `-c` a
 
 Any command that can be run from operational mode should be valid. This can include `show`, `request`, `ping`, `traceroute`, op scripts, etc. Be aware that just doing `ping 8.8.8.8` will result in output that never normally stops, breaking the script. To use ping, always include the count parameter to ensure output will end: `ping count 10 8.8.8.8` or `ping count 100 rapid www.yahoo.com`. 
 
-Pipes are a very useful tool for filtering or manipulating the output of a command. There is an [entire example document](working-with-pipes.html) on their use for both command line and GUI users named `working-with-pipes.html`. You will also notice that we unconditionally add a `| no-more` to all operational mode commands to ensure output is not buffered.  
+Pipes are a very useful tool for filtering or manipulating the output of a command. There is an [entire example document](working-with-pipes.md) on their use for both command line and GUI users named `working-with-pipes.html`. You will also notice that we unconditionally add a `| no-more` to all operational mode commands to ensure output is not buffered.  
 
 For the first example, we use a single command. Note the use of an abbreviated command.  
 

@@ -393,7 +393,7 @@ td:not(.linenos) .linenodiv { padding: 0 !important; }
 <li><a href="#version-history">Version History</a>  </li>
 </ul>
 <h2 id="description"><a name="user-content-description" href="#description" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Description:</h2>
-<p><strong>NOTE</strong> This tool is most beneficial to those who have a basic understanding of JUNOS. Please understand the ramifications of your actions when using this script before executing it. You can push very significant changes or CPU intensive commands to a lot of devices in the network from one command or GUI execution. This tool should be used with forethought, and we are not responsible for negligence, misuse, time, outages, damages or other repercussions as a result of using this tool. </p>
+<p><strong>NOTE</strong> This tool is most beneficial to those who have a basic understanding of JUNOS. This tool can be used to perform several functions against multiple Juniper devices running Junos very easily.  Please understand the ramifications of your actions when using this script before executing it. You can push very significant changes or CPU intensive commands to a lot of devices in the network from one command or GUI execution. This tool should be used with forethought, and we are not responsible for negligence, misuse, time, outages, damages or other repercussions as a result of using this tool. </p>
 <p>This is a python script to augment an engineer&rsquo;s ability to configure and manipulate multiple JUNOS devices at the same time. The command line arguments allow for performing a range of functions. Some features include being able to poll devices for interface errors, grab basic system information, send an operational mode command, or send and commit a file containing a list of set commands. A full list of features and their usage is available in the <a href="#usage">Usage</a> section below.</p>
 <p>There is a GUI that comes along with the script to maintain ease of use for the average network administrator. The GUI has a method to perform every function that the command line can do, all from one easy to use interface. More information on the GUI can be <a href="#jaide-gui-users">found below</a>.</p>
 <h2 id="python-requirements"><a name="user-content-python-requirements" href="#python-requirements" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Python Requirements:</h2>
@@ -407,12 +407,12 @@ td:not(.linenos) .linenodiv { padding: 0 !important; }
 <a href="http://www.voidspace.org.uk/python/modules.shtml#pycrypto">PyCrypto</a>  -  <a href="http://www.voidspace.org.uk/python/modules.shtml#pycrypto">http://www.voidspace.org.uk/python/modules.shtml#pycrypto</a></p>
 <p><strong>Linux (Debian/Ubuntu) Note -</strong> We had to get the python-dev package in addition to libxml2-dev and xlst1-dev for NCClient to install, even though they only list the latter two being needed.  </p>
 <h4 id="for-gui-users"><a name="user-content-for-gui-users" href="#for-gui-users" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>For GUI users:</h4>
-<p>The Jaide GUI requires <em>all</em> of the command line prerequisites. In addition, Jaide GUI users on all platforms also require PMW:<br />
+<p>Compiled versions for Mac and Windows come with all pre-reqs packaged in. However, when running jgui.py from the command line, the Jaide GUI requires <strong>all</strong> of the command line prerequisites. In addition, Jaide GUI users on all platforms also require PMW:<br />
 <a href="http://pmw.sourceforge.net/">PMW</a>  -  <a href="http://pmw.sourceforge.net/">http://pmw.sourceforge.net/</a></p>
 <p><strong>Linux (Debian/Ubuntu)</strong> users of the Jaide GUI will need to get the python-tk package as well.</p>
 <h2 id="usage"><a name="user-content-usage" href="#usage" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Usage:</h2>
 <h4 id="jaide-gui-users"><a name="user-content-jaide-gui-users" href="#jaide-gui-users" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Jaide GUI Users:</h4>
-<p>To launch and use the GUI, there are two methods available. Either use the compiled version for your operating system for <a href="https://github.com/geoffrhodes/jaide-windows-compile">Windows</a> and <a href="https://github.com/geoffrhodes/jaide-osx-compile">Mac</a>. You can also initiate the GUI by navigating to the folder with jgui.py in a terminal window and executing: <code>python jgui.py</code>. Further information on the Jaide GUI and operating it can be found in the GUI help file <a href="examples/working-with-jgui.html">here</a>.  </p>
+<p>To launch and use the GUI, there are two methods available. Either use the compiled version for your operating system for <a href="https://github.com/geoffrhodes/jaide-windows-compile">Windows</a> and <a href="https://github.com/geoffrhodes/jaide-osx-compile">Mac</a>. You can also initiate the GUI by navigating to the folder with jgui.py in a terminal window and executing: <code>python jgui.py</code>. Further information on the Jaide GUI and operating it can be found in the GUI help file <a href="examples/working-with-jgui.md">here</a>.  </p>
 <h4 id="jaidepy-command-line-arguments"><a name="user-content-jaidepy-command-line-arguments" href="#jaidepy-command-line-arguments" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Jaide.py Command Line Arguments:</h4>
 <p>There are many combinations of arguments that can be used to perform all functions available using the Jaide.py command line tool. Two arguments are always required: the <code>-i</code> target device(s), and one of the arguments for performing a given function [ -c | -e | &ndash;health | &ndash;info | -s | &ndash;scp | &ndash;shell ]. These functions are detailed below in the second table. </p>
 <p><strong>A destination IP or IP list is required:</strong>  The script will accept a single IP address, a quoted comma separated list, or a file with a list of IPs, separated by newlines. DNS hosts will work as well; resolution uses your machine&rsquo;s specified DNS server(s).  </p>
@@ -528,17 +528,17 @@ td:not(.linenos) .linenodiv { padding: 0 !important; }
 <code>python jaide.py -u user -p mypassword -i 10.0.0.123 --blank</code>  </p>
 <h4 id="detailed-examples-tips-and-help"><a name="user-content-detailed-examples-tips-and-help" href="#detailed-examples-tips-and-help" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Detailed Examples, Tips, and Help:</h4>
 <ul>
-<li><a href="examples/working-with-jgui.html">Some JGUI Tips and Notes</a>  </li>
-<li><a href="examples/working-with-authentication.html">Authentication Options - The <code>-u</code> and <code>-p</code> arguments</a>  </li>
-<li><a href="examples/checking-interface-errors.html">Checking Interface Errors - The <code>-e</code> argument</a>  </li>
-<li><a href="examples/get-device-info.html">Getting Device Info - The <code>-info</code> argument</a>  </li>
-<li><a href="examples/getting-health-checks.html">Getting Health Checks - The <code>-hc</code> argument</a>  </li>
-<li><a href="examples/making-commits.html">Making Commits - The <code>-s</code> argument</a>  </li>
-<li><a href="examples/working-with-timeout.html">Modifying Timeout Values</a>  </li>
-<li><a href="examples/shell-and-operational-commands.html">Shell and Operational Commands - The <code>-shell</code> and <code>-c</code> arguments</a>  </li>
-<li><a href="examples/working-with-many-devices.html">Working with Multiple Devices - The <code>-i</code> argument</a>  </li>
-<li><a href="examples/working-with-pipes.html">Working with Pipes inside commands</a>  </li>
-<li><a href="examples/scp-files-and-folders.html">Working with SCP - The <code>-scp</code> argument</a>  </li>
+<li><a href="examples/working-with-jgui.md">Some JGUI Tips and Notes</a>  </li>
+<li><a href="examples/working-with-authentication.md">Authentication Options - The <code>-u</code> and <code>-p</code> arguments</a>  </li>
+<li><a href="examples/checking-interface-errors.md">Checking Interface Errors - The <code>-e</code> argument</a>  </li>
+<li><a href="examples/get-device-info.md">Getting Device Info - The <code>-info</code> argument</a>  </li>
+<li><a href="examples/getting-health-checks.md">Getting Health Checks - The <code>-hc</code> argument</a>  </li>
+<li><a href="examples/making-commits.md">Making Commits - The <code>-s</code> argument</a>  </li>
+<li><a href="examples/working-with-timeout.md">Modifying Timeout Values</a>  </li>
+<li><a href="examples/shell-and-operational-commands.md">Shell and Operational Commands - The <code>-shell</code> and <code>-c</code> arguments</a>  </li>
+<li><a href="examples/working-with-many-devices.md">Working with Multiple Devices - The <code>-i</code> argument</a>  </li>
+<li><a href="examples/working-with-pipes.md">Working with Pipes inside commands</a>  </li>
+<li><a href="examples/scp-files-and-folders.md">Working with SCP - The <code>-scp</code> argument</a>  </li>
 </ul>
 <h4 id="currently-known-limitations"><a name="user-content-currently-known-limitations" href="#currently-known-limitations" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Currently Known Limitations</h4>
 <ul>
