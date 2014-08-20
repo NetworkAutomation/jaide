@@ -1,6 +1,13 @@
 Junos Aide (Jaide) and JGUI
 ===========================
+## About  
+Contributors: [Geoff Rhodes](mailto:geofflrhodes@gmail.com) and [Nathan Printz](mailto:fragmaster24@gmail.com)  
+[Main GitHub](https://github.com/nprintz/jaide)  
+[Compiled for OSX](https://github.com/geoffrhodes/jaide-osx-compile)  
+[Compiled for Windows](https://github.com/geoffrhodes/jaide-windows-compile)  
+
 ## Table of Contents:
+* [About](#about)  
 * [Description](#description)  
 * [Python Requirements](#python-requirements)  
 	- [For Command Line Version](#for-command-line-version)  
@@ -121,4 +128,5 @@ Send a blank commit.
 
 
 ## Version History:
-* v1.0  -  Initial Release. Includes jaide.py script for the command line feature set and jgui.py for the additional GUI wrapper. 
+* v0.9.1  -  Updated the links in all example files for the github repo. Updated the reamdme with some other documentation and about info. 
+* v0.9.0  -  Initial Release. Includes jaide.py script for the command line feature set and jgui.py for the additional GUI wrapper. 

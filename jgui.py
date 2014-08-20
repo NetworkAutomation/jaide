@@ -482,9 +482,10 @@ class JaideGUI(tk.Tk):
         """ Purpose: This will show the about text for the application.
         """
         aboutInfo = tk.Toplevel()
-        aboutInfoLabel = tk.Label(aboutInfo, text="The Jaide GUI Application is a GUI wrapper for the jaide.py script.\n\r"
-            "Version 0.9.0\n\rContributors: Geoff Rhodes and Nathan Printz\n\rMore information about Jaide and the Jaide"
-            " GUI can be found at https://github.com/nprintz/jaide", padx=50, pady=50)
+        aboutInfoLabel = tk.Label(aboutInfo, text="The Jaide GUI Application is a GUI wrapper for the jaide.py script.\n"
+            "Version 0.9.1\n\rContributors:\n Geoff Rhodes (geofflrhodes@gmail.com) and Nathan Printz (nkprintz@gmail.com)\n\rMore information about Jaide and the Jaide"
+            " GUI can be found at https://github.com/nprintz/jaide\n\rThe compiled versions can be found at:"
+            "\nWindows: https://github.com/geoffrhodes/jaide-windows-compile\nMac: https://github.com/geoffrhodes/jaide-osx-compile", padx=50, pady=50)
         aboutInfoLabel.pack()
 
 
