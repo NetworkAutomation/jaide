@@ -127,6 +127,6 @@ Send a blank commit.
 
 
 ## Version History:
-* v0.9.2  -  Enveloped the binary files on the release page, updated docs to reflect this change. 
+* v1.0.0  -  Enveloped the binary files on the release page, updated docs to reflect this change. Rolled over to version 1.0.0. 
 * v0.9.1  -  Updated the links in all example files for the github repo. Updated the reamdme with some other documentation and about info. 
 * v0.9.0  -  Initial Release. Includes jaide.py script for the command line feature set and jgui.py for the additional GUI wrapper. 
