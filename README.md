@@ -3,8 +3,7 @@ Junos Aide (Jaide) and JGUI
 ## About  
 Contributors: [Geoff Rhodes](https://github.com/geoffrhodes) and [Nathan Printz](https://github.com/nprintz)  
 [Source Repo](https://github.com/NetworkAutomation/jaide)  
-[Compiled for OSX](https://github.com/NetworkAutomation/jaide-osx-compile)  
-[Compiled for Windows](https://github.com/NetworkAutomation/jaide-windows-compile)  
+[OSX/Windows Compiled Versions](https://github.com/NetworkAutomation/jaide/releases/latest)  
 
 ## Table of Contents:
 * [About](#about)  
@@ -51,7 +50,7 @@ Compiled versions for Mac and Windows come with all pre-reqs packaged in. Howeve
 
 ## Usage: 
 #### Jaide GUI Users:
-To launch and use the GUI, there are two methods available. Either use the compiled version for your operating system for [Windows](https://github.com/NetworkAutomation/jaide-windows-compile) and [Mac](https://github.com/NetworkAutomation/jaide-osx-compile). You can also initiate the GUI by navigating to the folder with jgui.py in a terminal window and executing: `python jgui.py`. Further information on the Jaide GUI and operating it can be found in the GUI help file [here](examples/working-with-jgui.md).  
+To launch and use the GUI, there are two methods available. The first is to use the compiled version for your operating system for either [Windows or Mac](https://github.com/NetworkAutomation/jaide/releases/latest). The second is initiating the GUI by navigating to the source folder with jgui.py in terminal and executing: `python jgui.py`. Further information on the Jaide GUI and operating it can be found in the GUI help file [here](examples/working-with-jgui.md).  
 
 #### Jaide.py Command Line Arguments:
 There are many combinations of arguments that can be used to perform all functions available using the Jaide.py command line tool. Two arguments are always required: the `-i` target device(s), and one of the arguments for performing a given function [ -c | -e | --health | --info | -s | --scp | --shell ]. These functions are detailed below in the second table. 
@@ -128,5 +127,6 @@ Send a blank commit.
 
 
 ## Version History:
+* v0.9.2  -  Enveloped the binary files on the release page, updated docs to reflect this change. 
 * v0.9.1  -  Updated the links in all example files for the github repo. Updated the reamdme with some other documentation and about info. 
 * v0.9.0  -  Initial Release. Includes jaide.py script for the command line feature set and jgui.py for the additional GUI wrapper. 

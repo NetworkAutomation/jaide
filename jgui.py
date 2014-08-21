@@ -8,10 +8,10 @@ try:
     import tkMessageBox  # to prompt users during input validation errors
     import ttk  # Used for separators between frames of the UI.
     import Pmw  # Pmw is the extended menuwidget option giving us the ability to call a function when a option is chosen from the menu.
-    ### Processing and queueing
+    ### Processing and queuing
     import subprocess  # Used for opening help file with the browser. 
     import Queue
-    # In temrs of JGUI, we use multiprocessing to enable freeze_support. The worker_thread class uses multiprocessing 
+    # In terms of JGUI, we use multiprocessing to enable freeze_support. The worker_thread class uses multiprocessing 
     # further to run concurrent instances of the Jaide script when manipulating multiple devices. 
     import multiprocessing as mp
     ### Basic functions and manipulation. 
@@ -20,7 +20,7 @@ try:
     import os  # needed for opening files, file validation, getting directory names, etc.
     import sys  # needed for checking OS type.
     import base64  # for encoding/decoding text. 
-    import time  # needed to sleep very quickly when updating the UI, to prevent artifacting. 
+    import time  # needed to sleep very quickly when updating the UI, to prevent artifacts. 
     ### The following imports are modules that we have written. 
     import jaide
     # the jgui_widgets module extends basic Tkinter widgets for expressed use within the Jaide GUI
@@ -168,7 +168,7 @@ class JaideGUI(tk.Tk):
         ##### PASSWORD
         # label for Password
         self.password_label = tk.Label(self.creds_frame, text="Password: ")
-        # Entry widget for username
+        # Entry widget for the password
         self.password_entry = JaideEntry(self.creds_frame, show="*")
 
         ### WRITE TO FILE
@@ -178,10 +178,6 @@ class JaideGUI(tk.Tk):
         self.wtf_button = tk.Button(self.wtf_frame, text="Select File", command=self.open_wtf, takefocus=0)
         # Write to file checkbox
         self.wtf_checkbox = JaideCheckbox(self.wtf_frame, text="Write to file", command=self.check_wtf, takefocus=0)
-
-        # Help label sits next in the target device section
-        self.help_value = tk.StringVar("")
-        self.help_label = tk.Label(self.help_frame, textvariable=self.help_value, justify="left", anchor="nw", wraplength=750)
 
         ### OPTIONS
         # stores which option from options_list is selected
@@ -223,6 +219,10 @@ class JaideGUI(tk.Tk):
         self.commit_blank = JaideCheckbox(self.options_frame, text="Blank Commit", command=lambda: self.commit_option_update('blank'), takefocus=0)
         # These are used to keep rows 1 and 2 of options_frame from being empty and thus hidden
         self.spacer_label = tk.Label(self.options_frame, takefocus=0)
+
+        # Help label sits next in the target device section
+        self.help_value = tk.StringVar("")
+        self.help_label = tk.Label(self.help_frame, textvariable=self.help_value, justify="left", anchor="nw", wraplength=750)
 
         ### Buttons
         self.go_button = tk.Button(self.buttons_frame, command=lambda: self.go(None), text="Run Script", takefocus=0)
@@ -452,7 +452,7 @@ class JaideGUI(tk.Tk):
         """ Purpose: This function is used to validate the inputs of the user when they press the 'Run Script' button.
                      It will return a boolean with True for passing the checks, and False if we failed the validation.
         """
-        # IP address entry must be a valied ipv4 address if we're running against a single ip
+        # IP address entry must be a valid IPv4 address if we're running against a single IP
         if not re.match(self.ip_test, self.ip_entry.get().strip()) and not os.path.isfile(self.ip_entry.get().strip()):
             tkMessageBox.showinfo("IP Entry", "Either an invalid IP address was entered, an invalid comma separated list of IPs, or the IP Address list file not found.")
         # Making sure the user typed something into the IP field. 
@@ -484,8 +484,8 @@ class JaideGUI(tk.Tk):
         aboutInfo = tk.Toplevel()
         aboutInfoLabel = tk.Label(aboutInfo, text="The Jaide GUI Application is a GUI wrapper for the jaide.py script.\n"
             "Version 0.9.1\n\rContributors:\n Geoff Rhodes (https://github.com/geoffrhodes) and Nathan Printz (https://github.com/nprintz)\n\rMore information about Jaide and the Jaide"
-            " GUI can be found at https://github.com/NetworkAutomation/jaide\n\rThe compiled versions can be found at:"
-            "\nWindows: https://github.com/NetworkAutomation/jaide-windows-compile\nMac: https://github.com/NetworkAutomation/jaide-osx-compile", padx=50, pady=50)
+            " GUI can be found at https://github.com/NetworkAutomation/jaide\n\rThe compiled versions for Windows or Mac can be found at:"
+            "\nhttps://github.com/NetworkAutomation/jaide/releases/latest", padx=50, pady=50)
         aboutInfoLabel.pack()
 
 
@@ -710,7 +710,7 @@ class JaideGUI(tk.Tk):
 
         # Update the help text for the new command
         self.help_value.set(self.help_conversion[self.option_value.get()])
-        time.sleep(.05)  # sleep needed to avoid artifacting when updating the frames
+        time.sleep(.05)  # sleep needed to avoid artifacts when updating the frames
         # Update the UI after we've made our changes
         self.update()
 
@@ -849,7 +849,7 @@ class JaideGUI(tk.Tk):
                      __init__() to create the frames on starting the program. 
         """
 
-        self.ip_cred_frame.grid(row=0, column=0, sticky="NW", padx=(25,25), pady=(25, 0))
+        self.ip_cred_frame.grid(row=0, column=0, sticky="NW", padx=(25, 25), pady=(25, 0))
         
         self.sep2.grid(row=1, column=0, sticky="WE", pady=8, padx=8)
 
@@ -875,13 +875,11 @@ class JaideGUI(tk.Tk):
         if self.frames_shown:
             self.ip_cred_frame.grid_forget()
             self.wtf_frame.grid_forget()
-            #self.options_frame.grid_forget()
             self.help_frame.grid_forget()
 
             self.sep2.grid_forget()
             self.sep3.grid_forget()
             self.sep4.grid_forget()
-            #self.sep5.grid_forget()
 
             self.update()
             self.frames_shown = False

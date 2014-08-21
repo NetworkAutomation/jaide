@@ -377,8 +377,7 @@ td:not(.linenos) .linenodiv { padding: 0 !important; }
 <h2 id="about"><a name="user-content-about" href="#about" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>About</h2>
 <p>Contributors: <a href="https://github.com/geoffrhodes">Geoff Rhodes</a> and <a href="https://github.com/nprintz">Nathan Printz</a><br />
 <a href="https://github.com/NetworkAutomation/jaide">Source Repo</a><br />
-<a href="https://github.com/NetworkAutomation/jaide-osx-compile">Compiled for OSX</a><br />
-<a href="https://github.com/NetworkAutomation/jaide-windows-compile">Compiled for Windows</a>  </p>
+<a href="https://github.com/NetworkAutomation/jaide/releases/latest">OSX/Windows Compiled Versions</a>  </p>
 <h2 id="table-of-contents"><a name="user-content-table-of-contents" href="#table-of-contents" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Table of Contents:</h2>
 <ul>
 <li><a href="#about">About</a>  </li>
@@ -418,7 +417,7 @@ td:not(.linenos) .linenodiv { padding: 0 !important; }
 <p><strong>Linux (Debian/Ubuntu)</strong> users of the Jaide GUI will need to get the <code>python-tk</code> package as well.</p>
 <h2 id="usage"><a name="user-content-usage" href="#usage" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Usage:</h2>
 <h4 id="jaide-gui-users"><a name="user-content-jaide-gui-users" href="#jaide-gui-users" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Jaide GUI Users:</h4>
-<p>To launch and use the GUI, there are two methods available. Either use the compiled version for your operating system for <a href="https://github.com/NetworkAutomation/jaide-windows-compile">Windows</a> and <a href="https://github.com/NetworkAutomation/jaide-osx-compile">Mac</a>. You can also initiate the GUI by navigating to the folder with jgui.py in a terminal window and executing: <code>python jgui.py</code>. Further information on the Jaide GUI and operating it can be found in the GUI help file <a href="examples/working-with-jgui.md">here</a>.  </p>
+<p>To launch and use the GUI, there are two methods available. The first is to use the compiled version for your operating system for either <a href="https://github.com/NetworkAutomation/jaide/releases/latest">Windows or Mac</a>. The second is initiating the GUI by navigating to the source folder with jgui.py in terminal and executing: <code>python jgui.py</code>. Further information on the Jaide GUI and operating it can be found in the GUI help file <a href="examples/working-with-jgui.md">here</a>.  </p>
 <h4 id="jaidepy-command-line-arguments"><a name="user-content-jaidepy-command-line-arguments" href="#jaidepy-command-line-arguments" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Jaide.py Command Line Arguments:</h4>
 <p>There are many combinations of arguments that can be used to perform all functions available using the Jaide.py command line tool. Two arguments are always required: the <code>-i</code> target device(s), and one of the arguments for performing a given function [ -c | -e | &ndash;health | &ndash;info | -s | &ndash;scp | &ndash;shell ]. These functions are detailed below in the second table. </p>
 <p><strong>A destination IP or IP list is required:</strong>  The script will accept a single IP address, a quoted comma separated list, or a file with a list of IPs, separated by newlines. DNS hosts will work as well; resolution uses your machine&rsquo;s specified DNS server(s).  </p>
@@ -552,6 +551,7 @@ td:not(.linenos) .linenodiv { padding: 0 !important; }
 </ul>
 <h2 id="version-history"><a name="user-content-version-history" href="#version-history" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Version History:</h2>
 <ul>
+<li>v0.9.2  -  Enveloped the binary files on the release page, updated docs to reflect this change. </li>
 <li>v0.9.1  -  Updated the links in all example files for the github repo. Updated the reamdme with some other documentation and about info. </li>
 <li>v0.9.0  -  Initial Release. Includes jaide.py script for the command line feature set and jgui.py for the additional GUI wrapper. </li>
 </ul></body></html>

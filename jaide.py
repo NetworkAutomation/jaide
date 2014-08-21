@@ -1,6 +1,9 @@
 """
-For information on the Jaide script, refer to the readme file. We have provided some information 
-about NCClient here, since it can get confusing in some situations. 
+This jaide.py script is intended for use by network administrators with Junos devices to be able to 
+manipulate or retrieve information from many devices very quickly and easily. For expansive information 
+on the Jaide script, and how JGUI interacts with it, refer to the readme file.
+
+We have provided some information about NCClient here, since it can get confusing in some situations. 
 
 NCClient Information:
     manager.command() can be run with format = 'xml' or 'text', and returns an XML object or string
@@ -9,10 +12,12 @@ NCClient Information:
 
     Using .tostring will return a text string of the values of all leaves within the xml tree.
 
-    Using xpath() will return an array of xml leaves, that each has the text property for returning the value of a leaf.
+    Using xpath() will return an array of xml leaves, that each has the text property for returning 
+    the value of a leaf.
 
     By default, a show config command run on JUNOS does not return with full XML tags.
-    To do xpath on a show config command, explicitly include '| display xml' on the end of the command before handing off to manager.command().
+    To do xpath on a show config command, explicitly include '| display xml' on the end of the command
+     before handing off to manager.command().
 
     On Junos, non-config commands can be run with '| display xml rpc' appended to get the rpc command.
 """
