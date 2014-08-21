@@ -114,14 +114,14 @@ Send a blank commit.
 * [Some JGUI Tips and Notes](examples/working-with-jgui.md)  
 * [Authentication Options - The `-u` and `-p` arguments](examples/working-with-authentication.md)  
 * [Checking Interface Errors - The `-e` argument](examples/checking-interface-errors.md)  
-* [Getting Device Info - The `-info` argument](examples/get-device-info.md)  
-* [Getting Health Checks - The `-hc` argument](examples/getting-health-checks.md)  
+* [Getting Device Info - The `-I` argument](examples/get-device-info.md)  
+* [Getting Health Checks - The `-H` argument](examples/getting-health-checks.md)  
 * [Making Commits - The `-s` argument](examples/making-commits.md)  
 * [Modifying Timeout Values](examples/working-with-timeout.md)  
-* [Shell and Operational Commands - The `-shell` and `-c` arguments](examples/shell-and-operational-commands.md)  
+* [Shell and Operational Commands - The `-l` and `-c` arguments](examples/shell-and-operational-commands.md)  
 * [Working with Multiple Devices - The `-i` argument](examples/working-with-many-devices.md)  
 * [Working with Pipes inside commands](examples/working-with-pipes.md)  
-* [Working with SCP - The `-scp` argument](examples/scp-files-and-folders.md)  
+* [Working with SCP - The `-S` argument](examples/scp-files-and-folders.md)  
 
 #### Currently Known Limitations  
 * The SCP command is known to break in two scenarios. If it comes across a file that the user credentials used to authenticate doesn't have permissions for, it will stop transferring. The other case is if you are transferring a file to a location where a folder exists by the same name. In both of these cases, the transfer will stop, and anything after that file will not be transferred (if the transfer was recursive). We have posed this to the creators of the SCP module, and are awaiting a new version/feedback.  
