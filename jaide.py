@@ -584,7 +584,13 @@ def multi_cmd(conn, ip, commands, shell, timeout=300):
                 else:  # make sure shell commands end in '\n', so the command will actually send.
                     cmd = cmd.strip() + "\n"
                 screen_output += '\n> ' + cmd + run_cmd(conn, ip, cmd, timeout)
-    conn.close_session()
+    try:
+        conn.close_session()
+    except AttributeError:
+        try:
+            conn.close()
+        except:
+            pass
     return screen_output
 
 
