@@ -1,3 +1,8 @@
+# This Class is part of the jaide/jgui project.
+# It is free software for use in manipulating junos devices. More information can be found at the github page found here:
+# 
+#  https://github.com/NetworkAutomation/jaide
+# 
 """ These classes are used to extend Tkinter's base functionality and provide variables for tracking the value of widget within 
 	widget itself. The JaideEntry class documented here below is an example of doing that by using the self.contents variable to
 	track the value of the text within the entry widget. The JaideCheckbox class does this same with self.contents acting as a 
@@ -30,12 +35,21 @@ class JaideEntry(tk.Entry):
             
 
     def get(self):
-        """ This function is used to return the value of the entry object. """
+        """ This function is used to return the value of the entry object. 
+
+            @returns: string contents of the field.
+            @rtype: str
+        """
         return self.contents.get()
 
 
     def set(self, value):
-        """ Sets the value of the JaideEntry widget. """
+        """ Sets the value of the JaideEntry widget. 
+
+            @param value: The string value to set the entry field to.
+            @type value: str
+            @returns: None
+        """
         self.contents.set(value)
 
 
@@ -51,13 +65,93 @@ class JaideCheckbox(tk.Checkbutton):
 
 
     def get(self):
-        """ Retrieve the integer value of the checkbox,  0 = unchecked, 1 = checked. """
+        """ Retrieve the integer value of the checkbox,  0 = unchecked, 1 = checked. 
+
+            @returns: the integer value of the checkbox, 0 = unchecked, 1 = checked.
+            @rtype: int
+        """
         return self.contents.get()
 
 
     def set(self, value):
-        """ Set the value of the checkbox to 0 or 1, thereby checking or unchecking it. """
+        """ Set the value of the checkbox to 0 or 1, thereby checking or unchecking it. 
+            
+            @param value: The boolean value to set the checkbox to: 0 is unchecked, 1 is checked.
+            @type value: int
+            @returns: None
+        """
         self.contents.set(value)
+
+
+class JaideRadiobutton():
+    """ The JaideRadiobutton class extends the Tkinter.Radiobutton class so we can automatically tie a variable to the radio button.
+    """
+
+    def __init__(self, parent, text, values, **kw):
+        """ Inititializes the RadioButton wrapper to handle a group of radio buttons with a single object.
+
+        @param text: A list with each element being a string containing the display text for one of the radio buttons.
+        @type value: list of strings
+
+        @param values: A list of either strings or ints containing the return value for each radio button. Index must match text.
+        @type values: list of integers or strings
+
+        @param **kw: Allows for passing of other arguments to the constructor of the tk.Radiobuttons. Will be applied to all buttons.
+
+        """
+        self.Radiobuttons = []
+        self.parent = parent
+        self.text = text
+        self.values = values
+        if isinstance(text[0], basestring):
+            self.contents = tk.StringVar()
+        elif isinstance(text[0], int):
+            self.contents = tk.IntVar()
+        for x in range(len(text)):
+            self.Radiobuttons.append(tk.Radiobutton(parent, text=text[x], value=values[x], variable=self.contents, **kw))
+        self.Radiobuttons[0].select()
+
+    def get(self):
+        """ Returns the value of the currently selected radio button.
+        """
+        return self.contents.get()
+
+    def grid(self, indextype, index, **kw):
+        """ Grids the selected tkinter radiobutton with the arguments passed in kw.
+
+            @param indextype: string of either index or key
+            @param index: either the number index in the list passed for text/value or the value itself
+                          referencing the radiobutton
+        """
+        if indextype == "index":
+            self.Radiobuttons[index].grid(**kw)
+        if indextype == "key":
+            self.Radiobuttons[self.values.index(index)].grid(**kw)
+
+    def grid_forget(self, indextype, index):
+        """ Calls grid_forget() on the selected radiobutton.
+
+            @param indextype: string of either index or key
+            @param index: either the number index in the list passed for text/value or the value itself
+                          referencing the radiobutton
+        """
+        if indextype == "index":
+            self.Radiobuttons[index].grid_forget()
+        if indextype == "key":
+            self.Radiobuttons[self.values.index(index)].grid_forget()
+        
+
+    def set(self, indextype, index):
+        """ Calls select() on the selected radiobutton.
+
+            @param indextype: string of either index or key
+            @param index: either the number index in the list passed for text/value or the value itself
+                          referencing the radiobutton
+        """
+        if indextype == "index":
+            self.Radiobuttons[index].select()
+        if indextype == "key":
+            self.Radiobuttons[self.values.index(index)].select()
 
 
 class AutoScrollbar(tk.Scrollbar):

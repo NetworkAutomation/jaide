@@ -429,31 +429,27 @@ scp: /var/log/escript.log: Permission denied
 scp: /var/log/op-script.log: Permission denied
 T1371178881 0 1371178824 0
 !!!</code></pre>
-<p>Here is copying the /var/log file from multiple devices successfully (the received statements are out of order due to the simultaneous nature of retrieving the files):</p>
+<p>Here is copying the /var/log file from multiple devices successfully:</p>
 <pre><code>$ python jaide.py -i ~/desktop-link/iplist.txt &ndash;scp pull /var/log ~/desktop-link/scp/
 ==================================================
-Results from device: 172.25.1.22
-Retrieving 172.25.1.22:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.22_log
-
-==================================================
-Results from device: 172.25.1.21
-Retrieving 172.25.1.21:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.21_log
-
-==================================================
-Results from device: 172.25.1.51
-Retrieving 172.25.1.51:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.51_log
+Results from device: 172.25.1.60
+Retrieving 172.25.1.60:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.60_log
+Received /var/log from 172.25.1.60.
 
 ==================================================
 Results from device: 172.25.1.61
 Retrieving 172.25.1.61:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.61_log
+Received /var/log from 172.25.1.61.
 
-Received /var/log from 172.25.1.22.
-
+==================================================
+Results from device: 172.25.1.51
+Retrieving 172.25.1.51:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.51_log
 Received /var/log from 172.25.1.51.
 
-Received /var/log from 172.25.1.21.
-
-Received /var/log from 172.25.1.61.</code></pre>
+==================================================
+Results from device: 172.25.1.22
+Retrieving 172.25.1.22:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.22_log
+Received /var/log from 172.25.1.22.</code></pre>
 <h3 id="pushing-local-files-and-folders-to-remote-devices"><a name="user-content-pushing-local-files-and-folders-to-remote-devices" href="#pushing-local-files-and-folders-to-remote-devices" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Pushing local files and folders to remote device(s)</h3>
 <p>Here is pushing a single file to a single remote device:</p>
 <pre><code>$ python jaide.py -i 172.25.1.21 &ndash;scp push ~/desktop-link/scp/template /var/tmp
@@ -519,28 +515,24 @@ Transferred 100% of the file wtmp.2.gz
 Transferred 100% of the file wtmp.3.gz                                  
 Transferred 100% of the file wtmp.4.gz                                  
 Pushed /Users/nprintz/desktop-link/scp/172.25.1.21_log to 172.25.1.21:/var/tmp/</code></pre>
-<p>Here is pushing a file to multiple remote devices. You will again see the simultaneous nature of the transfer jumbling the output a bit:</p>
+<p>Here is pushing a file to multiple remote devices:</p>
 <pre><code>$ python jaide.py -i ~/desktop-link/iplist.txt &ndash;scp push ~/desktop-link/scp/template /var/tmp
 ==================================================
 Results from device: 172.25.1.21
 Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/
+Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/
 
 ==================================================
 Results from device: 172.25.1.22
 Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.22:/var/tmp/
+Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.22:/var/tmp/
 
 ==================================================
 Results from device: 172.25.1.51
 Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.51:/var/tmp/
-
-Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/
-
-Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.22:/var/tmp/
-
 Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.51:/var/tmp/
 
 ==================================================
 Results from device: 172.25.1.61
 Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.61:/var/tmp/
-
 Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.61:/var/tmp/</code></pre></body></html>

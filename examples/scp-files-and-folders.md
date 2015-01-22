@@ -67,32 +67,28 @@ In this example, we try to copy the `/var/log` folder from a device to the local
 	T1371178881 0 1371178824 0
 	!!!
 
-Here is copying the /var/log file from multiple devices successfully (the received statements are out of order due to the simultaneous nature of retrieving the files):
+Here is copying the /var/log file from multiple devices successfully:
 
 	$ python jaide.py -i ~/desktop-link/iplist.txt --scp pull /var/log ~/desktop-link/scp/
 	==================================================
-	Results from device: 172.25.1.22
-	Retrieving 172.25.1.22:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.22_log
-
-	==================================================
-	Results from device: 172.25.1.21
-	Retrieving 172.25.1.21:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.21_log
-
-	==================================================
-	Results from device: 172.25.1.51
-	Retrieving 172.25.1.51:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.51_log
+	Results from device: 172.25.1.60
+	Retrieving 172.25.1.60:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.60_log
+	Received /var/log from 172.25.1.60.
 
 	==================================================
 	Results from device: 172.25.1.61
 	Retrieving 172.25.1.61:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.61_log
-
-	Received /var/log from 172.25.1.22.
-
-	Received /var/log from 172.25.1.51.
-
-	Received /var/log from 172.25.1.21.
-
 	Received /var/log from 172.25.1.61.
+
+	==================================================
+	Results from device: 172.25.1.51
+	Retrieving 172.25.1.51:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.51_log
+	Received /var/log from 172.25.1.51.
+	
+	==================================================
+	Results from device: 172.25.1.22
+	Retrieving 172.25.1.22:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.22_log
+	Received /var/log from 172.25.1.22.
 
 ### Pushing local files and folders to remote device(s)
 
@@ -166,29 +162,26 @@ Here is pushing a directory to a remote device:
 
 
 
-Here is pushing a file to multiple remote devices. You will again see the simultaneous nature of the transfer jumbling the output a bit:
+Here is pushing a file to multiple remote devices:
 
 	$ python jaide.py -i ~/desktop-link/iplist.txt --scp push ~/desktop-link/scp/template /var/tmp
 	==================================================
 	Results from device: 172.25.1.21
 	Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/
+	Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/
 
 	==================================================
 	Results from device: 172.25.1.22
 	Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.22:/var/tmp/
+	Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.22:/var/tmp/
 
 	==================================================
 	Results from device: 172.25.1.51
 	Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.51:/var/tmp/
-
-	Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/
-
-	Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.22:/var/tmp/
-
 	Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.51:/var/tmp/
 
 	==================================================
 	Results from device: 172.25.1.61
 	Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.61:/var/tmp/
-
 	Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.61:/var/tmp/
+

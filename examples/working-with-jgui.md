@@ -12,6 +12,10 @@ Templates are a very useful feature for saving a common scenario for repeated us
 
 **Note -** Passwords are stored in the template in a base64 encoded format. While this is not human readable, it should not be considered fully encrypted nor secure. If you do not want the password stored in this manner simply leave the password field blank when you save the template. 
 
+#### Defaults
+
+A special template called `defaults.ini` can be used to prepopulate the options fields on load. `Set as defaults` from the `File` menu can be used to write the current values to the `defaults.ini` file for future program executions. 
+
 #### Keyboard Shortcuts  
 
 Any of the following keyboard shortcuts can be used to manipulate the GUI:  

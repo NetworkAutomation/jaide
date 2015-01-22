@@ -1,3 +1,8 @@
+# This Class is part of the jaide/jgui project.
+# It is free software for use in manipulating junos devices. More information can be found at the github page found here:
+# 
+#  https://github.com/NetworkAutomation/jaide
+#  
 """
 This jaide.py script is intended for use by network administrators with Junos devices to be able to 
 manipulate or retrieve information from many devices very quickly and easily. For expansive information 
@@ -23,13 +28,14 @@ NCClient Information:
 """
 # This is for modifying printed output (used for --scp to rewrite the same line multiple times.)
 # It is required to be at the top of the file. 
-from __future__ import print_function  
-
+from __future__ import print_function
 # Imports:
 try:
+    from lxml import etree, objectify
     from ncclient import manager
     import xml.etree.ElementTree as ET  # needed to parse strings into xml for cases when ncclient doesn't handle it (commit, validate, etc)
     from ncclient.operations.rpc import RPCError  # RPCErrors are returned in certain instances, such as when the candidate config is locked because someone is editing it.
+    from ncclient.operations.errors import TimeoutExpiredError
     from ncclient.transport import errors
     import argparse  # for parsing command line arguments.
     import getpass  # for retrieving password input from the user without echoing back what they are typing.
@@ -39,6 +45,7 @@ try:
     import logging  # logging needed for disabling paramiko logging output
     import socket  # used for catching timeout errors on paramiko sessions
     import time
+    import re
 except ImportError as e:
     print("FAILED TO IMPORT ONE OR MORE PACKAGES.\nNCCLIENT\thttps://github.com/leopoul/ncclient/\nPARAMIKO\thttps://github.com/paramiko/paramiko\n\n"
             "For windows users, you will also need PyCrypto:\nPYCRYPTO\thttp://www.voidspace.org.uk/python/modules.shtml#pycrypto"
@@ -48,60 +55,85 @@ except ImportError as e:
     raise e
 
 # -i is a required parameter, the rest are optional arguments
-parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Required Modules:\n\tNCCLIENT - https://github.com/leopoul/ncclient/ \n\tPARAMIKO - https://github.com/paramiko/paramiko \n\tSCP - "
-                                "https://pypi.python.org/pypi/scp/ \n\tPyCrypto - http://www.voidspace.org.uk/python/modules.shtml#pycrypto \n\nThis script can be used as an aide to easily do the same command(s) to multiple juniper devices. "
-                                 "The only required arguments are the destination IP address(es), and one of the following commands:\nSingle Format: "
-                                 "\t[ -c | -e | -H | -I | -s | -S | -l | -b ]\nName Format: \t[ --command | --errors | --health | --info | --set | --scp | --shell | --blank ]",
-                                 prog='Jaide', usage="%(prog)s -i IP [-c [operational_mode_commands | file_of_operational_commands] | -e | -H | -I | -s"
-                                 " [set_commands | file_of_set_commands] | -S [push | pull] source destination | -l [shell_commands | file_of_shell_commands] | -b]")
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Required Modules:\n\tNCCLIENT - https://github.com/leopoul/ncclient/ \n\tPARAMIKO - "
+                                "https://github.com/paramiko/paramiko \n\tSCP - https://pypi.python.org/pypi/scp/ \n\tPyCrypto - http://www.voidspace.org.uk/python/modules.shtml#pycrypto"
+                                "\n\nThis script can be used as an aide to easily do the same command(s) to multiple juniper devices. "
+                                "The only required arguments are the destination IP address(es), and one of the following commands:\nSingle Format: "
+                                "\t[ -c | -e | -H | -I | -s | -S | -l | -b ]\nName Format: \t[ --command | --errors | --health | --info | --set | --scp | --shell | --blank ]",
+                                prog='jaide.py', usage="%(prog)s -i IP [-c [operational_mode_commands | file_of_operational_commands] | -e | -H | -I | -s"
+                                " [set_commands | file_of_set_commands] | -S [push | pull] source destination | -l [shell_commands | file_of_shell_commands] | -b]")
 parser.add_argument("-i", "--ip", required=True, dest='ip', type=str, help="The target device(s) to run the script against. This can be a single target device IP address, "
-                        "a quoted comma separated list of IP's, or a filepath to a file containing IP's on each line. DNS resolution will work using your machine's specified DNS server.")
+                    "a quoted comma separated list of IP's, or a filepath to a file containing IP's on each line. DNS resolution will work using your machine's specified DNS server.")
 parser.add_argument("-u", "--username", dest='username', type=str, default='default', help="Username  -  Will prompt if not specified.")
 parser.add_argument("-p", "--password", dest='password', type=str, default='default', help="Password  -  Will prompt if not specified.")
-parser.add_argument("-w", "--write", dest='write', metavar="OUTPUT_FILENAME", type=str, help="Specify a filename to write any output.")
-parser.add_argument("-q", "--quiet", dest='quiet', action="store_true", help="Prevent script from prompting for further user input.")
+parser.add_argument("-w", "--write", dest='write', metavar=("[s/single | m/multiple]", "OUTPUT_FILENAME"), nargs=2, type=str, help="Specify a filename to write all script "
+                    "output. Also requires whether to write to a single file or a separate file per IP. (ex. -w s ~/Desktop/output.txt). The output format for the names of multiple files is IP_OUTPUTFILENAME.")
+parser.add_argument("-q", "--quiet", dest='quiet', action="store_true", help="Can be used with --scp when copying to/from a single device to prevent seeing the live "
+                    "status of the transfer. Might be useful when transmitting a large number of files/folders.")
 parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=300, help="Specify the timeout value for the NCClient connection, in seconds."
                     " Default is 300 seconds. This should be increased when no output could be seen for more than 5 minutes (ex. requesting a system snapshot).")
+parser.add_argument("-f", "--format", dest="format", type=str, default='text', metavar='[ text | xml ]', help="Formats output to text or xml. Should be used with -c."
+                    " Default format is text. Including an xpath expression after a command forces XML output (EX. \"show route %% //rt-entry\").")
 
 # Script functions: Must select one and only one.
 group1 = parser.add_mutually_exclusive_group(required=True)
-group1.add_argument("-c", "--command", dest='command', metavar="[operational_mode_commands | file_of_operational_commands]", type=str, help="Send a single operational mode command to device(s).")
+group1.add_argument("-c", "--command", dest='command', metavar="[operational_mode_commands | file_of_operational_commands]", type=str, help="Send a single operational"
+                    " mode command to device(s). A trailing '%%' followed by an xpath expression will filter the xml results by that expression. For example: 'show route %% //rt-entry'")
 group1.add_argument("-e", "--errors", dest='int_error', action='store_true', help='Check all interfaces for errors.')
 group1.add_argument("-H", "--health", dest="health_check", action="store_true", help="Grab a Health Check: CPU/Mem usage, alarms, etc from device.")
 group1.add_argument("-I", "--info", dest='info', action='store_true', help="Get basic device info (Serial #, Model, etc).")
 group1.add_argument("-s", "--set", dest='make_commit', metavar="[set_commands | file_of_set_commands]", type=str, help="Send and commit set command(s) to device(s). "
-                    "Can be a single quoted command, a quoted comma separated list of commands, or a file with a list of set commands on each line. Can be used with the commit options --check, --confirm, and --blank.")
+                    "Can be a single quoted command, a quoted comma separated list of commands, or a file with a list of set commands on each line. "
+                    "Can be used with the commit options --check, --confirm, --blank, --comment, --synchronize, and --at.")
 group1.add_argument("-S", "--scp", nargs=3, dest="scp", type=str, metavar=("[push | pull]", "source", "destination"), help="The SCP argument -S expects three arguments."
                     " In order, they are the direction 'push' or 'pull', the source file/folder, and the destination file/folder."
                     " For example, this could be used to pull a directory using '--scp pull /var/tmp /path/to/local/destination'")
-group1.add_argument("-l", "--shell", dest='shell', metavar="[shell_commands | file_of_shell_commands]", type=str, help="Similar to -c, except it will run the commands from shell instead of operational mode.")
+group1.add_argument("-l", "--shell", dest='shell', metavar="[shell_commands | file_of_shell_commands]", type=str, help="Similar to -c, except it will run the commands from "
+                    "shell instead of operational mode.")
 group1.add_argument("-b", "--blank", dest="commit_blank", action='store_true', help="Can be used with or without -s to make a blank commit. A key use case is when trying"
-                        " to confirm a commit confirm. --confirm, --check and --blank are mutually exclusive!")
+                    " to confirm a commit confirm. --confirm, --check, --blank, and --at are mutually exclusive!")
 
 # Commit options. These options are mutually exclusive. 
 group2 = parser.add_mutually_exclusive_group()
 group2.add_argument("-m", "--confirm", dest='commit_confirm', metavar="CONFIRM_MINUTES", type=int, choices=range(1, 61), help="Can be used with -s to make a confirmed commit. "
-                        "Accepts a number in /minutes/ between 1 and 60! --confirm, --check and --blank are mutually exclusive!")
+                    "Accepts a number in /minutes/ between 1 and 60! --confirm, --check, --blank, and --at are mutually exclusive!")
 group2.add_argument("-k", "--check", dest="commit_check", action='store_true', help="Can be used with -s to only run a commit check, and not commit the changes."
-                        " --confirm, --check and --blank are mutually exclusive!")
+                    " --confirm, --check, --blank, and --at are mutually exclusive!")
+group2.add_argument("-a", "--at", dest='commit_at', type=str, metavar="COMMIT_AT_TIME", help="Specify a time for the device to make the commit at. Junos expects one of two formats: "
+                    "A time value of the form 'hh:mm[:ss]' or a date and time value of the form 'yyyy-mm-dd hh:mm[:ss]' (seconds are optional).")
 
+# Inclusive commit options that can be used with each other and the other mutually exclusive options.
+group3 = parser.add_argument_group('Inclusive Commit Options', 'Unlike the other mutually exclusive commit options, '
+                                   'these options below can be used with each other or together with any other commit option.')
+group3.add_argument('-C', '--comment', dest="commit_comment", type=str, help="Add a comment to the commit that will be written to the commit log. This should be a quoted string.")
+group3.add_argument('-y', '--synchronize', dest="commit_synchronize", action='store_true', help="Enforce a commit synchronize operation.")
 
 def do_netconf(ip, username, password, function, args, write_to_file, timeout=300):
     """ Purpose: To open an NCClient manager session to the device, and run the appropriate function against the device.
-        Parameters:
-            ip          -   String of the IP of the device, to open the connection, and for logging purposes.
-            username    -   The string username used to connect to the device.
-            password    -   The string password used to connect to the device.
-            function    -   Pointer to function to run after opening connection
-            args        -   Args to pass through to function
-            write_to_file   -   The filepath specified by the user as to where to place the output from the script. Used to prepend the output
-                                string with the filepath, so that the write_output() function can find it easily, without needing another argument. 
-            timeout     -   Sets netconf timeout. Defaults to 300 seconds. A higher value may be desired for long running commands, 
-                            such as 'request system snapshot slice alternate'
+
+        @param ip: String of the IP of the device, to open the connection, and for logging purposes.
+        @type ip: str or unicode
+        @param username: The string username used to connect to the device.
+        @type useranme: str or unicode
+        @param password: The string password used to connect to the device.
+        @type password: str or unicode
+        @param function: Pointer to function to run after opening connection
+        @type function: function
+        @param args: Args to pass through to function
+        @type args: list
+        @param write_to_file: The filepath specified by the user as to where to place the output from the script. Used to prepend the output
+                            | string with the filepath, so that the write_output() function can find it easily, without needing another argument. 
+        @type write_to_file: str or unicode
+        @param timeout: Sets netconf timeout. Defaults to 300 seconds. A higher value may be desired for long running commands, 
+                      | such as 'request system snapshot slice alternate'
+        @type timeout: int
+        
+        @returns: The string output that should displayed to the user, which eventually makes it to the write_output() function. 
+        @rtype: str
     """
     user_output = ""
     if write_to_file:  # this is used to track the filepath that we will output to. The write_output() function will pick this up. 
-        user_output += "*****WRITE_TO_FILE*****" + write_to_file + "*****WRITE_TO_FILE*****"
+        user_output += "*****WRITE_TO_FILE*****" + write_to_file[1] + "*****WRITE_TO_FILE*****" + write_to_file[0] + "*****WRITE_TO_FILE*****"
     try:
         # Uses paramiko for show commands to allow pipe modifiers, and allow to move between shell and operational mode
         # depending on the user we log into the device as. 
@@ -156,13 +188,13 @@ def do_netconf(ip, username, password, function, args, write_to_file, timeout=30
                 )
             conn.timeout = timeout  # Set the timeout value, based on what they entered, or 300 for the default.
     except errors.SSHError:
-        user_output += '=' * 50 + '\nUnable to connect to device: %s on port: 22\n' % ip
+        user_output += '=' * 50 + '\nUnable to connect to port 22 on device: %s\n' % ip
     except errors.AuthenticationError:  # NCClient auth failure
         user_output += '=' * 50 + '\nAuthentication failure for device: %s\n' % ip
     except paramiko.AuthenticationException:  # Paramiko auth failure
         user_output += '=' * 50 + '\nAuthentication failure for device: %s\n' % ip
     except paramiko.SSHException as e:
-        user_output += '=' * 50 + '\nError connecting to %s\n:%s' % (ip, str(e))
+        user_output += '=' * 50 + '\nError connecting to device: %s\nError: %s' % (ip, str(e))
     except socket.timeout:
         user_output += '=' * 50 + '\nTimeout exceeded connecting to device: %s\n' % ip
     else:
@@ -182,13 +214,23 @@ def do_netconf(ip, username, password, function, args, write_to_file, timeout=30
 gbl_filename = ''
 # FIXME: when a file fails to copy, it stops the rest of the transfer. Perhaps a way to skip that file?  --Engaged the SCP module github repo, awaiting response. 
 def copy_status(filename, size, sent):
-    """ Purpose: This is the callback function for --scp. It will update the user to the status of the current file being transferred. 
+    """ Purpose: This is the callback function for --scp, when we copying to/from a single device (and therefore not multiprocessing),
+               | it will update the user to the status of the current file being transferred. 
+
+        @param filename: The filename of the file that is currently being copied. 
+        @type filename: str or unicode
+        @param size: The total size of the file that is currently being copied in bytes. 
+        @type size: int
+        @param sent: The number of bytes of the current file that have already been transferred.
+        @type sent: int
+
+        @returns: None
     """
     global gbl_filename  # Grab the global variable for the filename being transferred. 
     # does the logic to get an accurate percentage of the amount sent of the current file.
     output = "Transferred %.0f%% of the file %s" % ((float(sent) / float(size) * 100), filename)
     # appends whitespace to the end of the string up to the 120th column, so that the output doesn't look garbled from previous output. 
-    output = output + (' ' * (120 - len(output)))
+    output += (' ' * (120 - len(output)))
     # If the filename has changed, move to the next line and update the filename. 
     if filename != gbl_filename:
         print('')
@@ -200,27 +242,40 @@ def copy_status(filename, size, sent):
 
 
 def copy_file(scp_source, scp_dest, ip, username, password, direction, write, multi=False, callback=copy_status):
-    """ Purpose: This is the function to scp a file from the specified source and destinations
-        Parameters:
-            scp_source  -   source file for the SCP transaction
-            scp_dest    -   destination file for the SCP transaction
-            ip          -   the remote IP address for the SCP transaction
-            username    -   the username for the remote device.
-            password    -   the password for the remote device.
-            direction   -   the direction of the copy operation, either push or pull.
-            write       -   The copy_file function is unique in that since it uses callback, it needs to be aware
-                            if we are outputting to a file later. If we are, then suppress certain output. If we
-                            aren't writing to a file, this function will print updates immediately, and return an 
-                            empty string to write_output(), since we've already printed everything to the user. 
-            multi       -   Flag should be set to true when sending to multiple devices. This is used to determine 
-                            the naming scheme of the destination files. 
-            callback    -   definition of callback function to be used by Paramiko for status updates. This is only
-                            used when scp'ing to/from a single device, and generally should be passed None otherwise.
+    """ Purpose: This is the function to scp a file to/from the specified source and destinations
+
+        @param scp_source: source file for the SCP transaction
+        @type scp_source: str
+        @param scp_dest: destination file for the SCP transaction
+        @type scp_dest: str
+        @param ip: the remote IP address for the SCP transaction
+        @type ip: str
+        @param username: the username for the remote device.
+        @type username: str
+        @param password: the password for the remote device.
+        @type password: str
+        @param direction: the direction of the copy operation, either push or pull.
+        @type direction: str
+        @param write: The copy_file function is unique in that since it uses callback, it needs to be aware
+                    | if we are outputting to a file later. If we are, then suppress certain output. If we
+                    | aren't writing to a file, this function will print updates immediately, and return an 
+                    | empty string to write_output(), since we've already printed everything to the user. 
+                    | This write variable is the string of the filepath where the output should be written. 
+        @type write: str
+        @param multi: Flag should be set to true when sending to multiple devices. This is used to determine 
+                    | the naming scheme of the destination files. 
+        @type multi: boolean
+        @param callback: definition of callback function to be used by Paramiko for status updates. This is only
+                       | used when scp'ing to/from a single device, and generally should be passed None otherwise.
+        @type callback: function 
+
+        @returns: The string output to be shown to the user, containing the information of what happened 
+                | during the copy. 
+        @rtype: str
     """
     try: 
         # scp is also imported.
-        from scp import SCPClient
-        from scp import SCPException
+        from scp import SCPClient, SCPException
     except ImportError as e:
         print('Failed to import PARAMIKO or SCP packages, which are needed for the --scp command. They can be found at:\n'
                'PARAMIKO\thttps://github.com/paramiko/paramiko\nSCP\t\thttps://pypi.python.org/pypi/scp/0.8.0')
@@ -233,8 +288,15 @@ def copy_file(scp_source, scp_dest, ip, username, password, direction, write, mu
     logger.setLevel(logging.CRITICAL)
     # This will automatically add the remote host key if it is the first time connecting to the device.
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    screen_output = ''
+    if isinstance(write, list):
+        screen_output += "*****WRITE_TO_FILE*****" + write[1] + "*****WRITE_TO_FILE*****" + write[0] + "*****WRITE_TO_FILE*****"
+    # If callback is something other than None, we are running against one device, and will be printing status output.
+    # So we must add a leading \n to move below the callback output. 
+    if callback != None:  
+        screen_output += '\n'
     # This will make the connection and handle errors Authentication or rejection errors. 
-    screen_output = ('=' * 50 + '\nResults from device: %s\n' % ip)
+    screen_output += ('=' * 50 + '\nResults from device: %s\n' % ip)
     try:
         ssh.connect(ip, port=22, username=username, password=password, timeout=10)
     except paramiko.AuthenticationException:
@@ -261,8 +323,6 @@ def copy_file(scp_source, scp_dest, ip, username, password, direction, write, mu
         source_file = scp_source.split('/')[-1]  # grab just the filename, or the last folder in the tree if the source is a directory.
         # Create the output variables.
         temp_output = ''
-        if isinstance(write, basestring):
-            screen_output += "*****WRITE_TO_FILE*****" + write + "*****WRITE_TO_FILE*****"
         if direction.lower() == 'pull':  # if we're pulling files, perform the proper scp.get() request
             if multi:  # If we're grabbing from multiple devices, we need to append the ip to the destination file/folder. 
                 destination_file = scp_dest + ip + '_' + source_file
@@ -279,10 +339,6 @@ def copy_file(scp_source, scp_dest, ip, username, password, direction, write, mu
             except KeyboardInterrupt:
                 return screen_output + '!!! Received KeyboardInterrupt, SCP operation halted !!!\n'
             else:
-                # If callback is something other than None, we are running against one device, and will be printing status output.
-                # So we must add a leading \n to move below the callback output. 
-                if callback != None:  
-                    temp_output = '\n'
                 temp_output += 'Received %s from %s.\n' % (scp_source, ip)
         elif direction.lower() == 'push': # perform an scp.put() for pushing files.
             screen_output += ('Pushing %s to %s:%s\n' % (scp_source, ip, scp_dest))
@@ -295,8 +351,6 @@ def copy_file(scp_source, scp_dest, ip, username, password, direction, write, mu
             except KeyboardInterrupt:
                 return screen_output + '!!! Received KeyboardInterrupt, SCP operation halted !!!\n'
             else:
-                if callback != None:
-                    temp_output = '\n'  # Newline required to step below callback copy_status() output. 
                 temp_output += 'Pushed %s to %s:%s\n' % (scp_source, ip, scp_dest)
         screen_output += temp_output
         return screen_output
@@ -304,10 +358,15 @@ def copy_file(scp_source, scp_dest, ip, username, password, direction, write, mu
 
 def dev_info(conn, ip):
     """ Purpose: This is the function called by using the --info flag on the command line.
-                 It grabs the hostname, model, running version, and serial number of the device.
-        Parameters:
-            conn  -  This is the ncclient manager connection to the remote device.
-            ip    -  String containing the IP of the remote device, used for logging purposes.
+               | It grabs the hostname, model, running version, and serial number of the device.
+
+        @param conn: This is the ncclient manager connection to the remote device.
+        @type conn: ncclient.manager.Manager
+        @param ip: String containing the IP of the remote device, used for logging purposes.
+        @type ip: str
+
+        @returns: The output that should be shown to the user.
+        @rtype: str
     """
     # get hostname, model, and version from 'show version'
     software_info = conn.get_software_information(format='xml')
@@ -330,10 +389,15 @@ def dev_info(conn, ip):
 
 def health_check(conn, ip):
     """ Purpose: This is the function called by using the --health flag on the command line.
-                 It grabs the cpu/mem usage, system/chassis alarms, top 5 processes, if the primary/backup partitions are on different versions.
-        Parameters:
-            conn    -  This is the ncclient manager conn to the remote device.
-            ip      -  String containing the IP of the remote device, used for logging purposes.
+               | It grabs the cpu/mem usage, system/chassis alarms, top 5 processes, if the primary/backup partitions are on different versions.
+
+        @param conn: This is the ncclient manager connection to the remote device.
+        @type conn: ncclient.manager.Manager
+        @param ip: String containing the IP of the remote device, used for logging purposes.
+        @type ip: str
+
+        @returns: The output that should be shown to the user.
+        @rtype: str
     """
     output = '=' * 50 + '\nResults from device: %s\n\nChassis Alarms: \n' % ip
     # Grab chassis alarms, system alarms, show chassis routing-engine, 'show system processes extensive', and also xpath to the relevant nodes on each. 
@@ -384,9 +448,14 @@ def health_check(conn, ip):
 
 def int_errors(conn, ip):
     """ Purpose: This function is called for the -e flag. It will let the user know if there are any interfaces with errors, and what those interfaces are.
-        Parameters:
-            conn  -   The NCClient manager connection to the remote device.
-            ip    -   String containing the IP of the remote device, used for logging purposes.
+
+        @param conn: This is the ncclient manager connection to the remote device.
+        @type conn: ncclient.manager.Manager
+        @param ip: String containing the IP of the remote device, used for logging purposes.
+        @type ip: str
+
+        @returns: The output that should be shown to the user.
+        @rtype: str
     """
     output = []  # used to store the list of interfaces with errors.
     error_counter = 0  # used to count the number of errors found on a device.
@@ -441,16 +510,37 @@ def int_errors(conn, ip):
     return '\n'.join(output)
 
 
-def make_commit(conn, ip, commands, commit_check, quiet, commit_confirm, commit_blank):
+def make_commit(conn, ip, commands, commit_check, commit_confirm, commit_blank, comment, at_time, synchronize):
     """ Purpose: This function will send set command(s) to a device, and commit the change. It can be called by any function that 
-                 needs to commit, currently used by the -s flag. The commit can be modified to be just a commit check 
-                 with the --check flag, and commit confirm with the --confirm flag. It takes a single string for one set command, or a list of 
-                 strings for multiple commands to be committed. 
-        Parameters:
-            conn        -   The NCClient manager connection to the remote device.
-            ip          -   String containing the IP of the remote device, used for logging purposes.
-            commands    -   String containing the set command to be sent to the device, or a list of strings of multiple set commands.
-                            Either way, the function will respond accordingly, and only one commit will take place.
+               | needs to commit, currently used by the -s flag. The commit can be modified to be just a commit check 
+               | with the --check flag, and commit confirm with the --confirm flag. It takes a single string for one set command, or a list of 
+               | strings for multiple commands to be committed. 
+
+        @param conn: This is the ncclient manager connection to the remote device.
+        @type conn: ncclient.manager.Manager
+        @param ip: String containing the IP of the remote device, used for logging purposes.
+        @type ip: str
+        @param commands: String containing the set command to be sent to the device, or a list of strings of multiple set commands.
+                       | Either way, the function will respond accordingly, and only one commit will take place.
+        @type commands: str
+        @param commit_check: A bool set to true if the user wants to only run a commit check, and not commit any changes.
+        @type commit_check: bool
+        @param commit_confirm: An int of minutes that the user wants to commit confirm for.
+        @type commit_confirm: int
+        @param commit_blank: A bool set to true if the user wants to only make a blank commit.
+        @type commit_blank: bool
+        @param comment: A string that will be logged to the commit log describing the commit.
+        @type comment: str
+        @param at_time: A string containing the time or time and date of when the commit should happen. Junos is expecting
+                      | one of two formats:
+                      | A time value of the form hh:mm[:ss] (hours, minutes, and optionally seconds)
+                      | A date and time value of the form yyyy-mm-dd hh:mm[:ss] (year, month, date, hours, minutes, and optionally seconds)
+        @type at_time: str
+        @param synchronize: A bool set to true if the user wants to synchronize the commit across both REs.
+        @type synchronize: bool
+        
+        @returns: The output that should be shown to the user.
+        @rtype: str
     """
     screen_output = '=' * 50 + '\nResults from device: %s\n' % ip
     # we're making a blank commit, and need a one liner that won't do anything, since netconf doesn't support just making a blank commit
@@ -507,16 +597,14 @@ def make_commit(conn, ip, commands, commit_check, quiet, commit_confirm, commit_
             results = ""
             if commit_confirm:
                 screen_output += "Attempting to commit confirm on device: %s\n" % ip
-                # commit() expects a timeout in seconds, but users are used to minutes in junos, so convert it to seconds.
-                confirm_timeout = str(commit_confirm * 60)
                 try:
-                    results = conn.commit(confirmed=True, timeout=confirm_timeout)
+                    results = conn.commit(confirmed=True, timeout=str(commit_confirm), comment=comment, synchronize=synchronize)
                 except RPCError as e:
                     screen_output += 'Commit could not be completed on this device, due to the following error: \n' + str(e)
             else:  # If they didn't want commit confirm, just straight commit dat shit.
                 screen_output += "Attempting to commit on device: %s\n" % ip
                 try:
-                    results = conn.commit()
+                    results = conn.commit(comment=comment, at_time=at_time, synchronize=synchronize)
                 except RPCError as e:
                     screen_output += 'Commit could not be completed on this device, due to the following error: \n' + str(e)
             # conn.commit() DOES NOT return a parse-able xml tree, so we convert it to an ElementTree xml tree.
@@ -526,6 +614,8 @@ def make_commit(conn, ip, commands, commit_check, quiet, commit_confirm, commit_
                 if results.find('commit-check-success') is None:  # None is returned for elements found without a subelement, as in this case.
                     if commit_confirm:
                         screen_output += 'Commit complete on device: %s. It will be automatically rolled back in %s minutes, unless you commit again.\n' % (ip, str(commit_confirm))
+                    elif at_time: 
+                        screen_output += 'Commit staged to happen at %s on device: %s' % (at_time, ip) 
                     else:
                         screen_output += 'Commit complete on device: %s\n' % ip
                 else:
@@ -538,27 +628,76 @@ def make_commit(conn, ip, commands, commit_check, quiet, commit_confirm, commit_
         # screen_output = '=' * 50 + '\nCommit failed on device: %s for an unknown reason.' % ip
     try:
         conn.unlock()
+        conn.close_session()
     # RPC error is received when the configuration database is changed, meaning someone is actively editing the config. 
     # We've already let the user know, so just need to pass.
     except RPCError:
         pass
-    conn.close_session()
+    except TimeoutExpiredError:
+        screen_output += '!!! Timed out trying to unlock the configuration. Check device state manually.\n'
     return screen_output
 
 
-def multi_cmd(conn, ip, commands, shell, timeout=300):
+def xpath_filter(router_output, xpath_expr):
+    """ Purpose: This function applies an Xpath expression to the XML returned by the network element. The function
+                 returns a string subtree or subtrees that match the Xpath expression.
+
+        @param router_output: Plain text XML, which is the response from the device that we are filtering.
+        @type router_output: str
+        @param xpath_expr: Xpath expression, the rules that we will filter the XML on.
+        @type xpath_expr: str
+
+        @returns: The filtered XML if filtering was successful. Otherwise, a string explaining nothing matched the filter.
+        @rtype: str
+    """
+    tree = objectify.fromstring(router_output)
+    
+    # check for valid Xpath
+    try:
+        tree.xpath(xpath_expr)
+    except etree.XPathEvalError, xpath_exception:
+        return "Invalid XPath '{}': {}".format(xpath_expr, xpath_exception)
+
+    # clean up the namespace in the tags, as namespaces appear to confuse xpath method
+    for elem in tree.getiterator():
+        if isinstance(elem.tag, basestring): # beware of factory functions such as Comment
+            i = elem.tag.find('}')
+            if i >= 0:
+                elem.tag = elem.tag[i+1:]
+
+    # remove unused namespaces
+    objectify.deannotate(tree, cleanup_namespaces=True)
+
+    filtered_tree_list = tree.xpath(xpath_expr)
+
+    # Return string from the list of Elements or warning message
+    return_string = ''.join(etree.tostring(element, pretty_print=True) for element in filtered_tree_list) 
+    return return_string if return_string else "No matching nodes for Xpath expression."
+
+
+def multi_cmd(conn, ip, commands, shell, format='text', timeout=300):
     """ Purpose: This function will determine if we are trying to send multiple commands to a device. It is used when the 
-                 -c flag is used. If we have more than one command to get output for, then we need to split up the commands
-                  and run them individually. Otherwise, we just send the one command. No matter how they sent the command(s)
-                  to us (list, filepath, or single command), we take that information and turn it into a list of command(s).
-                  We then loop over the list, running run_cmd() for each one. 
-        Parameters:
-            conn        -   The NCClient manager connection to the remote device.
-            ip          -   The IP address of the remote device, for logging.
-            commands    -   String containing one of three things: 
-                            A single operational show command.
-                            a comma separated list of show commands.
-                            A filepath pointing to a file with a show command on each line. 
+               | -c flag is used. If we have more than one command to get output for, then we need to split up the commands
+               | and run them individually. Otherwise, we just send the one command. No matter how they sent the command(s)
+               | to us (list, filepath, or single command), we take that information and turn it into a list of command(s).
+               | We then loop over the list, running run_cmd() for each one. 
+
+        @param conn: the connection to the remote device, using one of two paramiko sub classes. 
+        @type conn: paramiko.Channel
+        @param ip: String containing the IP of the remote device, used for logging purposes.
+        @type ip: str
+        @param commands: String containing one of three things: 
+                       | A single operational show command.
+                       | A comma separated list of show commands.
+                       | A filepath pointing to a file with a show command on each line. 
+        @type commands: str
+        @param shell: boolean stating whether or not we are sending shell commands.
+        @type shell: bool
+        @param timeout: integer in seconds for the timeout we should expect for each command we send. Defaults to 300 seconds.
+        @type timeout: int
+
+        @returns: The output that should be shown to the user.
+        @rtype: str
     """
     screen_output = '=' * 50 + '\nResults from device: %s' % ip
     # Each case of this if statement is just to get the command(s) into a list of strings for each command
@@ -576,13 +715,30 @@ def multi_cmd(conn, ip, commands, shell, timeout=300):
         commands.append(temp_cmd)
     for cmd in commands:  # iterate over the list
         # Only run the command if it's not a blank line or a comment. 
-        if cmd.strip() != "":
-            if cmd.strip()[0] != "#":
-                # make sure operational commands don't hold output
-                if not shell:
+        if cmd.strip() != "" and cmd.strip()[0] != "#":
+            xpath_expr = ''
+            if shell: # make sure shell commands end in '\n', so the command will actually send.
+                cmd = cmd.strip() + "\n"
+            # adding ' | no-more' ensures operational commands don't hold output
+            else:
+                # get xpath expression from line in file if it exists
+                # if there is an xpath expr, the output will be xml,
+                # overriding the format parameter
+                #
+                # Example line in file: show route % //rt-entry
+                if len(cmd.split('%')) == 2:
+                    op_cmd = cmd.split('%')[0]
+                    xpath_expr = cmd.split('%')[1].strip()
+                    op_cmd = op_cmd.strip() + " | display xml | no-more\n"
+                    # print(op_cmd)
+                elif format == 'xml':
+                    cmd = cmd.strip() + " | display xml | no-more\n"
+                else:
                     cmd = cmd.strip() + " | no-more\n"
-                else:  # make sure shell commands end in '\n', so the command will actually send.
-                    cmd = cmd.strip() + "\n"
+            if xpath_expr:
+                screen_output += '\n> ' + op_cmd.strip() + ' % ' + xpath_expr + '\n' + xpath_filter(run_cmd(conn, ip, op_cmd,
+                                 timeout).strip(), xpath_expr) + '\n' 
+            else:
                 screen_output += '\n> ' + cmd + run_cmd(conn, ip, cmd, timeout)
     try:
         conn.close_session()
@@ -595,14 +751,23 @@ def multi_cmd(conn, ip, commands, shell, timeout=300):
 
 
 def run_cmd(conn, ip, command, timeout=300):
-    """ Purpose: For the -c flag, this function is called. It will connect to a device, run the single specified command, and return the output.
-                 There is logic to see if the connection we are receiving is a type of paramiko.Channel. If so, we logged in as root, and had
-                 to get to the CLI first, meaning we execute the command using send() rather than exec_command(). Unfortunately, exec_command()
-                 couldn't handle getting into CLI, so we needed a method for handling if the user is logging in as root and reaching shell first.
-        Parameters:
-            conn        -   The NCClient manager connection to the remote device.
-            ip          -   String containing the IP of the remote device, used for logging purposes.
-            command     -   String containing the command to be sent to the device.
+    """ Purpose: For the -c flag, this function is called. It will connect to a device, run the single specified command, 
+               | and return the output. There is logic to see if the connection we are receiving is a type of 
+               | paramiko.Channel. If so, we logged in as root, and had to get to the CLI first, meaning we execute the 
+               | command using send() rather than exec_command(). Unfortunately, exec_command() couldn't handle getting 
+               | into CLI, so we needed a method for handling if the user is logging in as root and reaching shell first.
+
+        @param conn: the connection to the remote device, using one of two paramiko sub classes. 
+        @type conn: paramiko.Channel
+        @param ip: String containing the IP of the remote device, used for logging purposes.
+        @type ip: str
+        @param command: String containing the command to be sent to the device.
+        @type command: str
+        @param timeout: integer timeout value for the session, in seconds.
+        @type command: int
+
+        @returns: The output that should be shown to the user.
+        @rtype: str
     """
     output = ""
     # check what type the connection is so we know if we logged in as root or not, and how we need to send the command and get output. 
@@ -638,7 +803,7 @@ def run_cmd(conn, ip, command, timeout=300):
                     output += "\n" + "\n".join(temp_out) + "\n"
     # If we are not using a paramiko.Channel connection object (ie; not logged in as root for op command),
     # we can use exec_command which is easier & quicker because we don't have to catch output from the buffer manually.
-    else:
+    elif isinstance(conn, paramiko.client.SSHClient):
         try:
             stdin, stdout, stderr = conn.exec_command(command=command, timeout=float(timeout))
             stdin.close()
@@ -660,28 +825,48 @@ def run_cmd(conn, ip, command, timeout=300):
 
 def write_output(screen_output):
     """ Purpose: This function is called to either print the screen_output to the user, or write it to a file 
-                 if they've flagged '-w /path/to/output/file.txt' in the run command.
-        Parameters:
-            screen_output  -  String or list of strings containing all the output gathered throughout the script. 
-                              If the user specifies -w, the screen_output string should start with
-                              '*****WRITE_TO_FILE*****path/to/output/file.txt*****WRITE_TO_FILE*****' so that this function
-                              can find where to write the file without needing another argument. 
+               | if we've received a filepath prepended on the output string in between identifiers '*****WRITE_TO_FILE*****'
+
+        @param screen_output: String  containing all the output gathered throughout the script. 
+                            | If the user specifies -w, the screen_output string should start with
+                            | '*****WRITE_TO_FILE*****path/to/output/file.txt*****WRITE_TO_FILE*****' so that this function
+                            | can find where to write the file without needing another argument. 
+        @type screen_output: str
+
+        @returns: None
     """
     if "*****WRITE_TO_FILE*****" in screen_output:
         write_to_file = screen_output.split('*****WRITE_TO_FILE*****')[1]
-        screen_output = screen_output.split('*****WRITE_TO_FILE*****')[2]
+        style = screen_output.split('*****WRITE_TO_FILE*****')[2]
+        screen_output = screen_output.split('*****WRITE_TO_FILE*****')[3]
         # open the output file if one was specified.
-        try:
-            # mode 'a' is append mode, 'b' is for binary files and windows compatibility.
-            out_file = open(write_to_file, 'a+b')
-        except IOError as e:
-            print('Error opening output file \'%s\' for writing. Here is the output that would\'ve been written:\n' % write_to_file)
-            print(screen_output)
-            print('\n\nHere is the error for opening the output file:')
-            raise e
-        else:
-            out_file.write('%s\n\n' % screen_output)
-            print('\nOutput written/appended to: ' + write_to_file)
+        if style.lower() in ["s", "single"]:
+            try:
+                # mode 'a' is append mode, 'b' is for binary files and windows compatibility.
+                out_file = open(write_to_file, 'a+b')
+            except IOError as e:
+                print('Error opening output file \'%s\' for writing. Here is the output that would\'ve been written:\n' % write_to_file)
+                print(screen_output)
+                print('\n\nHere is the error for opening the output file:')
+                raise e
+            else:
+                out_file.write('%s\n\n' % screen_output)
+                print('\nOutput written/appended to: ' + write_to_file)
+        elif style.lower() in ["m", "multiple"]:
+            ip = screen_output.split('device: ')[1].split('\n')[0].strip()
+            try:
+                filepath = path.join(path.split(write_to_file)[0], ip + "_" + path.split(write_to_file)[1])
+                out_file = open(filepath, 'a+b')
+            except IOError as e:
+                print('Error opening output file \'%s\' for writing. Here is the output that would\'ve been written:\n' % write_to_file)
+                print(screen_output)
+                print('\n\nHere is the error for opening the output file:')
+                raise e
+            else:
+                out_file.write(screen_output)
+                print('\nOutput written/appended to: ' + filepath)
+                out_file.close()
+
     # --scp function copy_file will return '' if we aren't writing to a file, because the output is printed to the user immediately
     # Therefore we don't need to output anything here if we have received empty quotes. 
     elif screen_output != '':
@@ -697,12 +882,18 @@ if __name__ == '__main__':
     if args.scp and (args.scp[0].lower() != 'pull' and args.scp[0].lower() != 'push'):
         parser.error('When using the --scp flag, you must specify the direction as the first argument. For example: "--scp pull /var/tmp /path/to/local/folder"')
 
+    # if they are doing commit_at, ensure the input is formatted correctly.
+    if args.commit_at:
+        if re.search(r'([0-2]\d)(:[0-5]\d){1,2}', args.commit_at) is None and re.search(r'\d{4}-[01]\d-[0-3]\d [0-2]\d:[0-5]\d(:[0-5]\d)?', args.commit_at) is None:
+            raise BaseException("The specified commit at time is not in one of the two following formats:\nA time value of the form 'hh:mm[:ss]'\n" 
+                "A date and time value of the form 'yyyy-mm-dd hh:mm[:ss]' (seconds are optional).")
+
     # Check if the username and password are the defaults. If they are, we'll prompt the user for them.
     if args.username == 'default':
         args.username = raw_input("Username: ")
     if args.password == 'default':
         args.password = getpass.getpass()  # getpass will not echo any input back to the user, for safe password entry.
-    
+
     # Correlates argument with function pointer
     function_translation = {
         "command" : multi_cmd,
@@ -716,18 +907,18 @@ if __name__ == '__main__':
     # Correlates which args need to be sent to do_netconf based on which feature is being used
     # Must be enclosed in brackets, otherwise argument unpacking will mess it up
     args_translation = {
-        "command" : [args.command, False, args.timeout],
+        "command" : [args.command, False, args.format.lower(), args.timeout],
         "int_error" : None,
         "health_check" : None,
         "info" : None,
-        "make_commit" : [args.make_commit, args.commit_check, args.quiet, args.commit_confirm, args.commit_blank],
-        "commit_blank" : [args.make_commit, args.commit_check, args.quiet, args.commit_confirm, args.commit_blank],
+        "make_commit" : [args.make_commit, args.commit_check, args.commit_confirm, args.commit_blank, args.commit_comment, args.commit_at, args.commit_synchronize],
+        "commit_blank" : [args.make_commit, args.commit_check, args.commit_confirm, args.commit_blank, args.commit_comment, args.commit_at, args.commit_synchronize],
         "shell" : [args.shell, True, args.timeout]
     }
    
     # Compares args to function_translation to figure out which we are doing
     # then looks up the function pointer and arguments
-    # vars(args) will convert the Namespace from argparser in to a dictionary we can iderate over
+    # vars(args) will convert the Namespace from argparser in to a dictionary we can iterate over
     for key in vars(args).keys():
         if key in function_translation:
             if vars(args)[key] is not None and vars(args)[key] is not False:
@@ -747,15 +938,14 @@ if __name__ == '__main__':
         print ("Starting Copy...")  # Needed more output for the user experience. 
     if iplist != "":  # We have matched for multiple IPs, and need to multiprocess.
         # Use # of CPU cores * 2 threads. Cpu_count usually returns double the # of physical cores because of hyperthreading.
-        mp_pool = multiprocessing.Pool(multiprocessing.cpu_count()*2)
+        mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
         for IP in iplist:
             IP = IP.strip()
-            if IP != "":  # skip blank lines
-                if IP[0] != "#":  # skip comments in an IP list file. 
-                    if args.scp:  # scp is handled separately
-                        mp_pool.apply_async(copy_file, args=(args.scp[1], args.scp[2], IP, args.username, args.password, args.scp[0], args.write, True, None), callback=write_output)
-                    else:
-                        mp_pool.apply_async(do_netconf, args=(IP, args.username, args.password, function, argsToPass, args.write, args.timeout), callback=write_output)
+            if IP != "" and IP[0] != '#':  # skip blank lines and comments
+                if args.scp:  # scp is handled separately
+                    mp_pool.apply_async(copy_file, args=(args.scp[1], args.scp[2], IP, args.username, args.password, args.scp[0], args.write, True, None), callback=write_output)
+                else:
+                    mp_pool.apply_async(do_netconf, args=(IP, args.username, args.password, function, argsToPass, args.write, args.timeout), callback=write_output)
         mp_pool.close()
         mp_pool.join()
     else:  # args.ip should be one IP address, and no multiprocessing is required. 
