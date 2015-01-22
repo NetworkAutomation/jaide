@@ -17,6 +17,7 @@ Contributors: [Geoff Rhodes](https://github.com/geoffrhodes) and [Nathan Printz]
 	- [Example Jaide.py Commands](#example-jaidepy-commands)  
 	- [Detailed Examples, Tips, and Help](#detailed-examples-tips-and-help)  
 	- [Currently Known Limitations](#currently-known-limitations)  
+	- [Roadmap](#roadmap)  
 * [Version History](#version-history)  
 
 ## Description:
@@ -148,11 +149,11 @@ These are features we'd like to implement, but will likely take some additional 
 	-	Added Commit Comment, Commit Synchronize, and Commit At modifiers for commit options.  
 	-	We have rewritten how templates are saved and loaded to a more streamlined method. This ensures that we can add any number of more options without ordering being an issue. Any old templates *should* still work, but if you have problems, try making a new one and using it before opening an issue.  
 	-	Added defaults to JGUI. A defaults.ini file is a special template that can be used to prepopulate data into the options on program load. You can save the current options as the defaults from the `File` menu.  
-	-	A new argument (-f/--format) is available to print any command with xml output instead of text. This also allows for xml xpath filtering. More information can be found in the Working with XML document.  
+	-	A new argument (-f/--format) is available to print any command with xml output instead of text. This also allows for xml xpath filtering. More information can be found in the Working with XML document. Shoutout to [Jeff Loughridge](https://github.com/jeffbrl) for his driving support on this feature.  
 	-	Writing output to a file in Jaide/JGUI now supports splitting the output on a per device basis. Check the documentation for the -w parameter of Jaide.  
 	-	Added some additional error checking and improved input validation in JGUI.
 	-	Reworked GUI look and feel a little bit for a better experience. 
-	-	Commit Confirmed now works as intended. Fixed the instant rollback bug. Note this requires using the custom version of ncclient shipped with our source (compiled version users don't need to worry). 
+	-	Commit Confirmed now works as intended. Fixed the instant rollback bug on Junos version >11.4. Note this requires using the custom version of ncclient shipped with our source (compiled version users don't need to worry). 
 	-	Converted all function comments to use the reST standard.  
 * v1.0.0  -  Enveloped the binary files on the release page, updated docs to reflect this change. Rolled over to version 1.0.0. 
 * v0.9.1  -  Updated the links in all example files for the github repo. Updated the readme with some other documentation and about info. 
