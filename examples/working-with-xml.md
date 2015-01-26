@@ -10,8 +10,7 @@ For JGUI, we have built the `Request XML Format` checkbox for operational comman
 
 #### Examples
 
-Here we simply change the output format of the `show version` command to be xml.  
-
+Here we simply change the output format of the `show version` command to be xml. 
 	$ python jaide.py -f xml -i 172.25.1.21 -u root -c "show version"
 	==================================================
 	Results from device: 172.25.1.21
