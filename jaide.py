@@ -62,6 +62,36 @@ class Jaide():
                    | return a Jaide object, which can then be used to actually
                    | send commands to the device. This function establishes the
                    | connection to the device via a NCClient manager object.
+
+            @param host: The IP or hostname of the device to connect to.
+            @type host: str
+            @param username: The username for the connection
+            @type username: str
+            @param password: The password for the connection
+            @type password: str
+            @param conn_timeout: The timeout value, in seconds, for attempting
+                               | to connect to the device.
+            @type conn_timeout: int
+            @param session_timeout: The timeout value, in seconds, for the
+                                  | session. If a command is sent and nothing
+                                  | is heard back from the device in this
+                                  | timeframe, the session is declared dead,
+                                  | and times out.
+            @type session_timeout: int
+            @param conn_type: The connection type that should be made. Three
+                            | options are available: 'ncclient', 'scp', and
+                            | 'paramiko'. 'paramiko' is used for operational
+                            | commands, to allow for pipes. 'scp' is used for
+                            | copying files to/from the device, and uses an SCP
+                            | connection. 'ncclient' is used for all other
+                            | commands.
+            @type conn_type: str
+            @param port: The destination port on the device to attempt the
+                       | connection.
+            @type port: int
+
+            @returns: an instance of the Jaide class
+            @rtype: object
         """
         # store object properties
         self._host = host
@@ -112,10 +142,11 @@ class Jaide():
         """ Purpose: This method is used to make a connection to the junos
                    | device. The internal property _conn_type is what
                    | determines the type of connection we make to the device.
-                   | - paramiko is used for operational commands
+                   | - paramiko is used for operational commands (to allow
+                   |            pipes in commands)
                    | - scp is used for copying files
                    | - ncclient is used for the rest (commit, compare_config,
-                   |    and commit_check)
+                   |            commit_check)
 
             @returns: None
             @rtype: None
