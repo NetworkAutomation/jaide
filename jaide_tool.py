@@ -2,6 +2,31 @@
 It creates a command line tool for using the jaide module, to allow for
 communicating with, manipulating, and many other functions with Junos based
 devices.
+For expansive information on the Jaide script, and how JGUI interacts with it,
+refer to the readme file or the associated examples/documentation.
+
+We have provided some information about NCClient here, since it can get
+confusing in some situations.
+
+    manager.command() can be run with format = 'xml' or 'text', and returns an
+    XML object or string
+
+    manager.command() returns an NCElement object with a .tostring attribute
+    and an xpath() function
+
+    Using .tostring will return a text string of the values of all leaves
+    within the xml tree.
+
+    Using xpath() will return an array of xml leaves, that each has the text
+    property for returning the value of a leaf.
+
+    By default, a show config command run on JUNOS does not return with full
+    XML tags and cannot be explicitly xpath'd. To do xpath on a show config
+    command, explicitly include '| display xml' on the end of the command
+    before handing off to manager.command().
+
+    On Junos, non-config commands can be run with '| display xml rpc' appended
+    to get the rpc command.
 """
 from os import path
 import multiprocessing

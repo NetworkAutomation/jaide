@@ -1,32 +1,10 @@
-# This Class is part of the jaide/jgui project.
-# It is free software for use in manipulating junos devices. More information can be found at the github page found here:
-#
-#  https://github.com/NetworkAutomation/jaide
 """
-This jaide.py script is intended for use by network administrators with Junos devices to be able to
-manipulate or retrieve information from many devices very quickly and easily. For expansive information
-on the Jaide script, and how JGUI interacts with it, refer to the readme file.
-
-We have provided some information about NCClient here, since it can get confusing in some situations.
-
-NCClient Information:
-    manager.command() can be run with format = 'xml' or 'text', and returns an XML object or string
-
-    manager.command() returns an NCElement object with a .tostring attribute and an xpath() function
-
-    Using .tostring will return a text string of the values of all leaves within the xml tree.
-
-    Using xpath() will return an array of xml leaves, that each has the text property for returning
-    the value of a leaf.
-
-    By default, a show config command run on JUNOS does not return with full XML tags.
-    To do xpath on a show config command, explicitly include '| display xml' on the end of the command
-     before handing off to manager.command().
-
-    On Junos, non-config commands can be run with '| display xml rpc' appended to get the rpc command.
+This module is the Junos Aide/Jaide/JGUI project. It is free software for use
+in manipulating junos devices. More information can be found at the github page
+found here:      https://github.com/NetworkAutomation/jaide
 """
-# This is for modifying printed output (used for --scp to rewrite the same line multiple times.)
-# It is required to be at the top of the file.
+# This is for modifying printed output (used for --scp to rewrite the same line
+# multiple times.) It is required to be at the top of the file.
 from __future__ import print_function
 try:
     from lxml import etree, objectify
@@ -44,7 +22,7 @@ try:
     import logging  # logging needed for disabling paramiko logging output
     import socket  # used for catching timeout errors on paramiko sessions
     import time
-    from errors import InvalidCommandError
+    from errors.errors import InvalidCommandError
 except ImportError as e:
     print("FAILED TO IMPORT ONE OR MORE PACKAGES.\nNCCLIENT\thttps://github.com/leopoul/ncclient/\nPARAMIKO\thttps://github.com/paramiko/paramiko\n\n"
             "For windows users, you will also need PyCrypto:\nPYCRYPTO\thttp://www.voidspace.org.uk/python/modules.shtml#pycrypto"
@@ -54,6 +32,12 @@ except ImportError as e:
     raise e
 
 
+# TODO: xpath operational commands
+# TODO: root login on operational commands
+# TODO: shell commands
+# TODO: scp commands
+# TODO: device status (health check)
+# TODO: interface errors
 class Jaide():
     def __init__(self, host, username, password, conn_timeout=5,
                  session_timeout=300, conn_type="ncclient", port=22):
@@ -181,13 +165,13 @@ class Jaide():
             pass
 
     @check_instance
-    def op_cmd(self, command, req_format='text'):
+    def op_cmd(self, command, req_format='text', xpath_expr=""):
         """ Purpose: Used to send an operational mode command to the connected
                    | device. This requires and uses a paramiko.SSHClient() as
                    | the handler so that we can easily pass and allow all pipe
                    | commands to be used.
                    |
-                   | We indiscriminately attach a ' | no-more' on the end of
+                   | We indiscriminately attach ' | no-more' on the end of
                    | every command so the device doesn't hold output. The
                    | req_format parameter can be set to 'xml' to force raw
                    | xml output in the reply.
@@ -202,7 +186,9 @@ class Jaide():
             @returns: The reply from the device.
             @rtype: str
         """
-        if req_format.lower() == 'xml':
+        if not command:
+            raise InvalidCommandError("Parameter 'command' cannot be empty")
+        if req_format.lower() == 'xml' or xpath_expr:
             command += ' | display xml'
         command += ' | no-more\n'
         print(command)
@@ -218,7 +204,7 @@ class Jaide():
         while not stderr.channel.exit_status_ready():
             out += stderr.read()
         stderr.close()
-        return out
+        return out if not xpath_expr else self.xpath(out, xpath_expr)
 
     @check_instance
     def compare_config(self, commands="", req_format="text"):
@@ -246,7 +232,7 @@ class Jaide():
         self._session.load_configuration(action='set', config=clean_cmds)
         out = self._session.compare_configuration()
         self.unlock()
-        if req_format == "xml":
+        if req_format.lower() == "xml":
             return out
         return out.xpath(
             'configuration-information/configuration-output')[0].text
@@ -359,8 +345,8 @@ class Jaide():
                 elif i.text is not None:
                     if i.text.strip() + '\n' != '\n':
                         out += i.text.strip() + '\n'
-                # this is for elements that don't have inner text, it will add the
-                # tag to the output.
+                # this is for elements that don't have inner text,
+                # it will add the tag to the output.
                 elif i.text is None:
                     if i.tag + '\n' != '\n':
                         out += i.tag + '\n'
@@ -421,6 +407,41 @@ class Jaide():
                     yield cmd.strip()
             except IndexError:
                 pass
+
+    @staticmethod
+    def xpath(source_xml, xpath_expr):
+        """ Purpose: This function applies an Xpath expression to the XML
+                   | supplied by source_xml. Returns a string subtree or
+                   | subtrees that match the Xpath expression.
+
+            @param source_xml: Plain text XML that will be filtered
+            @type source_xml: str or lxml.etree.ElementTree.Element object
+            @param xpath_expr: Xpath expression that we will filter the XML by.
+            @type xpath_expr: str
+
+            @returns: The filtered XML if filtering was successful. Otherwise,
+                    | an empty string.
+            @rtype: str
+        """
+        tree = source_xml
+        if not isinstance(source_xml, ET.Element):
+            tree = objectify.fromstring(source_xml)
+        # clean up the namespace in the tags, as namespaces appear to confuse
+        # xpath method
+        for elem in tree.getiterator():
+            # beware of factory functions such as Comment
+            if isinstance(elem.tag, basestring):
+                i = elem.tag.find('}')
+                if i >= 0:
+                    elem.tag = elem.tag[i+1:]
+
+        # remove unused namespaces
+        objectify.deannotate(tree, cleanup_namespaces=True)
+        filtered_list = tree.xpath(xpath_expr)
+        # Return string from the list of Elements
+        matches = ''.join(etree.tostring(
+            element, pretty_print=True) for element in filtered_list)
+        return matches if matches else ""
 
     @property
     def host(self):
@@ -982,7 +1003,7 @@ def xpath_filter(router_output, xpath_expr):
         @rtype: str
     """
     tree = objectify.fromstring(router_output)
-    
+
     # check for valid Xpath
     try:
         tree.xpath(xpath_expr)
@@ -1002,7 +1023,7 @@ def xpath_filter(router_output, xpath_expr):
     filtered_tree_list = tree.xpath(xpath_expr)
 
     # Return string from the list of Elements or warning message
-    return_string = ''.join(etree.tostring(element, pretty_print=True) for element in filtered_tree_list) 
+    return_string = ''.join(etree.tostring(element, pretty_print=True) for element in filtered_tree_list)
     return return_string if return_string else "No matching nodes for Xpath expression."
 
 
