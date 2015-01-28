@@ -32,15 +32,13 @@ except ImportError as e:
     raise e
 
 
-# TODO: xpath operational commands
-# TODO: root login on operational commands
 # TODO: shell commands
 # TODO: scp commands
 # TODO: device status (health check)
 # TODO: interface errors
 class Jaide():
     def __init__(self, host, username, password, conn_timeout=5,
-                 session_timeout=300, conn_type="paramiko", port=22):
+                 sess_timeout=300, conn_type="paramiko", port=22):
         """ Purpose: This is the initialization function for the Jaide class,
                    | which creates a connection to a junos device. It will
                    | return a Jaide object, which can then be used to actually
@@ -56,12 +54,12 @@ class Jaide():
             @param conn_timeout: The timeout value, in seconds, for attempting
                                | to connect to the device.
             @type conn_timeout: int
-            @param session_timeout: The timeout value, in seconds, for the
+            @param sess_timeout: The timeout value, in seconds, for the
                                   | session. If a command is sent and nothing
                                   | is heard back from the device in this
                                   | timeframe, the session is declared dead,
                                   | and times out.
-            @type session_timeout: int
+            @type sess_timeout: int
             @param conn_type: The connection type that should be made. Several
                             | options are available: 'ncclient', 'scp', and
                             | 'paramiko', 'shell' and 'root'. 'paramiko' is
@@ -82,14 +80,14 @@ class Jaide():
             @rtype: object
         """
         # store object properties
-        self._host = host
-        self._port = port
-        self._username = username
-        self._password = password
-        self._tout = session_timeout
-        self._conn_tout = conn_timeout
+        self.host = host
+        self.port = port
+        self.username = username
+        self.password = password
+        self.sess_timeout = sess_timeout
+        self.conn_timeout = conn_timeout
         self._shell = ""
-        self._conn_type = conn_type
+        self.conn_type = conn_type
         # make the connection to the device
         self.connect()
 
@@ -112,36 +110,39 @@ class Jaide():
                 "compare_config": manager.Manager,
                 "commit_check": manager.Manager,
                 "commit": manager.Manager,
-                "shell": paramiko.client.SSHClient
+                "shell_cmd": paramiko.client.SSHClient
             }
             # when doing an operational command, logging in as root
             # brings you to shell, so we need to enter the device as a shell
             # connection, and move to cli to perform the command
             # this is a one-off because the isinstance() check will be bypassed
-            if self._username == "root" and function.__name__ == "op_cmd":
+            if self.username == "root" and function.__name__ == "op_cmd":
                 if not self._shell:
-                    self._conn_type = "root"
+                    self.conn_type = "root"
                     self.connect()
-                # todo: if doing shell commands, then op cmd when logged in as root, the commands will fail because we're not moving to CLI here (no way to check for it)
+                # FIXME: if doing shell commands, then doing op cmds when logged in as root, the op cmds will fail because we're not moving to CLI here (no way to no if we're in shell or cli)
+            # Have to call shell command separately, since we are using _shell
+            # for comparison, not _session.
+            elif function.__name__ == 'shell_cmd' and not self._shell:
+                self.conn_type = "shell"
+                self.connect()
             if isinstance(self._session, func_trans[function.__name__]):
                 pass
             else:
                 self.disconnect()
                 if function.__name__ == "op_cmd":
-                    self._conn_type = "paramiko"
+                    self.conn_type = "paramiko"
                 elif function.__name__ == "scp":
-                    self._conn_type = "scp"
-                elif function.__name__ == "shell_cmd":
-                    self._conn_type = "shell"
+                    self.conn_type = "scp"
                 else:
-                    self._conn_type = "ncclient"
+                    self.conn_type = "ncclient"
                 self.connect()
             return function(self, *args, **kwargs)
         return wrapper
 
     def connect(self):
         """ Purpose: This method is used to make a connection to the junos
-                   | device. The internal property _conn_type is what
+                   | device. The internal property conn_type is what
                    | determines the type of connection we make to the device.
                    | - 'paramiko' is used for operational commands (to allow
                    |            pipes in commands)
@@ -155,7 +156,7 @@ class Jaide():
             @returns: None
             @rtype: None
         """
-        if self._conn_type == 'paramiko':
+        if self.conn_type == 'paramiko':
             self._session = paramiko.SSHClient()
             # These two lines set the paramiko logging to Critical to
             # remove extra messages from being sent to the user output.
@@ -164,33 +165,37 @@ class Jaide():
             logger.setLevel(logging.CRITICAL)
             self._session.set_missing_host_key_policy(
                 paramiko.AutoAddPolicy())
-            self._session.connect(hostname=self._host,
-                                  username=self._username,
-                                  password=self._password,
-                                  port=self._port,
-                                  timeout=self._conn_tout)
-        elif self._conn_type == "ncclient":
+            self._session.connect(hostname=self.host,
+                                  username=self.username,
+                                  password=self.password,
+                                  port=self.port,
+                                  timeout=self.conn_timeout)
+        elif self.conn_type == "ncclient":
             self._session = manager.connect(
-                host=self._host,
-                port=self._port,
-                username=self._username,
-                password=self._password,
-                timeout=self._conn_tout,
+                host=self.host,
+                port=self.port,
+                username=self.username,
+                password=self.password,
+                timeout=self.conn_timeout,
                 device_params={'name': 'junos'},
                 hostkey_verify=False
             )
-            self._session.timeout = self._tout
-        elif self._conn_type == 'scp':
+            self._session.timeout = self.sess_timeout
+        elif self.conn_type == 'scp':
             # todo: add in scp connection
             pass
-        elif self._conn_type == 'shell':
+        elif self.conn_type == 'shell':
+            if not self._session:
+                self.conn_type = 'paramiko'
+                self.connect()
+                self.conn_type = 'shell'
             if not self._shell:
                 self._shell = self._session.invoke_shell()
                 time.sleep(2)
-            self._shell.send('start shell')
+            self._shell.send('start shell\n')
             time.sleep(2)
             self._shell.recv(9999)
-        elif self._conn_type == 'root':
+        elif self.conn_type == 'root':
             # open the shell if necessary, and move it into CLI
             if not self._shell:
                 self._shell = self._session.invoke_shell()
@@ -229,17 +234,17 @@ class Jaide():
         out = ''
         # when logging in as root, we are at shell, and need to move to cli to
         # run the command
-        if self._username == 'root':
+        if self.username == 'root':
             self._shell.send(command)
             time.sleep(1)
             while self._shell.recv_ready():
                 out += self._shell.recv(999999)
+            # take off the command being sent and the prompt at the end.
             out = '\n'.join(out.split('\n')[1:-2])
-            self._shell
         # not logging in as root, and can grab the output as normal.
         else:
             stdin, stdout, stderr = self._session.exec_command(command=command,
-                                                   timeout=float(self._tout))
+                                            timeout=float(self.sess_timeout))
             stdin.close()
             # read normal output
             while not stdout.channel.exit_status_ready():
@@ -250,6 +255,33 @@ class Jaide():
                 out += stderr.read()
             stderr.close()
         return out if not xpath_expr else self.xpath(out, xpath_expr)
+
+    @check_instance
+    def shell_cmd(self, command=""):
+        """ Purpose: Used to send a shell command to the connected device.
+                   | This uses the self._shell instance, which should be a
+                   | paramiko.Channel object, instead of a SSHClient.
+                   | This is because we cannot send shell commands to the
+                   | device using a SSHClient.
+
+            @param command: The single command that to retrieve output from the
+                          | device.
+            @type: str
+
+            @returns: The reply from the device.
+            @rtype: str
+        """
+        if not command:
+            raise InvalidCommandError("Parameter 'command' must not be empty.")
+        command = command.strip() + '\n'
+        self._shell.send(command)
+        time.sleep(1)
+        out = ''
+        while self._shell.recv_ready():
+            out += self._shell.recv(999999)
+        # take off the command being sent and the prompt at the end.
+        out = '\n'.join(out.split('\n')[1:-1])
+        return out
 
     @check_instance
     def compare_config(self, commands="", req_format="text"):
@@ -405,17 +437,29 @@ class Jaide():
             @returns: None
             @rtype: None
         """
+        if self._shell:
+            self._shell.close()
+            self._shell = ""
         if isinstance(self._session, manager.Manager):
             self._session.close_session()
         elif isinstance(self._session, paramiko.client.SSHClient):
             self._session.close()
+            self._session = ""
         # elif isinstance(self._session, scp_instnace):
         #     self._session.close_scp_instance()
 
     def lock(self):
+        """ Purpose: Attempts to lock the session. Will only work if the
+                   | session is of type 'ncclient', since that is the only
+                   | time when you can lock the candidate configuration.
+        """
         self._session.lock()
 
     def unlock(self):
+        """ Purpose: Attempts to unlock the candidate configuration.
+                   | self._session must of a ncclient connection for this
+                   | to work.
+        """
         self._session.unlock()
 
     @staticmethod
@@ -489,20 +533,60 @@ class Jaide():
 
     @property
     def host(self):
-        return self._host
+        return self.host
+
+    @host.setter
+    def host(self, value):
+        self.host = value
 
     @property
     def conn_type(self):
-        return self._conn_type
+        return self.conn_type
+
+    @conn_type.setter
+    def conn_type(self, value):
+        self.conn_type = value
 
     @property
     def username(self):
-        return self._username
+        return self.username
+
+    @username.setter
+    def username(self, value):
+        self.username = value
+
+    @property
+    def password(self):
+        return self.password
+
+    @password.setter
+    def password(self, value):
+        self.password = value
 
     @property
     def port(self):
-        return self._port
+        return self.port
 
+    @port.setter
+    def port(self, value):
+        self.port = value
+
+    @property
+    def conn_timeout(self):
+        return self.conn_timeout
+
+    @conn_timeout.setter
+    def conn_timeout(self, value):
+        self.conn_timeout = value
+
+    @property
+    def sess_timeout(self):
+        return self.sess_timeout
+
+    @sess_timeout.setter
+    def sess_timeout(self, value):
+        self.sess_timeout = value
+        self._session.timeout = value
 
 def do_netconf(ip, username, password, function, args, write_to_file, timeout=300):
     """ Purpose: To open an NCClient manager session to the device, and run the appropriate function against the device.
