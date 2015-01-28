@@ -62,13 +62,17 @@ class Jaide():
                                   | timeframe, the session is declared dead,
                                   | and times out.
             @type session_timeout: int
-            @param conn_type: The connection type that should be made. Three
+            @param conn_type: The connection type that should be made. Several
                             | options are available: 'ncclient', 'scp', and
-                            | 'paramiko'. 'paramiko' is used for operational
-                            | commands, to allow for pipes. 'scp' is used for
-                            | copying files to/from the device, and uses an SCP
-                            | connection. 'ncclient' is used for all other
-                            | commands.
+                            | 'paramiko', 'shell' and 'root'. 'paramiko' is
+                            | used for operational commands, to allow for
+                            | pipes. 'scp' is used for copying files to/from
+                            | the device, and uses an SCP connection. 'shell'
+                            | is for sending shell commands. 'root' is when the
+                            | user is doing operational commands, but is logged
+                            | in as root, (requires handling separately, since
+                            | this puts the sessions into a shell prompt)
+                            | 'ncclient' is used for all other commands.
             @type conn_type: str
             @param port: The destination port on the device to attempt the
                        | connection.
@@ -118,6 +122,7 @@ class Jaide():
                 if not self._shell:
                     self._conn_type = "root"
                     self.connect()
+                # todo: if doing shell commands, then op cmd when logged in as root, the commands will fail because we're not moving to CLI here (no way to check for it)
             if isinstance(self._session, func_trans[function.__name__]):
                 pass
             else:
@@ -141,8 +146,9 @@ class Jaide():
                    | - 'paramiko' is used for operational commands (to allow
                    |            pipes in commands)
                    | - 'scp' is used for copying files
-                   | - 'shell' is used for to send shell commands, or op
-                   |            commands when the login user is root.
+                   | - 'shell' is used for to send shell commands
+                   | - 'root' is used when logging into the device as root, and
+                   |            wanting to send operational commands
                    | - 'ncclient' is used for the rest (commit, compare_config,
                    |            commit_check)
 
