@@ -2,4 +2,5 @@
 *.pyc
 # ignore Sublime Code Intel config
 .codeintel/*
-
+# ignore testing file
+test.py
