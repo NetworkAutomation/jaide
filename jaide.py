@@ -40,7 +40,7 @@ except ImportError as e:
 # TODO: interface errors
 class Jaide():
     def __init__(self, host, username, password, conn_timeout=5,
-                 session_timeout=300, conn_type="ncclient", port=22):
+                 session_timeout=300, conn_type="paramiko", port=22):
         """ Purpose: This is the initialization function for the Jaide class,
                    | which creates a connection to a junos device. It will
                    | return a Jaide object, which can then be used to actually
@@ -82,9 +82,10 @@ class Jaide():
         self._port = port
         self._username = username
         self._password = password
-        self._conn_type = conn_type
         self._tout = session_timeout
         self._conn_tout = conn_timeout
+        self._shell = ""
+        self._conn_type = conn_type
         # make the connection to the device
         self.connect()
 
@@ -106,8 +107,17 @@ class Jaide():
                 "op_cmd": paramiko.client.SSHClient,
                 "compare_config": manager.Manager,
                 "commit_check": manager.Manager,
-                "commit": manager.Manager
+                "commit": manager.Manager,
+                "shell": paramiko.client.SSHClient
             }
+            # when doing an operational command, logging in as root
+            # brings you to shell, so we need to enter the device as a shell
+            # connection, and move to cli to perform the command
+            # this is a one-off because the isinstance() check will be bypassed
+            if self._username == "root" and function.__name__ == "op_cmd":
+                if not self._shell:
+                    self._conn_type = "root"
+                    self.connect()
             if isinstance(self._session, func_trans[function.__name__]):
                 pass
             else:
@@ -116,6 +126,8 @@ class Jaide():
                     self._conn_type = "paramiko"
                 elif function.__name__ == "scp":
                     self._conn_type = "scp"
+                elif function.__name__ == "shell_cmd":
+                    self._conn_type = "shell"
                 else:
                     self._conn_type = "ncclient"
                 self.connect()
@@ -126,10 +138,12 @@ class Jaide():
         """ Purpose: This method is used to make a connection to the junos
                    | device. The internal property _conn_type is what
                    | determines the type of connection we make to the device.
-                   | - paramiko is used for operational commands (to allow
+                   | - 'paramiko' is used for operational commands (to allow
                    |            pipes in commands)
-                   | - scp is used for copying files
-                   | - ncclient is used for the rest (commit, compare_config,
+                   | - 'scp' is used for copying files
+                   | - 'shell' is used for to send shell commands, or op
+                   |            commands when the login user is root.
+                   | - 'ncclient' is used for the rest (commit, compare_config,
                    |            commit_check)
 
             @returns: None
@@ -163,6 +177,21 @@ class Jaide():
         elif self._conn_type == 'scp':
             # todo: add in scp connection
             pass
+        elif self._conn_type == 'shell':
+            if not self._shell:
+                self._shell = self._session.invoke_shell()
+                time.sleep(2)
+            self._shell.send('start shell')
+            time.sleep(2)
+            self._shell.recv(9999)
+        elif self._conn_type == 'root':
+            # open the shell if necessary, and move it into CLI
+            if not self._shell:
+                self._shell = self._session.invoke_shell()
+                time.sleep(2)
+            self._shell.send("cli\n")
+            time.sleep(4)
+            self._shell.recv(9999)
 
     @check_instance
     def op_cmd(self, command, req_format='text', xpath_expr=""):
@@ -191,19 +220,29 @@ class Jaide():
         if req_format.lower() == 'xml' or xpath_expr:
             command += ' | display xml'
         command += ' | no-more\n'
-        print(command)
-        stdin, stdout, stderr = self._session.exec_command(command=command,
-                                                   timeout=float(self._tout))
-        stdin.close()
         out = ''
-        # read normal output
-        while not stdout.channel.exit_status_ready():
-            out += stdout.read()
-        stdout.close()
-        # read errors
-        while not stderr.channel.exit_status_ready():
-            out += stderr.read()
-        stderr.close()
+        # when logging in as root, we are at shell, and need to move to cli to
+        # run the command
+        if self._username == 'root':
+            self._shell.send(command)
+            time.sleep(1)
+            while self._shell.recv_ready():
+                out += self._shell.recv(999999)
+            out = '\n'.join(out.split('\n')[1:-2])
+            self._shell
+        # not logging in as root, and can grab the output as normal.
+        else:
+            stdin, stdout, stderr = self._session.exec_command(command=command,
+                                                   timeout=float(self._tout))
+            stdin.close()
+            # read normal output
+            while not stdout.channel.exit_status_ready():
+                out += stdout.read()
+            stdout.close()
+            # read errors
+            while not stderr.channel.exit_status_ready():
+                out += stderr.read()
+            stderr.close()
         return out if not xpath_expr else self.xpath(out, xpath_expr)
 
     @check_instance
@@ -226,7 +265,7 @@ class Jaide():
         if not commands:
             raise InvalidCommandError('No commands specified')
         clean_cmds = []
-        for cmd in iter_cmds(commands):
+        for cmd in self.iter_cmds(commands):
             clean_cmds.append(cmd)
         self.lock()
         self._session.load_configuration(action='set', config=clean_cmds)
@@ -256,7 +295,7 @@ class Jaide():
         if not commands:
             raise InvalidCommandError('No commands specified')
         clean_cmds = []
-        for cmd in iter_cmds(commands):
+        for cmd in self.iter_cmds(commands):
             clean_cmds.append(cmd)
         self.lock()
         self._session.load_configuration(action='set', config=clean_cmds)
@@ -391,7 +430,6 @@ class Jaide():
         if isinstance(commands, basestring):
             # if the command argument is a filename, we need to open it.
             if path.isfile(commands):
-                print(commands)
                 commands = open(commands, 'rb')
             # if the command string is a comma separated list, break it up.
             elif len(commands.split(',')) > 1:
@@ -401,7 +439,7 @@ class Jaide():
         else:
             raise TypeError('commands parameter must be a \'str\' or \'list\'')
         for cmd in commands:
-            # exclude commented lines, and pass on blank lines (index error)
+            # exclude commented lines, and skip blank lines (index error)
             try:
                 if cmd.strip()[0] != "#":
                     yield cmd.strip()
