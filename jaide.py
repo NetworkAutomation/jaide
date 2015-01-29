@@ -32,10 +32,10 @@ except ImportError as e:
     raise e
 
 
-# TODO: shell commands
 # TODO: scp commands
 # TODO: device status (health check)
 # TODO: interface errors
+# TODO: config diff (difflib unified_diff())
 class Jaide():
     def __init__(self, host, username, password, conn_timeout=5,
                  sess_timeout=300, conn_type="paramiko", port=22):
@@ -55,10 +55,10 @@ class Jaide():
                                | to connect to the device.
             @type conn_timeout: int
             @param sess_timeout: The timeout value, in seconds, for the
-                                  | session. If a command is sent and nothing
-                                  | is heard back from the device in this
-                                  | timeframe, the session is declared dead,
-                                  | and times out.
+                               | session. If a command is sent and nothing
+                               | is heard back from the device in this
+                               | timeframe, the session is declared dead,
+                               | and times out.
             @type sess_timeout: int
             @param conn_type: The connection type that should be made. Several
                             | options are available: 'ncclient', 'scp', and
@@ -88,6 +88,7 @@ class Jaide():
         self.conn_timeout = conn_timeout
         self._shell = ""
         self.conn_type = conn_type
+        self._in_cli = False
         # make the connection to the device
         self.connect()
 
@@ -120,12 +121,14 @@ class Jaide():
                 if not self._shell:
                     self.conn_type = "root"
                     self.connect()
-                # FIXME: if doing shell commands, then doing op cmds when logged in as root, the op cmds will fail because we're not moving to CLI here (no way to no if we're in shell or cli)
+                self.shell_to_cli()  # check if we're in the cli
             # Have to call shell command separately, since we are using _shell
             # for comparison, not _session.
-            elif function.__name__ == 'shell_cmd' and not self._shell:
-                self.conn_type = "shell"
-                self.connect()
+            elif function.__name__ == 'shell_cmd':
+                if not self._shell:
+                    self.conn_type = "shell"
+                    self.connect()
+                self.cli_to_shell()  # check if we're in shell.
             if isinstance(self._session, func_trans[function.__name__]):
                 pass
             else:
@@ -192,17 +195,36 @@ class Jaide():
             if not self._shell:
                 self._shell = self._session.invoke_shell()
                 time.sleep(2)
-            self._shell.send('start shell\n')
-            time.sleep(2)
-            self._shell.recv(9999)
+                if self.username != 'root' and not self._in_cli:
+                    self._in_cli = True
+            print(self._shell)
+            if not self.cli_to_shell():
+                self._shell.recv(9999)
         elif self.conn_type == 'root':
             # open the shell if necessary, and move it into CLI
             if not self._shell:
                 self._shell = self._session.invoke_shell()
                 time.sleep(2)
+            if not self.shell_to_cli():
+                self._shell.recv(9999)
+
+    def shell_to_cli(self):
+        if not self._in_cli:
             self._shell.send("cli\n")
             time.sleep(4)
             self._shell.recv(9999)
+            self._in_cli = True
+            return True
+        return False
+
+    def cli_to_shell(self):
+        if self._in_cli:
+            self._shell.send("start shell\n")
+            time.sleep(1.5)
+            self._shell.recv(9999)
+            self._in_cli = False
+            return True
+        return False
 
     @check_instance
     def op_cmd(self, command, req_format='text', xpath_expr=""):
@@ -277,8 +299,15 @@ class Jaide():
         self._shell.send(command)
         time.sleep(1)
         out = ''
-        while self._shell.recv_ready():
-            out += self._shell.recv(999999)
+        i = 0
+        # FIXME: shell commands break here, recv_ready is always true I think, causing the command to hang, since there is nothing to receive on the second iteration.
+        while self._shell.recv_ready() or i < 30:
+            out += self._shell.recv(9999)
+            time.sleep(.75)
+            i += 1
+            print(i)
+            print(out)
+        print("out of loop")
         # take off the command being sent and the prompt at the end.
         out = '\n'.join(out.split('\n')[1:-1])
         return out
