@@ -18,6 +18,7 @@ try:
     from ncclient.operations.errors import TimeoutExpiredError
     from ncclient.transport import errors
     from os import path
+    from scp import SCPClient, SCPException
     import paramiko
     import logging  # logging needed for disabling paramiko logging output
     import socket  # used for catching timeout errors on paramiko sessions
@@ -32,10 +33,83 @@ except ImportError as e:
     raise e
 
 
-# TODO: scp commands
-# TODO: device status (health check)
-# TODO: interface errors
-# TODO: config diff (difflib unified_diff())
+def iter_cmds(commands):
+    """ Purpose: This function is a generator that will read in either a
+               | plain text file of commands, a comma separated string
+               | of commands, or a list of commands, and will crop out any
+               | comments or blank lines, and yield individual commands.
+               |
+               | Only commands that do not start with a comment '#', or are not
+               | entirely whitespace will be yielded. This allows a file with
+               | comments and blank lines for formatting neatness to be used
+               | without a problem.
+
+        @param commands: This can be either a string that is a file
+                       | location, a comma separated string of commands,
+                       | or a python list of commands.
+        @type commands: str or list
+
+        @returns: Yields each command in order
+        @rtype: iterable of str
+    """
+    if isinstance(commands, basestring):
+        # if the command argument is a filename, we need to open it.
+        if path.isfile(commands):
+            commands = open(commands, 'rb')
+        # if the command string is a comma separated list, break it up.
+        elif len(commands.split(',')) > 1:
+            commands = commands.split(',')
+    elif isinstance(commands, list):
+        pass
+    else:
+        raise TypeError('commands parameter must be a \'str\' or \'list\'')
+    for cmd in commands:
+        # exclude commented lines, and skip blank lines (index error)
+        try:
+            if cmd.strip()[0] != "#":
+                yield cmd.strip()
+        except IndexError:
+            pass
+
+
+def xpath(source_xml, xpath_expr):
+    """ Purpose: This function applies an Xpath expression to the XML
+               | supplied by source_xml. Returns a string subtree or
+               | subtrees that match the Xpath expression.
+
+        @param source_xml: Plain text XML that will be filtered
+        @type source_xml: str or lxml.etree.ElementTree.Element object
+        @param xpath_expr: Xpath expression that we will filter the XML by.
+        @type xpath_expr: str
+
+        @returns: The filtered XML if filtering was successful. Otherwise,
+                | an empty string.
+        @rtype: str
+    """
+    tree = source_xml
+    if not isinstance(source_xml, ET.Element):
+        tree = objectify.fromstring(source_xml)
+    # clean up the namespace in the tags, as namespaces appear to confuse
+    # xpath method
+    for elem in tree.getiterator():
+        # beware of factory functions such as Comment
+        if isinstance(elem.tag, basestring):
+            i = elem.tag.find('}')
+            if i >= 0:
+                elem.tag = elem.tag[i+1:]
+
+    # remove unused namespaces
+    objectify.deannotate(tree, cleanup_namespaces=True)
+    filtered_list = tree.xpath(xpath_expr)
+    # Return string from the list of Elements
+    matches = ''.join(etree.tostring(
+        element, pretty_print=True) for element in filtered_list)
+    return matches if matches else ""
+
+
+# TODO: device status (health check) (in tool)
+# TODO: interface errors (in tool)
+# TODO: config diff (difflib unified_diff()) (in tool)
 class Jaide():
     def __init__(self, host, username, password, conn_timeout=5,
                  sess_timeout=300, conn_type="paramiko", port=22):
@@ -79,7 +153,7 @@ class Jaide():
             @returns: an instance of the Jaide class
             @rtype: object
         """
-        # store object properties
+        # store object properties and set initial values.
         self.host = host
         self.port = port
         self.username = username
@@ -87,8 +161,10 @@ class Jaide():
         self.sess_timeout = sess_timeout
         self.conn_timeout = conn_timeout
         self._shell = ""
+        self._scp = ""
         self.conn_type = conn_type
         self._in_cli = False
+        self._filename = ""
         # make the connection to the device
         self.connect()
 
@@ -111,7 +187,9 @@ class Jaide():
                 "compare_config": manager.Manager,
                 "commit_check": manager.Manager,
                 "commit": manager.Manager,
-                "shell_cmd": paramiko.client.SSHClient
+                "shell_cmd": paramiko.client.SSHClient,
+                "scp_pull": paramiko.client.SSHClient,
+                "scp_push": paramiko.client.SSHClient
             }
             # when doing an operational command, logging in as root
             # brings you to shell, so we need to enter the device as a shell
@@ -130,12 +208,17 @@ class Jaide():
                     self.connect()
                 self.cli_to_shell()  # check if we're in shell.
             if isinstance(self._session, func_trans[function.__name__]):
-                pass
+                # If they're doing SCP, we have to check for both _session and
+                # _scp
+                if function.__name__ in ['scp_pull', 'scp_push']:
+                    if not isinstance(self._scp, SCPClient):
+                        self.conn_type = "scp"
+                        self.connect()
             else:
                 self.disconnect()
                 if function.__name__ == "op_cmd":
                     self.conn_type = "paramiko"
-                elif function.__name__ == "scp":
+                elif function.__name__ in ["scp_pull", "scp_push"]:
                     self.conn_type = "scp"
                 else:
                     self.conn_type = "ncclient"
@@ -159,7 +242,7 @@ class Jaide():
             @returns: None
             @rtype: None
         """
-        if self.conn_type == 'paramiko':
+        if self.conn_type in ['paramiko', 'scp']:
             self._session = paramiko.SSHClient()
             # These two lines set the paramiko logging to Critical to
             # remove extra messages from being sent to the user output.
@@ -173,6 +256,8 @@ class Jaide():
                                   password=self.password,
                                   port=self.port,
                                   timeout=self.conn_timeout)
+            if self.conn_type == 'scp':
+                self._scp = SCPClient(self._session.get_transport())
         elif self.conn_type == "ncclient":
             self._session = manager.connect(
                 host=self.host,
@@ -184,9 +269,6 @@ class Jaide():
                 hostkey_verify=False
             )
             self._session.timeout = self.sess_timeout
-        elif self.conn_type == 'scp':
-            # todo: add in scp connection
-            pass
         elif self.conn_type == 'shell':
             if not self._session:
                 self.conn_type = 'paramiko'
@@ -197,7 +279,6 @@ class Jaide():
                 time.sleep(2)
                 if self.username != 'root' and not self._in_cli:
                     self._in_cli = True
-            print(self._shell)
             if not self.cli_to_shell():
                 self._shell.recv(9999)
         elif self.conn_type == 'root':
@@ -220,7 +301,7 @@ class Jaide():
     def cli_to_shell(self):
         if self._in_cli:
             self._shell.send("start shell\n")
-            time.sleep(1.5)
+            time.sleep(2)
             self._shell.recv(9999)
             self._in_cli = False
             return True
@@ -254,13 +335,14 @@ class Jaide():
             command += ' | display xml'
         command += ' | no-more\n'
         out = ''
-        # when logging in as root, we are at shell, and need to move to cli to
-        # run the command
+        # when logging in as root, we are at shell, _session is a
+        # paramiko.Channel, not an SSHClient
         if self.username == 'root':
             self._shell.send(command)
-            time.sleep(1)
+            time.sleep(3)
             while self._shell.recv_ready():
                 out += self._shell.recv(999999)
+                time.sleep(.75)
             # take off the command being sent and the prompt at the end.
             out = '\n'.join(out.split('\n')[1:-2])
         # not logging in as root, and can grab the output as normal.
@@ -276,7 +358,65 @@ class Jaide():
             while not stderr.channel.exit_status_ready():
                 out += stderr.read()
             stderr.close()
-        return out if not xpath_expr else self.xpath(out, xpath_expr)
+        return out if not xpath_expr else xpath(out, xpath_expr)
+
+    def _copy_status(self, filename, size, sent):
+        """ Purpose: Callback function for an SCP operation. Used to show
+                   | the progress of an actively running copy.
+        """
+        output = "Transferred %.0f%% of the file %s" % (
+            (float(sent) / float(size) * 100), filename)
+        output += (' ' * (120 - len(output)))
+        if filename != self._filename:
+            print('')
+            self._filename = filename
+        print(output, end='\r')
+
+    @check_instance
+    def scp_pull(self, src, dest, progress=False):
+        """ Purpose: Makes an SCP pull request for the specified file(s)/dir.
+
+            @param src: string containing the source file or directory
+            @type src: str
+            @param dest: destination string of where to put the file(s)/dir
+            @type dest: str
+            @param progress: set to true to have the progress callback be
+                           | returned as the operation is copying.
+            @type progress: bool
+
+            @returns
+        """
+        # set up the progress callback if they want to see the process
+        self._scp._progress = self._copy_status if progress else None
+        # retrieve the file(s)
+        try:
+            self._scp.get(src, dest, recursive=True, preserve_times=True)
+        except SCPException:
+            return False
+        return True
+
+    @check_instance
+    def scp_push(self, src, dest, progress=False):
+        """ Purpose: Makes an SCP push request for the specified file(s)/dir.
+
+            @param src: string containing the source file or directory
+            @type src: str
+            @param dest: destination string of where to put the file(s)/dir
+            @type dest: str
+            @param progress: set to true to have the progress callback be
+                           | returned as the operation is copying.
+            @type progress: bool
+
+            @returns
+        """
+        # set up the progress callback if they want to see the process
+        self._scp._progress = self._copy_status if progress else None
+        # push the file(s)
+        try:
+            self._scp.put(src, dest, recursive=True, preserve_times=True)
+        except SCPException:
+            return False
+        return True
 
     @check_instance
     def shell_cmd(self, command=""):
@@ -297,17 +437,11 @@ class Jaide():
             raise InvalidCommandError("Parameter 'command' must not be empty.")
         command = command.strip() + '\n'
         self._shell.send(command)
-        time.sleep(1)
+        time.sleep(2)
         out = ''
-        i = 0
-        # FIXME: shell commands break here, recv_ready is always true I think, causing the command to hang, since there is nothing to receive on the second iteration.
-        while self._shell.recv_ready() or i < 30:
-            out += self._shell.recv(9999)
+        while self._shell.recv_ready():
+            out += self._shell.recv(999999)
             time.sleep(.75)
-            i += 1
-            print(i)
-            print(out)
-        print("out of loop")
         # take off the command being sent and the prompt at the end.
         out = '\n'.join(out.split('\n')[1:-1])
         return out
@@ -460,8 +594,8 @@ class Jaide():
         return False
 
     def disconnect(self):
-        """ Purpose: Closes the current connection to the device, no matter
-                   | what type it is.
+        """ Purpose: Closes the current connection(s) to the device, no matter
+                   | what types exist.
 
             @returns: None
             @rtype: None
@@ -474,8 +608,10 @@ class Jaide():
         elif isinstance(self._session, paramiko.client.SSHClient):
             self._session.close()
             self._session = ""
-        # elif isinstance(self._session, scp_instnace):
-        #     self._session.close_scp_instance()
+        elif isinstance(self._session, SCPClient):
+            self._session.close()
+            self._session = ""
+            self._scp = ""
 
     def lock(self):
         """ Purpose: Attempts to lock the session. Will only work if the
@@ -490,75 +626,6 @@ class Jaide():
                    | to work.
         """
         self._session.unlock()
-
-    @staticmethod
-    def iter_cmds(commands):
-        """ Purpose: This function is a generator that will read in either a
-                   | plain text file of commands, a comma separated string
-                   | of commands, or a list of commands, and will crop out any
-                   | comments or blank lines, and yield individual commands.
-
-            @param commands: This can be either a string that is a file
-                           | location, a comma separated string of commands,
-                           | or a python list of commands
-            @type commands: str or list
-
-            @returns: Yields each command in order
-            @rtype: iterable of str
-        """
-        if isinstance(commands, basestring):
-            # if the command argument is a filename, we need to open it.
-            if path.isfile(commands):
-                commands = open(commands, 'rb')
-            # if the command string is a comma separated list, break it up.
-            elif len(commands.split(',')) > 1:
-                commands = commands.split(',')
-        elif isinstance(commands, list):
-            pass
-        else:
-            raise TypeError('commands parameter must be a \'str\' or \'list\'')
-        for cmd in commands:
-            # exclude commented lines, and skip blank lines (index error)
-            try:
-                if cmd.strip()[0] != "#":
-                    yield cmd.strip()
-            except IndexError:
-                pass
-
-    @staticmethod
-    def xpath(source_xml, xpath_expr):
-        """ Purpose: This function applies an Xpath expression to the XML
-                   | supplied by source_xml. Returns a string subtree or
-                   | subtrees that match the Xpath expression.
-
-            @param source_xml: Plain text XML that will be filtered
-            @type source_xml: str or lxml.etree.ElementTree.Element object
-            @param xpath_expr: Xpath expression that we will filter the XML by.
-            @type xpath_expr: str
-
-            @returns: The filtered XML if filtering was successful. Otherwise,
-                    | an empty string.
-            @rtype: str
-        """
-        tree = source_xml
-        if not isinstance(source_xml, ET.Element):
-            tree = objectify.fromstring(source_xml)
-        # clean up the namespace in the tags, as namespaces appear to confuse
-        # xpath method
-        for elem in tree.getiterator():
-            # beware of factory functions such as Comment
-            if isinstance(elem.tag, basestring):
-                i = elem.tag.find('}')
-                if i >= 0:
-                    elem.tag = elem.tag[i+1:]
-
-        # remove unused namespaces
-        objectify.deannotate(tree, cleanup_namespaces=True)
-        filtered_list = tree.xpath(xpath_expr)
-        # Return string from the list of Elements
-        matches = ''.join(etree.tostring(
-            element, pretty_print=True) for element in filtered_list)
-        return matches if matches else ""
 
     @property
     def host(self):
