@@ -39,58 +39,127 @@ from paramiko import SSHException, AuthenticationException
 import socket
 
 # -i is a required parameter, the rest are optional arguments
-prs = ArgumentParser(formatter_class=RawDescriptionHelpFormatter, description="Required Modules:\n\tNCCLIENT - https://github.com/leopoul/ncclient/ \n\tPARAMIKO - "
-                     "https://github.com/paramiko/paramiko \n\tSCP - https://pypi.python.org/pypi/scp/ \n\tPyCrypto - http://www.voidspace.org.uk/python/modules.shtml#pycrypto"
-                     "\n\nThis script can be used as an aide to easily do the same command(s) to multiple juniper devices. "
-                     "The only required arguments are the destination IP address(es), and one of the following commands:\nSingle Format: "
-                     "\t[ -c | -e | -H | -I | -s | -S | -l | -b ]\nName Format: \t[ --command | --errors | --health | --info | --set | --scp | --shell | --blank ]",
-                     prog='jaide.py', usage="%(prog)s -i IP [-c [operational_mode_commands | file_of_operational_commands] | -e | -H | -I | -s"
-                     " [set_commands | file_of_set_commands] | -S [push | pull] source destination | -l [shell_commands | file_of_shell_commands] | -b]")
-prs.add_argument("-i", "--ip", required=True, dest='ip', type=str, help="The target device(s) to run the script against. This can be a single target device IP address, "
-                 "a quoted comma separated list of IP's, or a filepath to a file containing IP's on each line. DNS resolution will work using your machine's specified DNS server.")
-prs.add_argument("-u", "--username", dest='username', type=str, default='default', help="Username  -  Will prompt if not specified.")
-prs.add_argument("-p", "--password", dest='password', type=str, default='default', help="Password  -  Will prompt if not specified.")
-prs.add_argument("-w", "--write", dest='write', metavar=("[s/single | m/multiple]", "OUTPUT_FILENAME"), nargs=2, type=str, help="Specify a filename to write all script "
-                 "output. Also requires whether to write to a single file or a separate file per IP. (ex. -w s ~/Desktop/output.txt). The output format for the names of multiple files is IP_OUTPUTFILENAME.")
-prs.add_argument("-q", "--quiet", dest='quiet', action="store_true", help="Can be used with --scp when copying to/from a single device to prevent seeing the live "
-                 "status of the transfer. Might be useful when transmitting a large number of files/folders.")
-prs.add_argument("-t", "--timeout", dest="timeout", type=int, default=300, help="Specify the timeout value for the NCClient connection, in seconds."
-                 " Default is 300 seconds. This should be increased when no output could be seen for more than 5 minutes (ex. requesting a system snapshot).")
-prs.add_argument("-f", "--format", dest="format", type=str, default='text', metavar='[ text | xml ]', help="Formats output to text or xml. Should be used with -c."
-                 " Default format is text. Including an xpath expression after a command forces XML output (EX. \"show route %% //rt-entry\").")
+prs = ArgumentParser(formatter_class=RawDescriptionHelpFormatter,
+                     description="Required Modules:\n\tNCCLIENT - "
+                     "https://github.com/leopoul/ncclient/ \n\tPARAMIKO - "
+                     "https://github.com/paramiko/paramiko \n\tSCP - "
+                     "https://pypi.python.org/pypi/scp/\n\nThis script can be "
+                     "used as an aide to easily do the same command(s) to "
+                     "multiple juniper devices. The only required arguments "
+                     "are the destination IP address(es) or host(s), and one "
+                     "of the following commands:\nSingle Format: "
+                     "\t[ -c | -e | -H | -I | -s | -S | -l | -b ]\nName Format"
+                     ": \t[ --command | --errors | --health | --info | --set |"
+                     " --scp | --shell | --blank ]", prog='jaide_tool.py',
+                     usage="%(prog)s -i IP [-c operational_mode_commands | -e "
+                     "| -H | -I | -s set_commands | -S [push | pull] source "
+                     "destination | -l shell_commands | -b]")
+prs.add_argument("-i", "--ip", required=True, dest='ip', type=str, help="The "
+                 "target device(s) to run the script against. This can be a "
+                 "single target device IP address/hostname, a quoted comma "
+                 "separated list of IP's, or a filepath to a file containing "
+                 "IP's on each line. Hostnames are resolved.")
+prs.add_argument("-u", "--username", dest='username', type=str,
+                 default='default', help="Will prompt if not specified.")
+prs.add_argument("-p", "--password", dest='password', type=str,
+                 default='default', help="Will prompt if not specified.")
+prs.add_argument("-w", "--write", dest='write', metavar=("[s/single | "
+                 "m/multiple]", "OUTPUT_FILENAME"), nargs=2, type=str,
+                 help="Specify a filename to write all script output. Also "
+                 "requires whether to write to a single file or a separate "
+                 "file per IP. (ex. -w s ~/Desktop/output.txt). The output "
+                 "format for the names of multiple files is IP_FILENAME.")
+prs.add_argument("-q", "--quiet", dest='quiet', action="store_true", help="Can"
+                 " be used with --scp when copying to/from a single device to "
+                 "prevent seeing the live status of the transfer.")
+prs.add_argument("-t", "--session-timeout", dest="sess_timeout", type=int,
+                 default=300, help="Specify the session timeout value, in "
+                 "seconds, for declaring a lost session. Default is 300 "
+                 "seconds. This should be increased when no output could be "
+                 "seen for more than 5 minutes (ex. requesting a system "
+                 "snapshot).")
+prs.add_argument("-T", "--connection-timeout", dest="conn_timeout", type=int,
+                 default=5, help="Specify the connection timeout, in seconds, "
+                 "for declaring a device unreachable during connection. "
+                 "Default is 5 seconds.")
+prs.add_argument("-P", "--port", dest="port", type=int, default=22,
+                 help="Specify the port on which to connect to the device."
+                 "Defaults to 22.")
+prs.add_argument("-f", "--format", dest="format", type=str, default='text',
+                 metavar='[ text | xml ]', help="Formats output to text or"
+                 " xml. Should be used with -c. Default format is text. "
+                 "Including an xpath expression after a command forces XML"
+                 " output (EX. \"show route %% //rt-entry\").")
 
 # Script functions: Must select one and only one.
 group1 = prs.add_mutually_exclusive_group(required=True)
-group1.add_argument("-c", "--command", dest='command', metavar="[operational_mode_commands | file_of_operational_commands]", type=str, help="Send a single operational"
-                    " mode command to device(s). A trailing '%%' followed by an xpath expression will filter the xml results by that expression. For example: 'show route %% //rt-entry'")
-group1.add_argument("-e", "--errors", dest='int_error', action='store_true', help='Check all interfaces for errors.')
-group1.add_argument("-H", "--health", dest="health_check", action="store_true", help="Grab a Health Check: CPU/Mem usage, alarms, etc from device.")
-group1.add_argument("-I", "--info", dest='info', action='store_true', help="Get basic device info (Serial #, Model, etc).")
-group1.add_argument("-s", "--set", dest='make_commit', metavar="[set_commands | file_of_set_commands]", type=str, help="Send and commit set command(s) to device(s). "
-                    "Can be a single quoted command, a quoted comma separated list of commands, or a file with a list of set commands on each line. "
-                    "Can be used with the commit options --check, --confirm, --blank, --comment, --synchronize, and --at.")
-group1.add_argument("-S", "--scp", nargs=3, dest="scp", type=str, metavar=("[push | pull]", "source", "destination"), help="The SCP argument -S expects three arguments."
-                    " In order, they are the direction 'push' or 'pull', the source file/folder, and the destination file/folder."
-                    " For example, this could be used to pull a directory using '--scp pull /var/tmp /path/to/local/destination'")
-group1.add_argument("-l", "--shell", dest='shell', metavar="[shell_commands | file_of_shell_commands]", type=str, help="Similar to -c, except it will run the commands from "
-                    "shell instead of operational mode.")
-group1.add_argument("-b", "--blank", dest="commit_blank", action='store_true', help="Can be used with or without -s to make a blank commit. A key use case is when trying"
-                    " to confirm a commit confirm. --confirm, --check, --blank, and --at are mutually exclusive!")
+group1.add_argument("-c", "--command", dest='command', metavar="[operational_"
+                    "mode_commands | file_of_operational_commands]", type=str,
+                    help="Send a single operational mode command to device(s)."
+                    " A trailing '%%' followed by an xpath expression will "
+                    "filter the xml results by that expression. For example: "
+                    "'show route %% //rt-entry'")
+group1.add_argument("-e", "--errors", dest='int_error', action='store_true',
+                    help='Check all interfaces for errors.')
+group1.add_argument("-H", "--health", dest="health_check", action="store_true",
+                    help="Grab a Health Check: CPU/Mem usage, alarms, etc from"
+                    " the device.")
+group1.add_argument("-I", "--info", dest='info', action='store_true',
+                    help="Get basic device info (Serial #, Model, etc).")
+group1.add_argument("-s", "--set", dest='make_commit', metavar="[set_commands "
+                    "| file_of_set_commands]", type=str, help="Send and commit"
+                    " set command(s) to device(s). Can be a single quoted "
+                    "command, a quoted comma separated list of commands, or a "
+                    "file with a list of set commands on each line. "
+                    "Can be used with the commit options --check, --confirm, "
+                    "--blank, --comment, --synchronize, and --at.")
+group1.add_argument("-S", "--scp", nargs=3, dest="scp", type=str,
+                    metavar=("[push | pull]", "source", "destination"),
+                    help="The SCP argument -S expects three arguments."
+                    " In order, they are the direction 'push' or 'pull', the "
+                    "source file/folder, and the destination file/folder. For "
+                    "example, this could be used to pull a directory using "
+                    "'--scp pull /var/tmp /path/to/local/destination'")
+group1.add_argument("-l", "--shell", dest='shell', metavar="[shell_commands | "
+                    "file_of_shell_commands]", type=str, help="Similar to -c, "
+                    "except it will run the commands from shell instead of "
+                    "operational mode.")
+group1.add_argument("-b", "--blank", dest="commit_blank", action='store_true',
+                    help="Can be used with or without -s to make a blank "
+                    "commit. A key use case is when trying to confirm a commit"
+                    " confirm. --confirm, --check, --blank, and --at are "
+                    "mutually exclusive!")
 
 # Commit options. These options are mutually exclusive.
 group2 = prs.add_mutually_exclusive_group()
-group2.add_argument("-m", "--confirm", dest='commit_confirm', metavar="CONFIRM_MINUTES", type=int, choices=range(1, 61), help="Can be used with -s to make a confirmed commit. "
-                    "Accepts a number in /minutes/ between 1 and 60! --confirm, --check, --blank, and --at are mutually exclusive!")
-group2.add_argument("-k", "--check", dest="commit_check", action='store_true', help="Can be used with -s to only run a commit check, and not commit the changes."
-                    " --confirm, --check, --blank, and --at are mutually exclusive!")
-group2.add_argument("-a", "--at", dest='commit_at', type=str, metavar="COMMIT_AT_TIME", help="Specify a time for the device to make the commit at. Junos expects one of two formats: "
-                    "A time value of the form 'hh:mm[:ss]' or a date and time value of the form 'yyyy-mm-dd hh:mm[:ss]' (seconds are optional).")
+group2.add_argument("-m", "--confirm", dest='commit_confirm',
+                    metavar="CONFIRM_MINUTES", type=int, choices=range(1, 61),
+                    help="Can be used with -s to make a confirmed commit. "
+                    "Accepts a number in /minutes/ between 1 and 60! --confirm"
+                    ", --check, --blank, and --at are mutually exclusive!")
+group2.add_argument("-k", "--check", dest="commit_check", action='store_true',
+                    help="Can be used with -s to only run a commit check, and"
+                    " not commit the changes. --confirm, --check, --blank, and"
+                    " --at are mutually exclusive!")
+group2.add_argument("-a", "--at", dest='commit_at', type=str,
+                    metavar="COMMIT_AT_TIME", help="Specify a time for the "
+                    "device to make the commit at. Junos expects one of two "
+                    "formats: A time value of the form 'hh:mm[:ss]' or a date "
+                    "and time value of the form 'yyyy-mm-dd hh:mm[:ss]' "
+                    "(seconds are optional).")
 
-# Inclusive commit options that can be used with each other and the other mutually exclusive options.
-group3 = prs.add_argument_group('Inclusive Commit Options', 'Unlike the other mutually exclusive commit options, '
-                                'these options below can be used with each other or together with any other commit option.')
-group3.add_argument('-C', '--comment', dest="commit_comment", type=str, help="Add a comment to the commit that will be written to the commit log. This should be a quoted string.")
-group3.add_argument('-y', '--synchronize', dest="commit_synchronize", action='store_true', help="Enforce a commit synchronize operation.")
+# Inclusive commit options that can be used with each other and the other
+# mutually exclusive options.
+group3 = prs.add_argument_group('Inclusive Commit Options', 'Unlike the other '
+                                'mutually exclusive commit options, these '
+                                'options below can be used with each other or '
+                                'together with any other commit option.')
+group3.add_argument('-C', '--comment', dest="commit_comment", type=str,
+                    help="Add a comment to the commit that will be written to "
+                    "the commit log. This should be a quoted string.")
+group3.add_argument('-y', '--synchronize', dest="commit_synchronize",
+                    action='store_true', help="Enforce a commit synchronize "
+                    "operation.")
 
 
 def open_connection(ip, username, password, function, args, write_to_file,
@@ -127,7 +196,8 @@ def open_connection(ip, username, password, function, args, write_to_file,
                 | eventually makes it to the write_output() function.
         @rtype: str
     """
-    output = ""
+    # start with the header line on the output.
+    output = '=' * 50 + '\nResults from device: %s\n' % ip
     print ip, username, password, function
     # this is used to track the filepath that we will output to. The
     # write_output() function will pick this up.
@@ -135,7 +205,6 @@ def open_connection(ip, username, password, function, args, write_to_file,
         output += "*****WRITE_TO_FILE*****" + write_to_file[1] + \
                   "*****WRITE_TO_FILE*****" + write_to_file[0] + \
                   "*****WRITE_TO_FILE*****"
-    output += '=' * 50 + '\n'  # header line.
     try:
         # create the Jaide session object for the device.
         conn = Jaide(ip, username, password, conn_timeout=conn_timeout,
@@ -151,8 +220,9 @@ def open_connection(ip, username, password, function, args, write_to_file,
         output += 'Error connecting to device: %s\nError: %s' % (ip, str(e))
     except socket.timeout:
         output += 'Timeout exceeded connecting to device: %s\n' % ip
+    except socket.error:
+        output += 'The device refused the connection on port %s' % port
     else:
-        output += 'Results from device: %s\n' % conn.host
         # if there are no args to pass through
         if args is None:
             output += function(conn)
@@ -274,9 +344,9 @@ def multi_cmd(conn, commands, shell, req_format='text'):
         @type commands: str
         @param shell: boolean whether or not we are sending shell commands.
         @type shell: bool
-        @param timeout: integer in seconds for the timeout we should expect for
-                      | each command we send. Defaults to 300 seconds.
-        @type timeout: int
+        @param req_format: string specifying what format to request for the
+                         | response from the device. Defaults to text, but
+                         | also accepts xml.
 
         @returns: The output that should be shown to the user.
         @rtype: str
@@ -406,7 +476,7 @@ if __name__ == '__main__':
             [args.make_commit, args.commit_check, args.commit_confirm,
                 args.commit_blank, args.commit_comment, args.commit_at,
                 args.commit_synchronize],
-        "shell": [args.shell, True, args.timeout]
+        "shell": [args.shell, True, args.sess_timeout]
     }
 
     # Compares args to function_translation to figure out which we are doing
@@ -429,11 +499,12 @@ if __name__ == '__main__':
         # TODO: add in passing sess-timeout and port to open_connection
         # mp_pool.apply_async(open_connection,
         #                     args=(ip.strip(), args.username, args.password, function,
-        #                           argsToPass, args.write, args.timeout),
+        #                           argsToPass, args.write, args.conn_timeout, args.sess_timeout, args.port),
         #                     callback=write_to_file)
         write_to_file(open_connection(ip.strip(), args.username, args.password,
                                       function, argsToPass, args.write,
-                                      args.timeout))
+                                      args.conn_timeout, args.sess_timeout,
+                                      args.port))
     # mp_pool.close()
     # mp_pool.join()
 
