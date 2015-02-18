@@ -1,7 +1,9 @@
 """
 This module is the Junos Aide/Jaide/JGUI project. It is free software for use
 in manipulating junos devices. More information can be found at the github page
-found here:      https://github.com/NetworkAutomation/jaide
+found here:
+
+https://github.com/NetworkAutomation/jaide
 """
 # This is for modifying printed output (used for --scp to rewrite the same line
 # multiple times.) It is required to be at the top of the file.
@@ -33,20 +35,21 @@ except ImportError as e:
     raise e
 
 
-def iter_cmds(commands):
+def clean_lines(commands):
     """ Purpose: This function is a generator that will read in either a
-               | plain text file of commands, a comma separated string
-               | of commands, or a list of commands, and will crop out any
-               | comments or blank lines, and yield individual commands.
+               | plain text file of strings(IP list, command list, etc), a
+               | comma separated string of strings, or a list of strings. It
+               | will crop out any comments or blank lines, and yield
+               | individual strings.
                |
-               | Only commands that do not start with a comment '#', or are not
+               | Only strings that do not start with a comment '#', or are not
                | entirely whitespace will be yielded. This allows a file with
                | comments and blank lines for formatting neatness to be used
                | without a problem.
 
         @param commands: This can be either a string that is a file
-                       | location, a comma separated string of commands,
-                       | or a python list of commands.
+                       | location, a comma separated string of strings,
+                       | or a python list of strings.
         @type commands: str or list
 
         @returns: Yields each command in order
@@ -59,15 +62,22 @@ def iter_cmds(commands):
         # if the command string is a comma separated list, break it up.
         elif len(commands.split(',')) > 1:
             commands = commands.split(',')
+        else:  # if a single command, need to just be returned.
+            try:
+                if commands.strip()[0] != "#":
+                    yield commands.strip() + '\n'
+                    return
+            except IndexError:
+                pass
     elif isinstance(commands, list):
         pass
     else:
-        raise TypeError('commands parameter must be a \'str\' or \'list\'')
+        raise TypeError('clean_lines() only accepts a \'str\' or \'list\'')
     for cmd in commands:
         # exclude commented lines, and skip blank lines (index error)
         try:
             if cmd.strip()[0] != "#":
-                yield cmd.strip()
+                yield cmd.strip() + '\n'
         except IndexError:
             pass
 
@@ -332,8 +342,8 @@ class Jaide():
         if not command:
             raise InvalidCommandError("Parameter 'command' cannot be empty")
         if req_format.lower() == 'xml' or xpath_expr:
-            command += ' | display xml'
-        command += ' | no-more\n'
+            command = command.strip() + ' | display xml'
+        command = command.strip() + ' | no-more\n'
         out = ''
         # when logging in as root, we are at shell, _session is a
         # paramiko.Channel, not an SSHClient
@@ -466,7 +476,7 @@ class Jaide():
         if not commands:
             raise InvalidCommandError('No commands specified')
         clean_cmds = []
-        for cmd in self.iter_cmds(commands):
+        for cmd in clean_lines(commands):
             clean_cmds.append(cmd)
         self.lock()
         self._session.load_configuration(action='set', config=clean_cmds)
@@ -496,7 +506,7 @@ class Jaide():
         if not commands:
             raise InvalidCommandError('No commands specified')
         clean_cmds = []
-        for cmd in self.iter_cmds(commands):
+        for cmd in clean_lines(commands):
             clean_cmds.append(cmd)
         self.lock()
         self._session.load_configuration(action='set', config=clean_cmds)
@@ -532,19 +542,29 @@ class Jaide():
     def commit(self, commit_confirm=None, comment=None, at_time=None,
                synchronize=False, commands=""):
         """ Purpose: This method will take in string of multiple commands,
-                   | and perform and 'commit check' on the device to ensure
-                   | the commands are syntactically correct.
+                   | and perform a 'commit' on the device to apply
+                   | the changes.
 
+            @param commit_confirm: integer value of the number of minutes to
+                                 | confirm the commit for, if requested.
+            @type commit_confirm: int
+            @param comment: string that the user wants to comment the commit
+                          | with. Will show up in the 'show system commit' log.
+            @type comment: str
+            @param at_time: string designating the time at which the commit
+                          | should happen. Can be in one of two Junos approved
+                          | formats.
+            @type comment: str
+            @param synchronize: boolean set to true if desiring a commit
+                              | synchronize operation.
+            @type synchronize: bool
             @param commands: A string or list of multiple commands
                            | that the device will compare with.
                            | If a string, it can be a single command,
                            | multiple commands separated by commas, or
                            | a filepath location of a file with multiple
                            | commands, each on its own line.
-            @type: str or list
-            @param req_format: The desired format of the response, defaults to
-                             | 'text', but also accepts 'xml'
-            @type: str
+            @type commands: str or list
 
             @returns: The reply from the device.
             @rtype: str
@@ -553,7 +573,9 @@ class Jaide():
         # passed, use 'annotate system' to make a blank commit
         if not commands:
             commands = "annotate system"
-        commands = commands.split(',')
+        clean_cmds = []
+        for cmd in clean_lines(commands):
+            clean_cmds.append(cmd)
         # try to lock the candidate config so we can make changes.
         self._session.lock()
         self._session.load_configuration(action='set', config=commands)
@@ -1212,43 +1234,6 @@ def make_commit(conn, ip, commands, commit_check, commit_confirm, commit_blank, 
     except TimeoutExpiredError:
         screen_output += '!!! Timed out trying to unlock the configuration. Check device state manually.\n'
     return screen_output
-
-
-def xpath_filter(router_output, xpath_expr):
-    """ Purpose: This function applies an Xpath expression to the XML returned by the network element. The function
-                 returns a string subtree or subtrees that match the Xpath expression.
-
-        @param router_output: Plain text XML, which is the response from the device that we are filtering.
-        @type router_output: str
-        @param xpath_expr: Xpath expression, the rules that we will filter the XML on.
-        @type xpath_expr: str
-
-        @returns: The filtered XML if filtering was successful. Otherwise, a string explaining nothing matched the filter.
-        @rtype: str
-    """
-    tree = objectify.fromstring(router_output)
-
-    # check for valid Xpath
-    try:
-        tree.xpath(xpath_expr)
-    except etree.XPathEvalError, xpath_exception:
-        return "Invalid XPath '{}': {}".format(xpath_expr, xpath_exception)
-
-    # clean up the namespace in the tags, as namespaces appear to confuse xpath method
-    for elem in tree.getiterator():
-        if isinstance(elem.tag, basestring): # beware of factory functions such as Comment
-            i = elem.tag.find('}')
-            if i >= 0:
-                elem.tag = elem.tag[i+1:]
-
-    # remove unused namespaces
-    objectify.deannotate(tree, cleanup_namespaces=True)
-
-    filtered_tree_list = tree.xpath(xpath_expr)
-
-    # Return string from the list of Elements or warning message
-    return_string = ''.join(etree.tostring(element, pretty_print=True) for element in filtered_tree_list)
-    return return_string if return_string else "No matching nodes for Xpath expression."
 
 
 def multi_cmd(conn, ip, commands, shell, format='text', timeout=300):
