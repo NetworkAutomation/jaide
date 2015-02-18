@@ -233,6 +233,9 @@ def open_connection(ip, username, password, function, args, write_to_file,
     return output
 
 
+def int_errors(conn):
+    return conn.int_errors()
+
 def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
            comment, at_time, synchronize):
     """ Purpose: This function will send set command(s) to a device, and commit
@@ -455,7 +458,7 @@ if __name__ == '__main__':
     function_translation = {
         "command": multi_cmd,
         "commit_blank": commit,
-        # "int_error": jaide.int_errors,
+        "int_error": int_errors,
         # "health_check": jaide.health_check,
         # "info": jaide.dev_info,
         "make_commit": commit,
@@ -465,9 +468,9 @@ if __name__ == '__main__':
     # the final function.
     args_translation = {
         "command": [args.command, False, args.format.lower()],
-        # "int_error": None,
-        # "health_check": None,
-        # "info": None,
+        "int_error": None,
+        "health_check": None,
+        "info": None,
         "make_commit":
             [args.make_commit, args.commit_check, args.commit_confirm,
                 args.commit_blank, args.commit_comment, args.commit_at,
