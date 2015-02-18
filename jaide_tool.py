@@ -1,7 +1,10 @@
-""" This is the cli script that is a base use case of the jaide module.
+"""Jaide CLI script for manipulating Junos devices.
+
+This is the cli script that is a base use case of the jaide module.
 It creates a command line tool for using the jaide module, to allow for
 communicating with, manipulating, and many other functions with Junos based
 devices.
+
 For expansive information on the Jaide script, and how JGUI interacts with it,
 refer to the readme file or the associated examples/documentation.
 
@@ -164,37 +167,39 @@ group3.add_argument('-y', '--synchronize', dest="commit_synchronize",
 
 def open_connection(ip, username, password, function, args, write_to_file,
                     conn_timeout=5, sess_timeout=300, port=22):
-    """ Purpose: To open a Jaide session to the device, and run the
-               | appropriate function against the device.
+    """ Open a Jaide session with the device.
 
-        @param ip: String of the IP of the device, to open the connection
-        @type ip: str or unicode
-        @param username: The string username used to connect to the device.
-        @type useranme: str or unicode
-        @param password: The string password used to connect to the device.
-        @type password: str or unicode
-        @param function: Pointer to function to run after opening connection
-        @type function: function
-        @param args: Args to pass through to function
-        @type args: list
-        @param write_to_file: The filepath specified by the user as to where to
-                            | place the output from the script. Used to prepend
-                            | the output string with the filepath, so that the
-                            | write_output() function can find it easily,
-                            | without needing another argument.
-        @type write_to_file: str or unicode
-        @param conn_timeout: Sets the connection timeout value. This is how
-                           | we'll wait when connecting before classifying
-                           | the device unreachable.
-        @type conn_timeout: int
-        @param sess_timeout: Sets the session timeout value. A higher value may
-                           | be desired for long running commands, such as
-                           | 'request system snapshot slice alternate'
-        @type sess_timeout: int
+    Purpose: To open a Jaide session to the device, and run the
+           | appropriate function against the device.
 
-        @returns: The string output that should displayed to the user, which
-                | eventually makes it to the write_output() function.
-        @rtype: str
+    @param ip: String of the IP of the device, to open the connection
+    @type ip: str or unicode
+    @param username: The string username used to connect to the device.
+    @type useranme: str or unicode
+    @param password: The string password used to connect to the device.
+    @type password: str or unicode
+    @param function: Pointer to function to run after opening connection
+    @type function: function
+    @param args: Args to pass through to function
+    @type args: list
+    @param write_to_file: The filepath specified by the user as to where to
+                        | place the output from the script. Used to prepend
+                        | the output string with the filepath, so that the
+                        | write_output() function can find it easily,
+                        | without needing another argument.
+    @type write_to_file: str or unicode
+    @param conn_timeout: Sets the connection timeout value. This is how
+                       | we'll wait when connecting before classifying
+                       | the device unreachable.
+    @type conn_timeout: int
+    @param sess_timeout: Sets the session timeout value. A higher value may
+                       | be desired for long running commands, such as
+                       | 'request system snapshot slice alternate'
+    @type sess_timeout: int
+
+    @returns: The string output that should displayed to the user, which
+            | eventually makes it to the write_output() function.
+    @rtype: str
     """
     # start with the header line on the output.
     output = '=' * 50 + '\nResults from device: %s\n' % ip
@@ -234,48 +239,52 @@ def open_connection(ip, username, password, function, args, write_to_file,
 
 
 def int_errors(conn):
+    """Get any interface errors from the device."""
     return conn.int_errors()
+
 
 def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
            comment, at_time, synchronize):
-    """ Purpose: This function will send set command(s) to a device, and commit
-               | the change. It can be called by any function that needs to
-               | commit or commit check.
+    """Execute a commit against the device.
 
-        @param conn: This is the Jaide connection to the remote device.
-        @type conn: jaide.Jaide object
-        @param cmds: String containing the set command to be sent to the
-                   | device, or a list of strings of multiple set cmds. Either
-                   | way, the function will respond accordingly, and only one
-                   | commit will take place.
-        @type cmds: str
-        @param commit_check: A bool set to true if the user wants to only run a
-                           | commit check, and not commit any changes.
-        @type commit_check: bool
-        @param commit_confirm: An integer of minutes that the user wants to
-                             | commit confirm for.
-        @type commit_confirm: int
-        @param commit_blank: A bool set to true if the user wants to only make
-                           | a blank commit.
-        @type commit_blank: bool
-        @param comment: A string that will be logged to the commit log
-                      | describing the commit.
-        @type comment: str
-        @param at_time: A string containing the time or time and date of when
-                      | the commit should happen. Junos is expecting one of two
-                      | formats:
-                      | A time value of the form hh:mm[:ss] (hours, minutes,
-                      |     and optionally seconds)
-                      | A date and time value of the form yyyy-mm-dd hh:mm[:ss]
-                      |     (year, month, date, hours, minutes, and optionally
-                      |      seconds)
-        @type at_time: str
-        @param synchronize: A bool set to true if the user wants to synchronize
-                          | the commit across both REs.
-        @type synchronize: bool
+    Purpose: This function will send set command(s) to a device, and commit
+           | the change. It can be called by any function that needs to
+           | commit or commit check.
 
-        @returns: The output that should be shown to the user.
-        @rtype: str
+    @param conn: This is the Jaide connection to the remote device.
+    @type conn: jaide.Jaide object
+    @param cmds: String containing the set command to be sent to the
+               | device, or a list of strings of multiple set cmds. Either
+               | way, the function will respond accordingly, and only one
+               | commit will take place.
+    @type cmds: str
+    @param commit_check: A bool set to true if the user wants to only run a
+                       | commit check, and not commit any changes.
+    @type commit_check: bool
+    @param commit_confirm: An integer of minutes that the user wants to
+                         | commit confirm for.
+    @type commit_confirm: int
+    @param commit_blank: A bool set to true if the user wants to only make
+                       | a blank commit.
+    @type commit_blank: bool
+    @param comment: A string that will be logged to the commit log
+                  | describing the commit.
+    @type comment: str
+    @param at_time: A string containing the time or time and date of when
+                  | the commit should happen. Junos is expecting one of two
+                  | formats:
+                  | A time value of the form hh:mm[:ss] (hours, minutes,
+                  |     and optionally seconds)
+                  | A date and time value of the form yyyy-mm-dd hh:mm[:ss]
+                  |     (year, month, date, hours, minutes, and optionally
+                  |      seconds)
+    @type at_time: str
+    @param synchronize: A bool set to true if the user wants to synchronize
+                      | the commit across both REs.
+    @type synchronize: bool
+
+    @returns: The output that should be shown to the user.
+    @rtype: str
     """
     output = ""
     # If they just want to validate the config, without committing
@@ -283,12 +292,12 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
         try:
             results = conn.commit_check(cmds)
         except RPCError:
-            output += "\nUncommitted changes left on the device or " \
-                "someone else is in edit mode, couldn't lock the candidate " \
-                "configuration.\n"
+            output += ("\nUncommitted changes left on the device or "
+                       "someone else is in edit mode, couldn't lock the "
+                       "candidate configuration.\n")
         except:
-            output += "Failed to commit check on device %s for an " \
-                "unknown reason." % ip
+            output += ("Failed to commit check on device %s for an "
+                       "unknown reason." % ip)
         else:
             # add the 'show | compare' output.
             output += "Compare results:\n" + conn.compare_config(cmds) + '\n'
@@ -300,8 +309,8 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
         if not commit_blank:  # no results to show on blank commit.
             output += "Compare results:\n" + conn.compare_config(cmds) + '\n'
         if commit_confirm:
-            output += "Attempting to commit confirm on device: %s\n" \
-                % conn.host
+            output += ("Attempting to commit confirm on device: %s\n"
+                       % conn.host)
         else:
             output += "Attempting to commit on device: %s\n\n" % conn.host
         try:
@@ -309,8 +318,9 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
                                   comment=comment, at_time=at_time,
                                   synchronize=synchronize, commands=cmds)
         except RPCError as e:
-            output += 'Commit could not be completed on this device, ' \
-                'due to the following error: \n' + str(e)
+            output += ('Commit could not be completed on this device, '
+                       'due to the following error: \n' + str(e))
+        # TODO: no Jaide-specific success/fail message, currently just dumping the output from the device.
         # if results:
         #     if results.find('commit-check-success') is None:  # None is returned for elements found without a subelement, as in this case.
         #         if commit_confirm:
@@ -329,30 +339,32 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
 
 
 def multi_cmd(conn, commands, shell, req_format='text'):
-    """ Purpose: This function will determine if we are trying to send multiple
-               | commands to a device. It is used for operational mode commands
-               | or shell commands. If we have more than one command to send,
-               | then we need to use jaide.clean_lines() to clean them, getting
-               | rid of comments and blank lines, and send them individually.
-               | Otherwise, we just send the one command.
+    """ Execute a shell or operational mode command against the device.
 
-        @param conn: the connection to the remote device, which should be a
-                   | Jaide object.
-        @type conn: jaide.Jaide
-        @param commands: String containing one of these things:
-                       | A single operational show or shell command.
-                       | A comma separated string of commands.
-                       | A python list of commands
-                       | A filepath to a file with a command on each line.
-        @type commands: str
-        @param shell: boolean whether or not we are sending shell commands.
-        @type shell: bool
-        @param req_format: string specifying what format to request for the
-                         | response from the device. Defaults to text, but
-                         | also accepts xml.
+    Purpose: This function will determine if we are trying to send multiple
+           | commands to a device. It is used for operational mode commands
+           | or shell commands. If we have more than one command to send,
+           | then we need to use jaide.clean_lines() to clean them, getting
+           | rid of comments and blank lines, and send them individually.
+           | Otherwise, we just send the one command.
 
-        @returns: The output that should be shown to the user.
-        @rtype: str
+    @param conn: the connection to the remote device, which should be a
+               | Jaide object.
+    @type conn: jaide.Jaide
+    @param commands: String containing one of these things:
+                   | A single operational show or shell command.
+                   | A comma separated string of commands.
+                   | A python list of commands
+                   | A filepath to a file with a command on each line.
+    @type commands: str
+    @param shell: boolean whether or not we are sending shell commands.
+    @type shell: bool
+    @param req_format: string specifying what format to request for the
+                     | response from the device. Defaults to text, but
+                     | also accepts xml.
+
+    @returns: The output that should be shown to the user.
+    @rtype: str
     """
     output = ""
     for cmd in clean_lines(commands):
@@ -379,15 +391,17 @@ def multi_cmd(conn, commands, shell, req_format='text'):
 
 
 def write_to_file(screen_output):
-    """ Purpose: This function is called to either print the screen_output to
-               | the user, or write it to a file
-               | if we've received a filepath prepended on the output string in
-               | between identifiers '*****WRITE_TO_FILE*****'
+    """ Print the output to the user, or write it to file.
 
-        @param screen_output: String containing all the output gathered.
-        @type screen_output: str
+    Purpose: This function is called to either print the screen_output to
+           | the user, or write it to a file
+           | if we've received a filepath prepended on the output string in
+           | between identifiers '*****WRITE_TO_FILE*****'
 
-        @returns: None
+    @param screen_output: String containing all the output gathered.
+    @type screen_output: str
+
+    @returns: None
     """
     if "*****WRITE_TO_FILE*****" in screen_output:
         dest_file = screen_output.split('*****WRITE_TO_FILE*****')[1]
@@ -442,9 +456,14 @@ if __name__ == '__main__':
 
     # if they are doing commit_at, ensure the input is formatted correctly.
     if args.commit_at:
-        if re.search(r'([0-2]\d)(:[0-5]\d){1,2}', args.commit_at) is None and re.search(r'\d{4}-[01]\d-[0-3]\d [0-2]\d:[0-5]\d(:[0-5]\d)?', args.commit_at) is None:
-            raise BaseException("The specified commit at time is not in one of the two following formats:\nA time value of the form 'hh:mm[:ss]'\n"
-                "A date and time value of the form 'yyyy-mm-dd hh:mm[:ss]' (seconds are optional).")
+        if (re.search(r'([0-2]\d)(:[0-5]\d){1,2}', args.commit_at) is None and
+            re.search(r'\d{4}-[01]\d-[0-3]\d [0-2]\d:[0-5]\d(:[0-5]\d)?',
+                      args.commit_at) is None):
+            raise BaseException("The specified commit at time is not in one of"
+                                "the two following formats:\nA time value of "
+                                "the form 'hh:mm[:ss]'\nA date and time value "
+                                "of the form 'yyyy-mm-dd hh:mm[:ss]' (seconds "
+                                "are optional).")
 
     # Check if the username and password are the defaults.
     # If they are, we'll prompt the user for them.
