@@ -234,13 +234,10 @@ def open_connection(ip, username, password, function, args, write_to_file,
         # if we do have args to pass through
         else:
             output += function(conn, *args)
+        # disconnect so sessions don't stay alive on the device.
+        conn.disconnect()
     # no matter what happens, return the output
     return output
-
-
-def int_errors(conn):
-    """Get any interface errors from the device."""
-    return conn.int_errors()
 
 
 def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
@@ -336,6 +333,21 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
         #         if i.strip() != '':
         #             output += '\n' + i.strip()
     return output
+
+
+def dev_info(conn):
+    """Get basic device information."""
+    return '\n' + conn.dev_info()
+
+
+def health_check(conn):
+    """Get alarm and health information."""
+    return '\n' + conn.health_check()
+
+
+def int_errors(conn):
+    """Get any interface errors from the device."""
+    return '\n' + conn.int_errors()
 
 
 def multi_cmd(conn, commands, shell, req_format='text'):
@@ -478,8 +490,8 @@ if __name__ == '__main__':
         "command": multi_cmd,
         "commit_blank": commit,
         "int_error": int_errors,
-        # "health_check": jaide.health_check,
-        # "info": jaide.dev_info,
+        "health_check": health_check,
+        "info": dev_info,
         "make_commit": commit,
         "shell": multi_cmd
     }
@@ -518,15 +530,15 @@ if __name__ == '__main__':
     # number of physical cores because of hyperthreading.
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in clean_lines(args.ip):
+        write_to_file(open_connection(ip.strip(), args.username, args.password,
+                                      function, argsToPass, args.write,
+                                      args.conn_timeout, args.sess_timeout,
+                                      args.port))
         # TODO: add in passing sess-timeout and port to open_connection
         # mp_pool.apply_async(open_connection,
         #                     args=(ip.strip(), args.username, args.password, function,
         #                           argsToPass, args.write, args.conn_timeout, args.sess_timeout, args.port),
         #                     callback=write_to_file)
-        write_to_file(open_connection(ip.strip(), args.username, args.password,
-                                      function, argsToPass, args.write,
-                                      args.conn_timeout, args.sess_timeout,
-                                      args.port))
     # mp_pool.close()
     # mp_pool.join()
 

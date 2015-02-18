@@ -29,11 +29,11 @@ try:
     import time
     from errors.errors import InvalidCommandError
 except ImportError as e:
-    print("FAILED TO IMPORT ONE OR MORE PACKAGES.\nNCCLIENT\thttps://github.com/leopoul/ncclient/\nPARAMIKO\thttps://github.com/paramiko/paramiko\n\n"
-            "For windows users, you will also need PyCrypto:\nPYCRYPTO\thttp://www.voidspace.org.uk/python/modules.shtml#pycrypto"
-            "\n\nNote that the --scp command also requires SCP:\n"
-            "SCP\t\thttps://pypi.python.org/pypi/scp/0.8.0")
-    print('\nScript Error:\n')
+    print("FAILED TO IMPORT ONE OR MORE PACKAGES.\n"
+          "NCCLIENT\thttps://github.com/leopoul/ncclient/\n"
+          "PARAMIKO\thttps://github.com/paramiko/paramiko\n"
+          "SCP\t\thttps://pypi.python.org/pypi/scp/0.8.0")
+    print('\nImport Error:\n')
     raise e
 
 
@@ -129,8 +129,6 @@ def xpath(source_xml, xpath_expr, req_format='string'):
     return matches if matches else ""
 
 
-# TODO: device status (health check) (in tool)
-# TODO: interface errors (in tool)
 # TODO: config diff (difflib unified_diff()) (in tool)
 class Jaide():
 
@@ -220,6 +218,8 @@ class Jaide():
                 "commit": manager.Manager,
                 "compare_config": manager.Manager,
                 "commit_check": manager.Manager,
+                "dev_info": manager.Manager,
+                "health_check": manager.Manager,
                 "int_errors": manager.Manager,
                 "op_cmd": paramiko.client.SSHClient,
                 "shell_cmd": paramiko.client.SSHClient,
@@ -481,7 +481,6 @@ class Jaide():
                 device_params={'name': 'junos'},
                 hostkey_verify=False
             )
-            self._session.timeout = self.sess_timeout
         elif self.conn_type == 'shell':
             if not self._session:
                 self.conn_type = 'paramiko'
@@ -501,6 +500,7 @@ class Jaide():
                 time.sleep(2)
             if not self.shell_to_cli():
                 self._shell.recv(9999)
+        self._update_timeout(self.sess_timeout)
 
     def _copy_status(self, filename, size, sent):
         """ Echo status of an SCP operation.
@@ -515,6 +515,39 @@ class Jaide():
             print('')
             self._filename = filename
         print(output, end='\r')
+
+    @check_instance
+    def dev_info(self):
+        """ Pull basic device information.
+
+        Purpose: This function grabs the hostname, model, running version, and
+               | serial number of the device.
+
+        @returns: The output that should be shown to the user.
+        @rtype: str
+        """
+        # get hostname, model, and version from 'show version'
+        resp = self._session.get_software_information(format='xml')
+        hostname = resp.xpath('//software-information/host-name')[0].text
+        model = resp.xpath('//software-information/product-model')[0].text
+        version = (resp.xpath('//software-information/package-information/'
+                              'comment')[0].text.split('[')[1].split(']')[0])
+        # get serial number from 'show chassis hardware'
+        show_hardware = self._session.get_chassis_inventory(format='xml')
+        # If we're hitting an EX, grab each Routing Engine Serial number
+        # to get all RE SNs in a VC
+        if ('EX' or 'ex' or 'Ex') in show_hardware.xpath('//chassis-inventory/chassis/chassis-module/description')[0].text:
+            serial_num = ""
+            for eng in show_hardware.xpath('//chassis-inventory/chassis/chassis-module'):
+                if 'Routing Engine' in eng.xpath('name')[0].text:
+                    serial_num += (eng.xpath('name')[0].text + ' Serial #: '
+                                   + eng.xpath('serial-number')[0].text + "\n")
+        else:  # Any other device type, just grab chassis SN
+            serial_num = ('Chassis Serial Number: ' +
+                          show_hardware.xpath('//chassis-inventory/chassis/'
+                                              'serial-number')[0].text + "\n")
+        return ('Hostname: %s\nModel: %s\nJunos Version: %s\n%s\n' %
+                (hostname, model, version, serial_num))
 
     def disconnect(self):
         """ Close the connection(s) to the device.
@@ -538,6 +571,113 @@ class Jaide():
             self._session = ""
             self._scp = ""
 
+    def _error_parse(self, interface, face):
+        """ Parse the extensive xml output of an interface and yield errors.
+
+        Purpose: Takes the xml output of 'show interfaces extensive' for a
+               | given interface and yields the error types that have a
+               | significant number of errors.
+
+        @param interface: The xml output of the 'sh int ext' command for
+                        | the desired interface.
+        @type interface: lxml.etree._Element object
+        @param face: The direction of the errors we're wanting. Either 'input'
+                   | or 'output' is accepted.
+        @type face: str
+
+        @returns: Yields each error that has a significant number
+        @rtype: iterable of strings.
+        """
+        try:
+            error_list = interface.xpath(face + '-error-list')[0].getchildren()
+        except IndexError:  # no error list on this interface
+            pass
+        else:
+            for x in range(len(error_list)):
+                if error_list[x].tag == "carrier-transitions":
+                    if int(error_list[x].text.strip()) > 50:
+                        yield " has greater than 50 flaps."
+                elif int(error_list[x].text.strip()) > 0:
+                    yield " has %s of %s." % (error_list[x].text.strip(),
+                                              error_list[x].tag.strip())
+
+    @check_instance
+    def health_check(self):
+        """ Pull health and alarm information from the device.
+
+        Purpose: Grab the cpu/mem usage, system/chassis alarms, top 5
+               | processes, and states if the primary/backup partitions are on
+               | different versions.
+
+        @returns: The output that should be shown to the user.
+        @rtype: str
+        """
+        output = 'Chassis Alarms:\n\t'
+        # Grab chassis alarms, system alarms, show chassis routing-engine,
+        # 'show system processes extensive', and also xpath to the
+        # relevant nodes on each.
+        chassis_alarms = self._session.command("show chassis alarms")
+        chassis_alarms = chassis_alarms.xpath('//alarm-detail')
+        system_alarms = self._session.command("show system alarms")
+        system_alarms = system_alarms.xpath('//alarm-detail')
+        re_info = self._session.command(command="show chassis routing-engine",
+                                        format='xml').xpath('//route-engine')
+        proc = self._session.command("show system processes extensive")
+        proc = proc.xpath('output')[0].text.split('\n')
+        if chassis_alarms == []:  # Chassis Alarms
+            output += 'No chassis alarms active.\n'
+        else:
+            for i in chassis_alarms:
+                output += (i.xpath('alarm-class')[0].text.strip() + ' Alarm \t'
+                           '\t' + i.xpath('alarm-time')[0].text.strip() +
+                           '\n\t' +
+                           i.xpath('alarm-description')[0].text.strip() + '\n')
+        output += '\nSystem Alarms: \n\t'
+        if system_alarms == []:  # System Alarms
+            output += 'No system alarms active.\n'
+        else:
+            for i in system_alarms:
+                output += (i.xpath('alarm-class')[0].text.strip() + ' Alarm '
+                           '\t\t' + i.xpath('alarm-time')[0].text.strip() +
+                           '\n\t' +
+                           i.xpath('alarm-description')[0].text.strip() + '\n')
+        output += '\nRouting Engine Information:'
+        if re_info == []:  # RE information
+            output += '\nNo Routing Engines found...\n'
+        else:
+            for i in re_info:  # loop through all REs for info.
+                # for multi-RE systems, print slot and mastership status.
+                if i.xpath('slot') != []:
+                    output += ('\nRE' + i.xpath('slot')[0].text + 'Status: \t'
+                               + i.xpath('status')[0].text + '\n\tMastership: '
+                               + '\t' + i.xpath('mastership-state')[0].text)
+                # EX/MX cpu/memory response tags
+                if i.xpath('memory-buffer-utilization') != []:
+                    output += ('\n\tUsed Memory %: \t' +
+                               i.xpath('memory-buffer-utilization')[0].text +
+                               '\n\tCPU Temp: \t' +
+                               i.xpath('cpu-temperature')[0].text)
+                # SRX cpu/memory response tags
+                if i.xpath('memory-system-total-util') != []:
+                    output += ('\n\tUsed Memory %: \t' +
+                               i.xpath('memory-system-total-util')[0].text +
+                               '\n\tCPU Temp: \t' +
+                               i.xpath('temperature')[0].text)
+                output += ('\n\tIdle CPU%: \t' + i.xpath('cpu-idle')[0].text)
+                # serial number not shown on single RE MX chassis.
+                if i.xpath('serial-number') != []:
+                    output += ('\n\tSerial Number: \t' +
+                               i.xpath('serial-number')[0].text)
+                output += ('\n\tLast Reboot: \t' +
+                           i.xpath('last-reboot-reason')[0].text +
+                           '\n\tUptime: \t' + i.xpath('up-time')[0].text)
+        # Grabs the top 5 processes and the header line.
+        output += ('\n\nTop 5 busiest processes (high mgd values likely from '
+                   'script execution):\n')
+        for line_number in range(8, 14):
+            output += proc[line_number] + '\n'
+        return output
+
     @check_instance
     def int_errors(self):
         """ Parse 'show interfaces extensive' and return interfaces with errors.
@@ -551,17 +691,15 @@ class Jaide():
         """
         output = []  # used to store the list of interfaces with errors.
         # get a string of each physical and logical interface element
-        ints = xpath(self.op_cmd(command='show interfaces extensive',
-                                 req_format='xml'),
-                     '//physical-interface', 'xml')
-        ints += xpath(self.op_cmd(command="show interfaces extensive",
-                                  req_format='xml'),
-                      '//logical-interface', 'xml')
+        dev_response = self._session.command('sh interfaces extensive')
+        ints = dev_response.xpath('//physical-interface')
+        ints += dev_response.xpath('//logical-interface')
         for i in ints:
             # Grab the interface name for user output.
             int_name = i.xpath('name')[0].text.strip()
             # Only check certain interface types.
-            if ('ge' or 'fe' or 'ae' or 'xe' or 'so' or 'et' or 'vlan' or 'lo0' or 'irb') in int_name:
+            if (('ge' or 'fe' or 'ae' or 'xe' or 'so' or 'et' or 'vlan' or
+                 'lo0' or 'irb') in int_name):
                 try:
                     op_status = i.xpath('oper-status')[0].text
                 except IndexError:
@@ -569,43 +707,18 @@ class Jaide():
                 else:
                     # TODO: include down interfaces?
                     if 'up' in op_status:
-                        # Grab the input errors
-                        try:
-                            err = i.xpath('input-error-list')[0].getchildren()
-                        except IndexError:  # no error list on this interface
-                            pass
-                        else:
-                            # TODO: turn into a function since code is repeated.
-                            for x in range(len(err)):
-                                if err[x].tag == "carrier-transitions":
-                                    if int(err[x].text.strip()) > 50:
-                                        output.append("%s has greater than 50 "
-                                                      "flaps" % int_name)
-                                elif int(err[x].text.strip()) > 0:
-                                    output.append("%s has %s of %s."
-                                                  % (int_name, err[x].text,
-                                                     err[x].tag))
-                        # Grab the output errors
-                        try:
-                            err = i.xpath('output-error-list')[0].getchildren()
-                        except IndexError:  # no error list on this interface
-                            pass
-                        else:
-                            for x in range(len(err)):
-                                if err[x].tag == "carrier-transitions":
-                                    if int(err[x].text.strip()) > 50:
-                                        output.append("%s has greater than 50 "
-                                                      "flaps" % int_name)
-                                elif int(err[x].text.strip()) > 0:
-                                    output.append("%s has %s of %s."
-                                                  % (int_name, err[x].text,
-                                                     err[x].tag))
+                        # input errors
+                        for error in self._error_parse(i, "input"):
+                            output.append("%s%s" % (int_name, error))
+                        # output errors
+                        for error in self._error_parse(i, "output"):
+                            output.append("%s%s" % (int_name, error))
         if output == []:
             output.append('No interface errors were detected on this device.')
         return '\n'.join(output) + '\n'
 
     def lock(self):
-        """Lock the candidate config. Requires ncclient.manager.Manager."""
+        """ Lock the candidate config. Requires ncclient.manager.Manager. """
         if isinstance(self._session, manager.Manager):
             self._session.lock()
 
@@ -639,8 +752,7 @@ class Jaide():
             command = command.strip() + ' | display xml'
         command = command.strip() + ' | no-more\n'
         out = ''
-        # when logging in as root, we are at shell, _session is a
-        # paramiko.Channel, not an SSHClient
+        # when logging in as root, we use _shell to get the response.
         if self.username == 'root':
             self._shell.send(command)
             time.sleep(3)
@@ -737,7 +849,7 @@ class Jaide():
         return out
 
     def shell_to_cli(self):
-        """Move _shell to the command line interface (CLI)."""
+        """ Move _shell to the command line interface (CLI). """
         if not self._in_cli:
             self._shell.send("cli\n")
             time.sleep(4)
@@ -751,77 +863,83 @@ class Jaide():
         if isinstance(self._session, manager.Manager):
             self._session.unlock()
 
+    def _update_timeout(self, value):
+        if isinstance(self._session, manager.Manager):
+            self._session.timeout = value
+        if self._shell:
+            self._shell.settimeout(value)
+        # SSHClient not here because timeout is sent with each command.
+
     @property
     def host(self):
-        """Getter for host."""
+        """ Getter for host. """
         return self.host
 
     @host.setter
     def host(self, value):
-        """Setter for host."""
+        """ Setter for host. """
         self.host = value
 
     @property
     def conn_type(self):
-        """Getter for conn_type."""
+        """ Getter for conn_type. """
         return self.conn_type
 
     @conn_type.setter
     def conn_type(self, value):
-        """Setter for conn_type."""
+        """ Setter for conn_type. """
         self.conn_type = value
 
     @property
     def username(self):
-        """Getter for username."""
+        """ Getter for username. """
         return self.username
 
     @username.setter
     def username(self, value):
-        """Setter for username."""
+        """ Setter for username. """
         self.username = value
 
     @property
     def password(self):
-        """Getter for password."""
+        """ Getter for password. """
         return self.password
 
     @password.setter
     def password(self, value):
-        """Setter for password."""
+        """ Setter for password. """
         self.password = value
 
     @property
     def port(self):
-        """Getter for port."""
+        """ Getter for port. """
         return self.port
 
     @port.setter
     def port(self, value):
-        """Setter for port."""
+        """ Setter for port. """
         self.port = value
 
     @property
     def conn_timeout(self):
-        """Getter for conn_timeout."""
+        """ Getter for conn_timeout. """
         return self.conn_timeout
 
     @conn_timeout.setter
     def conn_timeout(self, value):
-        """Setter for conn_timeout."""
+        """ Setter for conn_timeout. """
         self.conn_timeout = value
 
     @property
     def sess_timeout(self):
-        """Getter for sess_timeout."""
+        """ Getter for sess_timeout. """
         return self.sess_timeout
 
     @sess_timeout.setter
     def sess_timeout(self, value):
-        """Setter for sess_timeout."""
+        """ Setter for sess_timeout. """
         self.sess_timeout = value
-        # TODO: need to account for what type(self._session) is
-        self._session.timeout = value
+
 
 def do_netconf(ip, username, password, function, args, write_to_file, timeout=300):
     """ Purpose: To open an NCClient manager session to the device, and run the appropriate function against the device.
