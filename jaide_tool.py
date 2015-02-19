@@ -31,6 +31,7 @@ confusing in some situations.
     On Junos, non-config commands can be run with '| display xml rpc' appended
     to get the rpc command.
 """
+# TODO: ANSI color good and bad output. colorama + termcolor
 from os import path
 import multiprocessing
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
@@ -39,6 +40,7 @@ import re
 from jaide import Jaide, clean_lines
 from ncclient.transport import errors
 from paramiko import SSHException, AuthenticationException
+from scp import SCPException
 import socket
 
 # -i is a required parameter, the rest are optional arguments
@@ -203,7 +205,6 @@ def open_connection(ip, username, password, function, args, write_to_file,
     """
     # start with the header line on the output.
     output = '=' * 50 + '\nResults from device: %s\n' % ip
-    print ip, username, password, function
     # this is used to track the filepath that we will output to. The
     # write_output() function will pick this up.
     if write_to_file:
@@ -332,6 +333,79 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
         #     for i in results.findall('commit-results')[0].itertext():
         #         if i.strip() != '':
         #             output += '\n' + i.strip()
+    return output
+
+
+def copy_file(conn, direction, source, dest, multi, progress):
+    """ SCP copy file(s) to or from the device.
+
+    @param conn: The Jaide session object for the device
+    @type conn: jaide.Jaide object
+    @param direction: the direction of the copy, either 'push' or 'pull'
+    @type direction: str
+    @param source: the source filepath or dirpath
+    @type source: str
+    @param dest: the destination filepath or dirpath
+    @type dest: str
+    @param multi: bool set to True if we're copying from more than one device.
+                | This determines the naming structure of received files/dirs.
+    @type multi: bool
+    @param progress: bool set to True if we should request a progress callback
+                   | from the Jaide object. set to false on args.quiet, or when
+                   | we're copying to/from multiple devices.
+    @type progress: bool
+
+    @returns: the output from the copy operation
+    @rtype: str
+    """
+    output = "\n"
+    # TODO: check these filepath adders on windows, as it might require os.sep instead of '/'?
+    # Source and destination filepath validation
+    # Check if the destination ends in a '/', if not, we need to add it.
+    dest = dest + '/' if dest[-1] != '/' else dest
+    # If the source ends in a slash, we need to remove it. For copying
+    # directories, this will ensure that the local directory gets created
+    # remotely, and not just the contents. Basically, this forces the behavior
+    # 'scp -r /var/log /dest/loc' instead of 'scp -r /var/log/* /dest/loc'
+    source = source[:-1] if source[-1] == '/' else source
+    # Escape spaces
+    source = source.replace(' ', '\\ ')
+    dest = dest.replace(' ', '\\ ')
+    # get just the source filename, in case we're pulling from multiple devices
+    source_file = path.basename(source) if not '' else path.basename(path.join(source, '..'))
+    # Only see the live progress when copying against one device.
+    progress = not multi
+    if direction.lower() == 'pull':
+        dest_file = dest + conn.host + '_' + source_file if multi else dest + source_file
+        output += ('Retrieving %s:%s, and putting it in %s\n' %
+                   (conn.host, source, dest_file))
+        dest_file = dest_file.replace(' ', '\\ ')  # escape spaces
+        try:
+            conn.scp_pull(source, dest_file, progress)
+        except SCPException as e:
+            return (output + '!!! Error during copy from ' + conn.host +
+                    '. Some files may have failed to transfer. SCP Module '
+                    'error:\n' + str(e) + '\n!!!\n')
+        except (IOError, OSError) as e:
+            return (output + '!!! The local filepath was not found! Note that '
+                    '\'~\' cannot be used. Error: ' + str(e) + ' !!!\n')
+        else:
+            output += 'Received %s from %s.\n' % (source, conn.host)
+    elif direction.lower() == "push":
+        output += ('Pushing %s to %s:%s\n' % (source, conn.host, dest))
+        try:
+            conn.scp_push(source, dest, progress)
+        except SCPException as e:
+            return (output + '!!! Error during copy from ' + conn.host +
+                    '. Some files may have failed to transfer. SCP Module '
+                    'error:\n' + str(e) + '\n!!!\n')
+        except (IOError, OSError) as e:
+            return (output + '!!! The local filepath was not found! Note that '
+                    '\'~\' cannot be used. Error: ' + str(e) + ' !!!\n')
+        else:
+            output += 'Pushed %s to %s:%s\n' % (source, conn.host, dest)
+    if progress:
+        print '\n'
     return output
 
 
@@ -493,6 +567,7 @@ if __name__ == '__main__':
         "health_check": health_check,
         "info": dev_info,
         "make_commit": commit,
+        "scp": copy_file,
         "shell": multi_cmd
     }
     # Correlates which params need to be passed through open_connection() to
@@ -510,6 +585,7 @@ if __name__ == '__main__':
             [args.make_commit, args.commit_check, args.commit_confirm,
                 args.commit_blank, args.commit_comment, args.commit_at,
                 args.commit_synchronize],
+        "scp": [args.scp[0], args.scp[1], args.scp[2], False, True],
         "shell": [args.shell, True, args.sess_timeout]
     }
 
@@ -523,55 +599,30 @@ if __name__ == '__main__':
                 function = function_translation[key]
                 argsToPass = args_translation[key]
 
-    #################
-    # START OF MODS #
-    #################
     # Use # of CPU cores * 2 threads. Cpu_count usually returns double the
     # number of physical cores because of hyperthreading.
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
+    # build ip list so we can know if we're hitting multiple devices
+    # which is needed for the scp function to know when to output to the user
+    # immediately, and when to suppress progress updates.
+    ip_list = []
     for ip in clean_lines(args.ip):
-        write_to_file(open_connection(ip.strip(), args.username, args.password,
-                                      function, argsToPass, args.write,
-                                      args.conn_timeout, args.sess_timeout,
-                                      args.port))
-        # TODO: add in passing sess-timeout and port to open_connection
-        # mp_pool.apply_async(open_connection,
-        #                     args=(ip.strip(), args.username, args.password, function,
-        #                           argsToPass, args.write, args.conn_timeout, args.sess_timeout, args.port),
-        #                     callback=write_to_file)
-    # mp_pool.close()
-    # mp_pool.join()
-
-    # iplist = ""
-    # if len(args.ip.split(',')) > 1:  # Split the IP argument based on commas to see if there is more than one.
-    #     iplist = args.ip.split(',')
-    # elif path.isfile(args.ip):
-    #     try:
-    #         iplist = open(args.ip, 'rb')  # open the iplist in read only mode, the 'b' is for windows compatibility.
-    #     except IOError as e:
-    #         print('Couldn\'t open the IP list file %s due to the error:\n' % args.ip)
-    #         raise e
-    # if args.scp:
-    #     # Needed something to let the user know we were starting.
-    #     print ("Starting Copy...")
-    # if iplist != "":  # We have matched for multiple IPs, and need to multiprocess.
-    #     # Use # of CPU cores * 2 threads. Cpu_count usually returns double the # of physical cores because of hyperthreading.
-    #     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
-    #     for IP in iplist:
-    #         IP = IP.strip()
-    #         if IP != "" and IP[0] != '#':  # skip blank lines and comments
-    #             if args.scp:  # scp is handled separately
-    #                 mp_pool.apply_async(jaide.copy_file, args=(args.scp[1], args.scp[2], IP, args.username, args.password, args.scp[0], args.write, True, None), callback=jaide.write_output)
-    #             else:
-    #                 mp_pool.apply_async(jaide.do_netconf, args=(IP, args.username, args.password, function, argsToPass, args.write, args.timeout), callback=jaide.write_output)
-    #     mp_pool.close()
-    #     mp_pool.join()
-    # else:  # args.ip should be one IP address, and no multiprocessing is required.
-    #     if args.scp:
-    #         if args.quiet:
-    #             jaide.write_output(jaide.copy_file(args.scp[1], args.scp[2], args.ip, args.username, args.password, args.scp[0], args.write, False, None))
-    #         else:
-    #             jaide.write_output(jaide.copy_file(args.scp[1], args.scp[2], args.ip, args.username, args.password, args.scp[0], args.write, False, callback=jaide.copy_status))
-    #     else:
-    #         # the jaide.do_netconf() will return a string that is passed to the jaide.write_output() function for outputting to the user/file.
-    #         jaide.write_output(jaide.do_netconf(ip=args.ip, username=args.username, password=args.password, function=function, args=argsToPass, write_to_file=args.write, timeout=args.timeout))
+        ip_list.append(ip)
+    if function == copy_file:
+        # set 'multi' param to true if scp'ing to more than one device
+        argsToPass[-2] = True if len(ip_list) > 1 else False
+        # set progress callback to false if quiet mode
+        argsToPass[-1] = False if args.quiet or len(ip_list) > 1 else True
+    for ip in ip_list:
+        # write_to_file(open_connection(ip.strip(), args.username, args.password,
+        #                               function, argsToPass, args.write,
+        #                               args.conn_timeout, args.sess_timeout,
+        #                               args.port))
+        mp_pool.apply_async(open_connection,
+                            args=(ip.strip(), args.username, args.password,
+                                  function, argsToPass, args.write,
+                                  args.conn_timeout, args.sess_timeout,
+                                  args.port),
+                            callback=write_to_file)
+    mp_pool.close()
+    mp_pool.join()
