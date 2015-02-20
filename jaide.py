@@ -16,13 +16,12 @@ try:
     # needed to parse strings into xml for cases when ncclient doesn't handle
     # it (commit, validate, etc)
     import xml.etree.ElementTree as ET
-    # RPCErrors are returned in certain instances, such as when the candidate
-    # config is locked because someone is editing it.
     from os import path
+    import time
+    import difflib
     from scp import SCPClient
     import paramiko
     import logging  # logging needed for disabling paramiko logging output
-    import time
     from errors.errors import InvalidCommandError
 except ImportError as e:
     print("FAILED TO IMPORT ONE OR MORE PACKAGES.\n"
@@ -170,7 +169,11 @@ class Jaide():
                         | user is doing operational commands, but is logged
                         | in as root, (requires handling separately, since
                         | this puts the sessions into a shell prompt)
-                        | 'ncclient' is used for all other commands.
+                        | 'ncclient' is used for all other commands. Even
+                        | though we default to paramiko, the @check_instance
+                        | decorator function will handle sliding between
+                        | session types depending on what function is being
+                        | called.
         @type conn_type: str
         @param port: The destination port on the device to attempt the
                    | connection.
@@ -215,6 +218,7 @@ class Jaide():
                 "compare_config": manager.Manager,
                 "commit_check": manager.Manager,
                 "dev_info": manager.Manager,
+                "diff_config": manager.Manager,
                 "health_check": manager.Manager,
                 "int_errors": manager.Manager,
                 "op_cmd": paramiko.client.SSHClient,
@@ -549,6 +553,50 @@ class Jaide():
                                               'serial-number')[0].text + "\n")
         return ('Hostname: %s\nModel: %s\nJunos Version: %s\n%s\n' %
                 (hostname, model, version, serial_num))
+
+    @check_instance
+    def diff_config(self, second_host, mode='stanza'):
+        """ Generate configuration differences with a second device.
+
+        Purpose: Open a second ncclient.manager.Manager with second_host, and
+               | and pull the configuration from it. We then use difflib to
+               | get the delta between the two, and yield the results.
+
+        @param second_host: the IP or hostname of the second device to
+                          | compare against.
+        @type second_host: str
+        @param mode: string to signify 'set' mode or 'stanza' mode.
+        @type mode: str
+
+        @returns: the string output of the comparison
+        @rtype: str
+        """
+        second_conn = manager.connect(
+            host=second_host,
+            port=self.port,
+            username=self.username,
+            password=self.password,
+            timeout=self.conn_timeout,
+            device_params={'name': 'junos'},
+            hostkey_verify=False
+        )
+
+        command = 'show configuration'
+        if mode == 'set':
+            command += ' | display set'
+
+        # get the raw xml config
+        config1 = self._session.command(command, format='text')
+        # for each /configuration-output snippet, turn it to text and join them
+        config1 = ''.join([snippet.text.lstrip('\n') for snippet in
+                          config1.xpath('//configuration-output')])
+
+        config2 = second_conn.command(command, format='text')
+        config2 = ''.join([snippet.text.lstrip('\n') for snippet in
+                          config2.xpath('//configuration-output')])
+
+        return difflib.unified_diff(config1.splitlines(), config2.splitlines(),
+                                    self.host, second_host)
 
     def disconnect(self):
         """ Close the connection(s) to the device.

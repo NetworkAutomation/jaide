@@ -52,32 +52,38 @@ prs = ArgumentParser(formatter_class=RawDescriptionHelpFormatter,
                      description="Required Modules:\n\tNCCLIENT - "
                      "https://github.com/leopoul/ncclient/ \n\tPARAMIKO - "
                      "https://github.com/paramiko/paramiko \n\tSCP - "
-                     "https://pypi.python.org/pypi/scp/\n\nThis script can be "
-                     "used as an aide to easily do the same command(s) to "
+                     "https://pypi.python.org/pypi/scp/\n\tCOLORAMA - "
+                     "https://pypi.python.org/pypi/colorama\n\nThis script can"
+                     " be used as an aide to easily do the same command(s) to "
                      "multiple juniper devices. The only required arguments "
                      "are the destination IP address(es) or host(s), and one "
                      "of the following commands:\nSingle Format: "
-                     "\t[ -c | -e | -H | -I | -s | -S | -l | -b ]\nName Format"
-                     ": \t[ --command | --errors | --health | --info | --set |"
-                     " --scp | --shell | --blank ]", prog='jaide_tool.py',
-                     usage="%(prog)s -i IP [-c operational_mode_commands | -e "
-                     "| -H | -I | -s set_commands | -S [push | pull] source "
-                     "destination | -l shell_commands | -b]")
+                     "\t[ -c | -e | -H | -I | -s | -S | -l | -b | -d ]\nName "
+                     "Format: \t[ --command | --errors | --health | --info | "
+                     "--set | --scp | --shell | --blank | --diff ]",
+                     prog='jaide_tool.py', usage="%(prog)s -i IP [-c "
+                     "operational_commands | -e | -H | -I | -s "
+                     "set_commands | -S [push | pull] source destination | "
+                     "-l shell_commands | -b | -d IP [set | stanza] ]")
+prs.add_argument("-f", "--format", dest="format", type=str, default='text',
+                 metavar='[ text | xml ]', help="Formats output to text or"
+                 " xml. Should be used with -c. Default format is text. "
+                 "Including an xpath expression after a command forces XML"
+                 " output (EX. \"show route %% //rt-entry\").")
 prs.add_argument("-i", "--ip", required=True, dest='ip', type=str, help="The "
                  "target device(s) to run the script against. This can be a "
                  "single target device IP address/hostname, a quoted comma "
                  "separated list of IP's, or a filepath to a file containing "
                  "IP's on each line. Hostnames are resolved.")
-prs.add_argument("-u", "--username", dest='username', type=str,
-                 default='default', help="Will prompt if not specified.")
+prs.add_argument("-n", "--no-highlight", dest="no_highlight",
+                 action='store_true', help="If flagged, will turn off color "
+                 "highlighting in the output. Color highlighting is on by "
+                 "default")
 prs.add_argument("-p", "--password", dest='password', type=str,
                  default='default', help="Will prompt if not specified.")
-prs.add_argument("-w", "--write", dest='write', metavar=("[s/single | "
-                 "m/multiple]", "OUTPUT_FILENAME"), nargs=2, type=str,
-                 help="Specify a filename to write all script output. Also "
-                 "requires whether to write to a single file or a separate "
-                 "file per IP. (ex. -w s ~/Desktop/output.txt). The output "
-                 "format for the names of multiple files is IP_FILENAME.")
+prs.add_argument("-P", "--port", dest="port", type=int, default=22,
+                 help="Specify the port on which to connect to the device."
+                 "Defaults to 22.")
 prs.add_argument("-q", "--quiet", dest='quiet', action="store_true", help="Can"
                  " be used with --scp when copying to/from a single device to "
                  "prevent seeing the live status of the transfer.")
@@ -91,27 +97,36 @@ prs.add_argument("-T", "--connection-timeout", dest="conn_timeout", type=int,
                  default=5, help="Specify the connection timeout, in seconds, "
                  "for declaring a device unreachable during connection. "
                  "Default is 5 seconds.")
-prs.add_argument("-P", "--port", dest="port", type=int, default=22,
-                 help="Specify the port on which to connect to the device."
-                 "Defaults to 22.")
-prs.add_argument("-f", "--format", dest="format", type=str, default='text',
-                 metavar='[ text | xml ]', help="Formats output to text or"
-                 " xml. Should be used with -c. Default format is text. "
-                 "Including an xpath expression after a command forces XML"
-                 " output (EX. \"show route %% //rt-entry\").")
-prs.add_argument("-n", "--no-highlight", dest="no_highlight",
-                 action='store_true', help="If flagged, will turn off color "
-                 "highlighting in the output. Color highlighting is on by "
-                 "default")
+prs.add_argument("-u", "--username", dest='username', type=str,
+                 default='default', help="Will prompt if not specified.")
+prs.add_argument("-w", "--write", dest='write', metavar=("[s/single | "
+                 "m/multiple]", "OUTPUT_FILENAME"), nargs=2, type=str,
+                 help="Specify a filename to write all script output. Also "
+                 "requires whether to write to a single file or a separate "
+                 "file per IP. (ex. -w s ~/Desktop/output.txt). The output "
+                 "format for the names of multiple files is IP_FILENAME.")
 
 # Script functions: Must select one and only one.
 group1 = prs.add_mutually_exclusive_group(required=True)
+group1.add_argument("-b", "--blank", dest="commit_blank", action='store_true',
+                    help="Can be used make a blank commit, which commits with "
+                    "no changes. A key use case is when trying to confirm a "
+                    "commit confirm. --confirm, --check, --blank, and --at are"
+                    " mutually exclusive!")
 group1.add_argument("-c", "--command", dest='command', metavar="[operational_"
-                    "mode_commands | file_of_operational_commands]", type=str,
-                    help="Send a single operational mode command to device(s)."
-                    " A trailing '%%' followed by an xpath expression will "
-                    "filter the xml results by that expression. For example: "
-                    "'show route %% //rt-entry'")
+                    "commands | file_of_operational_commands]", type=str,
+                    help="Send single operational mode command(s) to "
+                    "device(s). A trailing '%%' followed by an xpath "
+                    "expression will filter the xml results by that expression"
+                    ". For example: 'show route %% //rt-entry'")
+group1.add_argument("-d", "--diff", dest="diff_config", type=str, nargs=2,
+                    metavar=("ip_or_hostname", "[set | stanza]"),
+                    help="Specify a second IP/host to compare configuration "
+                    "between the two different devices, and the configuration "
+                    "view mode you would like to see. It will use the same "
+                    "username, password, port, and connection timeout as the "
+                    "first connection. For example '-d 172.25.1.21 set' or "
+                    "'-d switch.domain.com stanza'.")
 group1.add_argument("-e", "--errors", dest='int_error', action='store_true',
                     help='Check all interfaces for errors.')
 group1.add_argument("-H", "--health", dest="health_check", action="store_true",
@@ -119,6 +134,10 @@ group1.add_argument("-H", "--health", dest="health_check", action="store_true",
                     " the device.")
 group1.add_argument("-I", "--info", dest='info', action='store_true',
                     help="Get basic device info (Serial #, Model, etc).")
+group1.add_argument("-l", "--shell", dest='shell', metavar="[shell_commands | "
+                    "file_of_shell_commands]", type=str, help="Similar to -c, "
+                    "except it will run the commands from shell instead of "
+                    "operational mode.")
 group1.add_argument("-s", "--set", dest='make_commit', metavar="[set_commands "
                     "| file_of_set_commands]", type=str, help="Send and commit"
                     " set command(s) to device(s). Can be a single quoted "
@@ -133,33 +152,24 @@ group1.add_argument("-S", "--scp", nargs=3, dest="scp", type=str,
                     "source file/folder, and the destination file/folder. For "
                     "example, this could be used to pull a directory using "
                     "'--scp pull /var/tmp /path/to/local/destination'")
-group1.add_argument("-l", "--shell", dest='shell', metavar="[shell_commands | "
-                    "file_of_shell_commands]", type=str, help="Similar to -c, "
-                    "except it will run the commands from shell instead of "
-                    "operational mode.")
-group1.add_argument("-b", "--blank", dest="commit_blank", action='store_true',
-                    help="Can be used with or without -s to make a blank "
-                    "commit. A key use case is when trying to confirm a commit"
-                    " confirm. --confirm, --check, --blank, and --at are "
-                    "mutually exclusive!")
 
 # Commit options. These options are mutually exclusive.
 group2 = prs.add_mutually_exclusive_group()
-group2.add_argument("-m", "--confirm", dest='commit_confirm',
-                    metavar="CONFIRM_MINUTES", type=int, choices=range(1, 61),
-                    help="Can be used with -s to make a confirmed commit. "
-                    "Accepts a number in /minutes/ between 1 and 60! --confirm"
-                    ", --check, --blank, and --at are mutually exclusive!")
-group2.add_argument("-k", "--check", dest="commit_check", action='store_true',
-                    help="Can be used with -s to only run a commit check, and"
-                    " not commit the changes. --confirm, --check, --blank, and"
-                    " --at are mutually exclusive!")
 group2.add_argument("-a", "--at", dest='commit_at', type=str,
                     metavar="COMMIT_AT_TIME", help="Specify a time for the "
                     "device to make the commit at. Junos expects one of two "
                     "formats: A time value of the form 'hh:mm[:ss]' or a date "
                     "and time value of the form 'yyyy-mm-dd hh:mm[:ss]' "
                     "(seconds are optional).")
+group2.add_argument("-k", "--check", dest="commit_check", action='store_true',
+                    help="Can be used with -s to only run a commit check, and"
+                    " not commit the changes. --confirm, --check, --blank, and"
+                    " --at are mutually exclusive!")
+group2.add_argument("-m", "--confirm", dest='commit_confirm',
+                    metavar="CONFIRM_MINUTES", type=int, choices=range(1, 61),
+                    help="Can be used with -s to make a confirmed commit. "
+                    "Accepts a number in /minutes/ between 1 and 60! --confirm"
+                    ", --check, --blank, and --at are mutually exclusive!")
 
 # Inclusive commit options that can be used with each other and the other
 # mutually exclusive options.
@@ -207,7 +217,7 @@ def open_connection(ip, username, password, function, args, write_to_file,
                        | be desired for long running commands, such as
                        | 'request system snapshot slice alternate'
     @type sess_timeout: int
-    @param no_highlist: the value of the no_highlight argument. Needed to 
+    @param no_highlist: the value of the no_highlight argument. Needed to
                       | be returned as part of tuple for passing to the
                       | write_to_file() function
     @type no_highlight: bool
@@ -259,7 +269,7 @@ def open_connection(ip, username, password, function, args, write_to_file,
 
 
 def color(out_string, color="success"):
-    """ Highlight string for terminal color coding. 
+    """ Highlight string for terminal color coding.
 
     @param out_string: the string to be colored
     @type out_string: str
@@ -270,12 +280,12 @@ def color(out_string, color="success"):
     @rtype: str
     """
     if color == 'error':
-        return (Fore.RED + Style.BRIGHT + out_string + Fore.RESET + 
+        return (Fore.RED + Style.BRIGHT + out_string + Fore.RESET +
                 Style.NORMAL)
     if color == 'info':
-        return (Fore.YELLOW + Style.BRIGHT + out_string + Fore.RESET + 
+        return (Fore.YELLOW + Style.BRIGHT + out_string + Fore.RESET +
                 Style.NORMAL)
-    return (Fore.GREEN + Style.BRIGHT + out_string + Fore.RESET + 
+    return (Fore.GREEN + Style.BRIGHT + out_string + Fore.RESET +
             Style.NORMAL)
 
 
@@ -337,7 +347,7 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
         else:
             # add the 'show | compare' output.
             output += (color("Compare results:\n") + conn.compare_config(cmds)
-                             + '\n')
+                       + '\n')
             output += color("\nCommit check results from: %s\n" % conn.host)
             output += results
     # Actually commit the cmds.
@@ -345,12 +355,12 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
         # add the 'show | compare' output.
         if not commit_blank:  # no results to show on blank commit.
             output += (color("Compare results:\n") + conn.compare_config(cmds)
-                             + '\n')
+                       + '\n')
         if commit_confirm:
             output += color("Attempting to commit confirm on device: %s\n"
-                       % conn.host)
+                            % conn.host)
         else:
-            output += color("Attempting to commit on device: %s\n\n" % 
+            output += color("Attempting to commit on device: %s\n\n" %
                             conn.host)
         try:
             output += conn.commit(commit_confirm=commit_confirm,
@@ -366,10 +376,10 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
                                 conn.host + '\n'))
                 if commit_confirm:
                     output += color('Commit confirm will rollback in %s '
-                                    'minutes unless you commit again' % 
+                                    'minutes unless you commit again' %
                                     str(commit_confirm))
             elif 'commit at' in output:
-                output = (output.split('commit at will be executed at')[0] + 
+                output = (output.split('commit at will be executed at')[0] +
                           color('Commit staged to happen at: %s' % at_time))
             else:
                 if 'failed' in output:
@@ -466,6 +476,47 @@ def dev_info(conn):
     return '\n' + conn.dev_info()
 
 
+def diff_config(conn, second_host):
+    """ Compare the configuration between two devices.
+
+    @param conn: the Jaide connection for the first device.
+    @type conn: jaide.Jaide object
+    @param second_host: a list containing [0] the IP/hostname of the second
+                      | device to pull from, and [1] the mode in which we are
+                      | retrieving the config ('set' or 'stanza')
+    @type second_host: list
+
+    @returns: the config differences
+    @rtype: str
+    """
+    try:
+        output = '\n'.join([diff for diff in conn.diff_config(second_host[0],
+                                                              second_host[1])])
+    except errors.AuthenticationError:  # NCClient auth failure
+        output = color('Authentication failed for device: %s\n' %
+                       second_host[0], 'error')
+    except AuthenticationException:  # Paramiko auth failure
+        output = color('Authentication failed for device: %s\n' %
+                       second_host[0], 'error')
+    except SSHException as e:
+        output = color('Error connecting to device: %s\nError: %s' %
+                       (second_host[0], str(e)), 'error')
+    except socket.timeout:
+        output = color('Timeout exceeded connecting to device: %s\n' %
+                       second_host[0], 'error')
+    if output.strip() == '':
+        output = color("There were no config differences between %s and %s\n" %
+                       (conn.host, second_host[0]))
+    else:
+        # color removals as errors, and additions as success
+        output = output.replace('---', color('---', 'error'))
+        output = output.replace('+++', color('+++'))
+        output = output.replace('\n-', color('\n-', 'error'))
+        output = output.replace('\n+', color('\n+'))
+        output = output.replace('@@', color('@@', 'info'))
+    return output
+
+
 def health_check(conn):
     """Get alarm and health information."""
     return '\n' + conn.health_check()
@@ -543,7 +594,7 @@ def write_to_file(output):
 
     @param output: Two value tuple. the first is the output that we should be
                  | printing to the user, or writing to file. The second is the
-                 | value of the no_hightlight argument, to let us know if we 
+                 | value of the no_hightlight argument, to let us know if we
                  | should color the output to the user or not.
     @type output: (str, bool) tuple
 
@@ -617,6 +668,7 @@ if __name__ == '__main__':
     function_translation = {
         "command": multi_cmd,
         "commit_blank": commit,
+        "diff_config": diff_config,
         "health_check": health_check,
         "info": dev_info,
         "int_error": int_errors,
@@ -632,6 +684,7 @@ if __name__ == '__main__':
             [args.make_commit, args.commit_check, args.commit_confirm,
                 args.commit_blank, args.commit_comment, args.commit_at,
                 args.commit_synchronize],
+        "diff_config": [args.diff_config],
         "health_check": None,
         "info": None,
         "int_error": None,
@@ -680,30 +733,35 @@ if __name__ == '__main__':
                 function = function_translation[key]
                 argsToPass = args_translation[key]
 
-    # Use # of CPU cores * 2 threads. Cpu_count usually returns double the
-    # number of physical cores because of hyperthreading.
-    mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     # build ip list so we can know if we're hitting multiple devices
     # which is needed for the scp function to know when to output to the user
     # immediately, and when to suppress progress updates.
-    ip_list = []
-    for ip in clean_lines(args.ip):
-        ip_list.append(ip)
+    ip_list = [ip for ip in clean_lines(args.ip)]
     if function == copy_file:
         # set 'multi' param to true if scp'ing to more than one device
         argsToPass[-2] = True if len(ip_list) > 1 else False
         # set progress callback to false if quiet mode
         argsToPass[-1] = False if args.quiet or len(ip_list) > 1 else True
-    for ip in ip_list:
-        # write_to_file(open_connection(ip.strip(), args.username, args.password,
-        #                               function, argsToPass, args.write,
-        #                               args.conn_timeout, args.sess_timeout,
-        #                               args.port, args.no_highlight))
-        mp_pool.apply_async(open_connection,
-                            args=(ip.strip(), args.username, args.password,
-                                  function, argsToPass, args.write,
-                                  args.conn_timeout, args.sess_timeout,
-                                  args.port, args.no_highlight),
-                            callback=write_to_file)
-    mp_pool.close()
-    mp_pool.join()
+    if args.diff_config and len(ip_list) != 1:
+        prs.error(color('When trying to do a config diff, you must specify one'
+                        ' IP/host in the -i argument, and on in the -d '
+                        'argument', 'error'))
+    # use a multiprocessing pool if multiple devices.
+    if len(ip_list) > 1:
+        # Use # of CPU cores * 2 threads. Cpu_count usually returns double the
+        # number of physical cores because of hyperthreading.
+        mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
+        for ip in ip_list:
+            mp_pool.apply_async(open_connection,
+                                args=(ip.strip(), args.username, args.password,
+                                      function, argsToPass, args.write,
+                                      args.conn_timeout, args.sess_timeout,
+                                      args.port, args.no_highlight),
+                                callback=write_to_file)
+        mp_pool.close()
+        mp_pool.join()
+    else:  # no need for mp_pool when just hitting one device.
+        write_to_file(open_connection(ip.strip(), args.username, args.password,
+                                      function, argsToPass, args.write,
+                                      args.conn_timeout, args.sess_timeout,
+                                      args.port, args.no_highlight))
