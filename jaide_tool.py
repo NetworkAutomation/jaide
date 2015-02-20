@@ -31,17 +31,21 @@ confusing in some situations.
     On Junos, non-config commands can be run with '| display xml rpc' appended
     to get the rpc command.
 """
-# TODO: ANSI color good and bad output. colorama + termcolor
+import os
 from os import path
 import multiprocessing
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import getpass
 import re
+import socket
+# The rest are non-standard modules:
+from colorama import Fore, init, Style  # Color coding terminal output
 from jaide import Jaide, clean_lines
+# The rest are for error handling
 from ncclient.transport import errors
+from ncclient.operations.rpc import RPCError
 from paramiko import SSHException, AuthenticationException
 from scp import SCPException
-import socket
 
 # -i is a required parameter, the rest are optional arguments
 prs = ArgumentParser(formatter_class=RawDescriptionHelpFormatter,
@@ -95,6 +99,10 @@ prs.add_argument("-f", "--format", dest="format", type=str, default='text',
                  " xml. Should be used with -c. Default format is text. "
                  "Including an xpath expression after a command forces XML"
                  " output (EX. \"show route %% //rt-entry\").")
+prs.add_argument("-n", "--no-highlight", dest="no_highlight",
+                 action='store_true', help="If flagged, will turn off color "
+                 "highlighting in the output. Color highlighting is on by "
+                 "default")
 
 # Script functions: Must select one and only one.
 group1 = prs.add_mutually_exclusive_group(required=True)
@@ -168,7 +176,8 @@ group3.add_argument('-y', '--synchronize', dest="commit_synchronize",
 
 
 def open_connection(ip, username, password, function, args, write_to_file,
-                    conn_timeout=5, sess_timeout=300, port=22):
+                    conn_timeout=5, sess_timeout=300, port=22,
+                    no_highlight=False):
     """ Open a Jaide session with the device.
 
     Purpose: To open a Jaide session to the device, and run the
@@ -198,36 +207,44 @@ def open_connection(ip, username, password, function, args, write_to_file,
                        | be desired for long running commands, such as
                        | 'request system snapshot slice alternate'
     @type sess_timeout: int
+    @param no_highlist: the value of the no_highlight argument. Needed to 
+                      | be returned as part of tuple for passing to the
+                      | write_to_file() function
+    @type no_highlight: bool
 
     @returns: The string output that should displayed to the user, which
             | eventually makes it to the write_output() function.
     @rtype: str
     """
-    # start with the header line on the output.
-    output = '=' * 50 + '\nResults from device: %s\n' % ip
+    output = ""
     # this is used to track the filepath that we will output to. The
     # write_output() function will pick this up.
     if write_to_file:
         output += "*****WRITE_TO_FILE*****" + write_to_file[1] + \
                   "*****WRITE_TO_FILE*****" + write_to_file[0] + \
                   "*****WRITE_TO_FILE*****"
+    # start with the header line on the output.
+    output += color('=' * 50 + '\nResults from device: %s\n' % ip, 'info')
     try:
         # create the Jaide session object for the device.
         conn = Jaide(ip, username, password, conn_timeout=conn_timeout,
                      sess_timeout=sess_timeout, port=port)
     except errors.SSHError:
-        output += 'Unable to connect to port %s on device: %s\n' % \
-            (str(port), ip)
+        output += color('Unable to connect to port %s on device: %s\n' %
+                        (str(port), ip), 'error')
     except errors.AuthenticationError:  # NCClient auth failure
-        output += 'Authentication failure for device: %s\n' % ip
+        output += color('Authentication failed for device: %s\n' % ip, 'error')
     except AuthenticationException:  # Paramiko auth failure
-        output += 'Authentication failure for device: %s\n' % ip
+        output += color('Authentication failed for device: %s\n' % ip, 'error')
     except SSHException as e:
-        output += 'Error connecting to device: %s\nError: %s' % (ip, str(e))
+        output += color('Error connecting to device: %s\nError: %s' %
+                        (ip, str(e)), 'error')
     except socket.timeout:
-        output += 'Timeout exceeded connecting to device: %s\n' % ip
+        output += color('Timeout exceeded connecting to device: %s\n' % ip,
+                        'error')
     except socket.error:
-        output += 'The device refused the connection on port %s' % port
+        output += color('The device refused the connection on port %s' % port,
+                        'error')
     else:
         # if there are no args to pass through
         if args is None:
@@ -238,7 +255,28 @@ def open_connection(ip, username, password, function, args, write_to_file,
         # disconnect so sessions don't stay alive on the device.
         conn.disconnect()
     # no matter what happens, return the output
-    return output
+    return (output, no_highlight)
+
+
+def color(out_string, color="success"):
+    """ Highlight string for terminal color coding. 
+
+    @param out_string: the string to be colored
+    @type out_string: str
+    @param color: a string signifying which color to use.
+    @type color: str
+
+    @returns: the modified string, including the ANSI/win32 color codes.
+    @rtype: str
+    """
+    if color == 'error':
+        return (Fore.RED + Style.BRIGHT + out_string + Fore.RESET + 
+                Style.NORMAL)
+    if color == 'info':
+        return (Fore.YELLOW + Style.BRIGHT + out_string + Fore.RESET + 
+                Style.NORMAL)
+    return (Fore.GREEN + Style.BRIGHT + out_string + Fore.RESET + 
+            Style.NORMAL)
 
 
 def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
@@ -290,49 +328,55 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
         try:
             results = conn.commit_check(cmds)
         except RPCError:
-            output += ("\nUncommitted changes left on the device or "
-                       "someone else is in edit mode, couldn't lock the "
-                       "candidate configuration.\n")
+            output += color("\nUncommitted changes left on the device or "
+                            "someone else is in edit mode, couldn't lock the "
+                            "candidate configuration.\n", 'error')
         except:
-            output += ("Failed to commit check on device %s for an "
-                       "unknown reason." % ip)
+            output += color("Failed to commit check on device %s for an "
+                            "unknown reason." % ip, 'error')
         else:
             # add the 'show | compare' output.
-            output += "Compare results:\n" + conn.compare_config(cmds) + '\n'
-            output += "\nCommit check results from: %s\n" % conn.host
+            output += (color("Compare results:\n") + conn.compare_config(cmds)
+                             + '\n')
+            output += color("\nCommit check results from: %s\n" % conn.host)
             output += results
     # Actually commit the cmds.
     else:
         # add the 'show | compare' output.
         if not commit_blank:  # no results to show on blank commit.
-            output += "Compare results:\n" + conn.compare_config(cmds) + '\n'
+            output += (color("Compare results:\n") + conn.compare_config(cmds)
+                             + '\n')
         if commit_confirm:
-            output += ("Attempting to commit confirm on device: %s\n"
+            output += color("Attempting to commit confirm on device: %s\n"
                        % conn.host)
         else:
-            output += "Attempting to commit on device: %s\n\n" % conn.host
+            output += color("Attempting to commit on device: %s\n\n" % 
+                            conn.host)
         try:
             output += conn.commit(commit_confirm=commit_confirm,
                                   comment=comment, at_time=at_time,
                                   synchronize=synchronize, commands=cmds)
         except RPCError as e:
-            output += ('Commit could not be completed on this device, '
-                       'due to the following error: \n' + str(e))
-        # TODO: no Jaide-specific success/fail message, currently just dumping the output from the device.
-        # if results:
-        #     if results.find('commit-check-success') is None:  # None is returned for elements found without a subelement, as in this case.
-        #         if commit_confirm:
-        #             output += 'Commit complete on device: %s. It will be automatically rolled back in %s minutes, unless you commit again.\n' % (conn.host, str(commit_confirm))
-        #         elif at_time:
-        #             output += 'Commit staged to happen at %s on device: %s' % (at_time, conn.host)
-        #         else:
-        #             output += 'Commit complete on device: %s\n' % conn.host
-        # else:
-        #     output += 'Commit failed on device: %s\n' % conn.host
-        #     # for each line in the resultant xml, iterate over and print out the non-empty lines.
-        #     for i in results.findall('commit-results')[0].itertext():
-        #         if i.strip() != '':
-        #             output += '\n' + i.strip()
+            output += color('Commit could not be completed on this device, '
+                            'due to the following error: \n' + str(e), 'error')
+        else:
+            if 'commit complete' in output:
+                output = (output.split('commit complete')[0] +
+                          color('Commit complete on device: ' +
+                                conn.host + '\n'))
+                if commit_confirm:
+                    output += color('Commit confirm will rollback in %s '
+                                    'minutes unless you commit again' % 
+                                    str(commit_confirm))
+            elif 'commit at' in output:
+                output = (output.split('commit at will be executed at')[0] + 
+                          color('Commit staged to happen at: %s' % at_time))
+            else:
+                if 'failed' in output:
+                    output = output.replace('failed', color('failed', 'error'))
+                if 'error' in output:
+                    output = output.replace('error', color('error', 'error'))
+                output += color('Commit Failed on device: ' + conn.host + '\n')
     return output
 
 
@@ -359,7 +403,6 @@ def copy_file(conn, direction, source, dest, multi, progress):
     @rtype: str
     """
     output = "\n"
-    # TODO: check these filepath adders on windows, as it might require os.sep instead of '/'?
     # Source and destination filepath validation
     # Check if the destination ends in a '/', if not, we need to add it.
     dest = dest + '/' if dest[-1] != '/' else dest
@@ -376,34 +419,43 @@ def copy_file(conn, direction, source, dest, multi, progress):
     # Only see the live progress when copying against one device.
     progress = not multi
     if direction.lower() == 'pull':
+        # try to create the local directory
+        if '.' not in path.basename(dest):
+            if not path.exists(dest):
+                os.makedirs(dest)
+        # name the file with the host if copying from multiple devices.
         dest_file = dest + conn.host + '_' + source_file if multi else dest + source_file
         output += ('Retrieving %s:%s, and putting it in %s\n' %
-                   (conn.host, source, dest_file))
+                   (conn.host, source, path.normpath(dest_file)))
         dest_file = dest_file.replace(' ', '\\ ')  # escape spaces
         try:
             conn.scp_pull(source, dest_file, progress)
         except SCPException as e:
-            return (output + '!!! Error during copy from ' + conn.host +
-                    '. Some files may have failed to transfer. SCP Module '
-                    'error:\n' + str(e) + '\n!!!\n')
+            return color(output + '!!! Error during copy from ' + conn.host +
+                         '. Some files may have failed to transfer. SCP Module'
+                         ' error:\n' + str(e) + '\n!!!\n', 'error')
         except (IOError, OSError) as e:
-            return (output + '!!! The local filepath was not found! Note that '
-                    '\'~\' cannot be used. Error: ' + str(e) + ' !!!\n')
+            return color(output + '!!! The local filepath was not found! Note'
+                         ' that \'~\' cannot be used. Error:\n' + str(e) +
+                         ' !!!\n', 'error')
         else:
-            output += 'Received %s from %s.\n' % (source, conn.host)
+            output += color('Received %s:%s and stored it in %s.\n' %
+                            (conn.host, source, path.normpath(dest_file)))
     elif direction.lower() == "push":
+        source = path.normpath(source)
         output += ('Pushing %s to %s:%s\n' % (source, conn.host, dest))
         try:
             conn.scp_push(source, dest, progress)
         except SCPException as e:
-            return (output + '!!! Error during copy from ' + conn.host +
-                    '. Some files may have failed to transfer. SCP Module '
-                    'error:\n' + str(e) + '\n!!!\n')
+            return color(output + '!!! Error during copy from ' + conn.host +
+                         '. Some files may have failed to transfer. SCP Module'
+                         ' error:\n' + str(e) + '\n!!!\n', 'error')
         except (IOError, OSError) as e:
-            return (output + '!!! The local filepath was not found! Note that '
-                    '\'~\' cannot be used. Error: ' + str(e) + ' !!!\n')
+            return color(output + '!!! The local filepath was not found! Note'
+                         ' that \'~\' cannot be used. Error: ' + str(e) +
+                         ' !!!\n')
         else:
-            output += 'Pushed %s to %s:%s\n' % (source, conn.host, dest)
+            output += color('Pushed %s to %s:%s\n' % (source, conn.host, dest))
     if progress:
         print '\n'
     return output
@@ -421,7 +473,12 @@ def health_check(conn):
 
 def int_errors(conn):
     """Get any interface errors from the device."""
-    return '\n' + conn.int_errors()
+    response = '\n' + conn.int_errors()
+    if 'No interface errors' in response:
+        response = color(response)
+    else:
+        response = color(response, 'error')
+    return response
 
 
 def multi_cmd(conn, commands, shell, req_format='text'):
@@ -454,91 +511,145 @@ def multi_cmd(conn, commands, shell, req_format='text'):
     """
     output = ""
     for cmd in clean_lines(commands):
+        prompt = color('\n> ' + cmd, 'info')
         if shell:
-            output += '\n> ' + cmd + conn.shell_cmd(cmd)
+            output += prompt + conn.shell_cmd(cmd)
         else:
             xpath_expr = ''
             # Get xpath expression from the command, if it is there.
             # If there is an xpath expr, the output will be xml,
-            # overriding the format parameter
+            # overriding the req_format parameter
             #
             # Example command forcing xpath: show route % //rt-entry
             if len(cmd.split('%')) == 2:
                 op_cmd = cmd.split('%')[0] + '\n'
                 xpath_expr = cmd.split('%')[1].strip()
             if xpath_expr:
-                output += '\n> ' + cmd + \
-                    conn.op_cmd(command=op_cmd, req_format='xml',
-                                xpath_expr=xpath_expr) + '\n'
+                output += (prompt +
+                           conn.op_cmd(command=op_cmd, req_format='xml',
+                                       xpath_expr=xpath_expr) + '\n')
             else:
-                output += '\n> ' + cmd + conn.op_cmd(cmd,
-                                                     req_format=req_format)
+                output += prompt + conn.op_cmd(cmd, req_format=req_format)
     return output
 
 
-def write_to_file(screen_output):
+def write_to_file(output):
     """ Print the output to the user, or write it to file.
 
-    Purpose: This function is called to either print the screen_output to
+    Purpose: This function is called to either print the output to
            | the user, or write it to a file
            | if we've received a filepath prepended on the output string in
            | between identifiers '*****WRITE_TO_FILE*****'
 
-    @param screen_output: String containing all the output gathered.
-    @type screen_output: str
+    @param output: Two value tuple. the first is the output that we should be
+                 | printing to the user, or writing to file. The second is the
+                 | value of the no_hightlight argument, to let us know if we 
+                 | should color the output to the user or not.
+    @type output: (str, bool) tuple
 
     @returns: None
     """
-    if "*****WRITE_TO_FILE*****" in screen_output:
-        dest_file = screen_output.split('*****WRITE_TO_FILE*****')[1]
-        style = screen_output.split('*****WRITE_TO_FILE*****')[2]
-        screen_output = screen_output.split('*****WRITE_TO_FILE*****')[3]
+    no_highlight = output[1]
+    output = output[0]
+    # compile regex for color code stripping
+    ansi_esc = re.compile(r'\x1b[^m]*m')
+    if "*****WRITE_TO_FILE*****" in output:
+        screen_out = ""
+        dest_file = output.split('*****WRITE_TO_FILE*****')[1]
+        style = output.split('*****WRITE_TO_FILE*****')[2]
+        # need to strip ANSI color codes from the string
+        output = ansi_esc.sub('', output.split('*****WRITE_TO_FILE*****')[3])
         # open the output file if one was specified.
         if style.lower() in ["s", "single"]:
             try:
                 out_file = open(dest_file, 'a+b')
             except IOError as e:
-                print('Error opening output file \'%s\' for writing. Here is '
-                      'the output that would\'ve been written:\n' % dest_file)
-                print(screen_output)
-                print('\n\nHere is the error for opening the output file:')
-                raise e
+                screen_out += (color('Error opening output file \'%s\' for '
+                                     'writing. Here is the output that '
+                                     'would\'ve been written:\n' % dest_file,
+                                     'error'))
+                screen_out += output
+                screen_out += (color('\n\nHere is the error for opening the '
+                                     'output file:' + str(e), 'error'))
             else:
-                out_file.write('%s\n\n' % screen_output)
-                print('\nOutput written/appended to: ' + dest_file)
+                out_file.write('%s\n\n' % output)
+                screen_out += (color('\nOutput written/appended to: ' +
+                                     dest_file))
         elif style.lower() in ["m", "multiple"]:
             # get the ip for the current device from the output.
-            ip = screen_output.split('device: ')[1].split('\n')[0].strip()
+            ip = output.split('device: ')[1].split('\n')[0].strip()
             try:
                 filepath = path.join(path.split(dest_file)[0], ip + "_" +
                                      path.split(dest_file)[1])
                 out_file = open(filepath, 'a+b')
             except IOError as e:
-                print('Error opening output file \'%s\' for writing. Here is '
-                      'the output that would\'ve been written:\n' % dest_file)
-                print(screen_output)
-                print('\n\nHere is the error for opening the output file:')
-                raise e
+                screen_out += (color('Error opening output file \'%s\' for '
+                                     'writing. Here is the output that '
+                                     'would\'ve been written:\n' % dest_file,
+                                     'error'))
+                screen_out += output
+                screen_out += (color('\n\nHere is the error for opening the '
+                                     'output file:' + str(e), 'error'))
             else:
-                out_file.write(screen_output)
-                print('\nOutput written/appended to: ' + filepath)
+                out_file.write(output)
+                screen_out += color('\nOutput appended to: ' + filepath)
                 out_file.close()
+        if no_highlight:
+            screen_out = ansi_esc.sub('', screen_out)
+        print screen_out
     else:
+        if no_highlight:
+            output = ansi_esc.sub('', output)
         # --scp function copy_file will return '' if we aren't writing to a
         # file, because the output is printed to the user immediately.
         # Therefore we only need to print if something exists.
-        print screen_output if screen_output else None
+        print output if output else None
 
 ##########################
 # Start of script proper #
 ##########################
 if __name__ == '__main__':
-    # Verify requirements.
+    # Start colorama for color highlighting
+    init()
+
     args = prs.parse_args()
-    if args.scp and (args.scp[0].lower() not in ['pull', 'push']):
-        prs.error('When using the --scp flag, you must specify the direction '
-                  'as the first argument. For example: "--scp pull /var/tmp '
-                  '/path/to/local/folder"')
+    # Correlates argument with function pointer
+    function_translation = {
+        "command": multi_cmd,
+        "commit_blank": commit,
+        "health_check": health_check,
+        "info": dev_info,
+        "int_error": int_errors,
+        "make_commit": commit,
+        "scp": copy_file,
+        "shell": multi_cmd
+    }
+    # Correlates which params need to be passed through open_connection() to
+    # the final function.
+    args_translation = {
+        "command": [args.command, False, args.format.lower()],
+        "commit_blank":
+            [args.make_commit, args.commit_check, args.commit_confirm,
+                args.commit_blank, args.commit_comment, args.commit_at,
+                args.commit_synchronize],
+        "health_check": None,
+        "info": None,
+        "int_error": None,
+        "make_commit":
+            [args.make_commit, args.commit_check, args.commit_confirm,
+                args.commit_blank, args.commit_comment, args.commit_at,
+                args.commit_synchronize],
+        "shell": [args.shell, True, args.sess_timeout]
+    }
+
+    # Verify requirements.
+    if args.scp:
+        args_translation["scp"] = [args.scp[0], args.scp[1], args.scp[2],
+                                   False, True]
+        if (args.scp[0].lower() not in ['pull', 'push']):
+            prs.error(color('When using the --scp flag, you must specify the '
+                      'direction as the first argument. For example: "--scp '
+                            'pull /var/tmp /path/to/local/folder"', 'error'))
 
     # if they are doing commit_at, ensure the input is formatted correctly.
     if args.commit_at:
@@ -558,36 +669,6 @@ if __name__ == '__main__':
     if args.password == 'default':
         # getpass will not echo back to the user, for safe password entry.
         args.password = getpass.getpass()
-
-    # Correlates argument with function pointer
-    function_translation = {
-        "command": multi_cmd,
-        "commit_blank": commit,
-        "int_error": int_errors,
-        "health_check": health_check,
-        "info": dev_info,
-        "make_commit": commit,
-        "scp": copy_file,
-        "shell": multi_cmd
-    }
-    # Correlates which params need to be passed through open_connection() to
-    # the final function.
-    args_translation = {
-        "command": [args.command, False, args.format.lower()],
-        "int_error": None,
-        "health_check": None,
-        "info": None,
-        "make_commit":
-            [args.make_commit, args.commit_check, args.commit_confirm,
-                args.commit_blank, args.commit_comment, args.commit_at,
-                args.commit_synchronize],
-        "commit_blank":
-            [args.make_commit, args.commit_check, args.commit_confirm,
-                args.commit_blank, args.commit_comment, args.commit_at,
-                args.commit_synchronize],
-        "scp": [args.scp[0], args.scp[1], args.scp[2], False, True],
-        "shell": [args.shell, True, args.sess_timeout]
-    }
 
     # Compares args to function_translation to figure out which we are doing
     # then looks up the function pointer and arguments
@@ -617,12 +698,12 @@ if __name__ == '__main__':
         # write_to_file(open_connection(ip.strip(), args.username, args.password,
         #                               function, argsToPass, args.write,
         #                               args.conn_timeout, args.sess_timeout,
-        #                               args.port))
+        #                               args.port, args.no_highlight))
         mp_pool.apply_async(open_connection,
                             args=(ip.strip(), args.username, args.password,
                                   function, argsToPass, args.write,
                                   args.conn_timeout, args.sess_timeout,
-                                  args.port),
+                                  args.port, args.no_highlight),
                             callback=write_to_file)
     mp_pool.close()
     mp_pool.join()

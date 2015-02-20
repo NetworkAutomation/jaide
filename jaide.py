@@ -18,14 +18,10 @@ try:
     import xml.etree.ElementTree as ET
     # RPCErrors are returned in certain instances, such as when the candidate
     # config is locked because someone is editing it.
-    from ncclient.operations.rpc import RPCError
-    from ncclient.operations.errors import TimeoutExpiredError
-    from ncclient.transport import errors
     from os import path
-    from scp import SCPClient, SCPException
+    from scp import SCPClient
     import paramiko
     import logging  # logging needed for disabling paramiko logging output
-    import socket  # used for catching timeout errors on paramiko sessions
     import time
     from errors.errors import InvalidCommandError
 except ImportError as e:
@@ -273,7 +269,7 @@ class Jaide():
 
     @check_instance
     def commit(self, commit_confirm=None, comment=None, at_time=None,
-               synchronize=False, commands=""):
+               synchronize=False, commands="", req_format='text'):
         """ Perform a commit operation.
 
         Purpose: Executes a commit operation. All parameters are optional.
@@ -300,6 +296,9 @@ class Jaide():
                        | a filepath location of a file with multiple
                        | commands, each on its own line.
         @type commands: str or list
+        @param req_format: string to specificy the response format. Accepts
+                         | either 'text' or 'xml'
+        @type req_format: str
 
         @returns: The reply from the device.
         @rtype: str
@@ -330,6 +329,8 @@ class Jaide():
             # convert it to an ElementTree xml tree.
             results = ET.fromstring(results.tostring)
             out = ''
+            if req_format == 'xml':
+                return results
             for i in results.iter():
                 # the success message is just a tag, so we need to get it
                 # specifically.
@@ -509,7 +510,7 @@ class Jaide():
                | the progress of an actively running copy.
         """
         output = "Transferred %.0f%% of the file %s" % (
-            (float(sent) / float(size) * 100), filename)
+            (float(sent) / float(size) * 100), path.normpath(filename))
         output += (' ' * (120 - len(output)))
         if filename != self._filename:
             print('')
@@ -701,18 +702,17 @@ class Jaide():
             if (('ge' or 'fe' or 'ae' or 'xe' or 'so' or 'et' or 'vlan' or
                  'lo0' or 'irb') in int_name):
                 try:
-                    op_status = i.xpath('oper-status')[0].text
+                    status = (i.xpath('admin-status')[0].text.strip() +
+                              '/' + i.xpath('oper-status')[0].text.strip())
                 except IndexError:
                     pass
                 else:
-                    # TODO: include down interfaces?
-                    if 'up' in op_status:
-                        # input errors
-                        for error in self._error_parse(i, "input"):
-                            output.append("%s%s" % (int_name, error))
-                        # output errors
-                        for error in self._error_parse(i, "output"):
-                            output.append("%s%s" % (int_name, error))
+                    for error in self._error_parse(i, "input"):
+                        output.append("%s (%s)%s" % (int_name, status,
+                                                     error))
+                    for error in self._error_parse(i, "output"):
+                        output.append("%s (%s)%s" % (int_name, status,
+                                                     error))
         if output == []:
             output.append('No interface errors were detected on this device.')
         return '\n'.join(output) + '\n'
