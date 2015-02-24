@@ -31,6 +31,8 @@ confusing in some situations.
     On Junos, non-config commands can be run with '| display xml rpc' appended
     to get the rpc command.
 """
+# standard modules
+import sys
 import os
 from os import path
 import multiprocessing
@@ -38,10 +40,10 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import getpass
 import re
 import socket
+# intra-Jaide imports
+from core import Jaide
+from utils import clean_lines, color, strip_color
 # The rest are non-standard modules:
-from colorama import Fore, init, Style  # Color coding terminal output
-from jaide import Jaide, clean_lines
-# The rest are for error handling
 from ncclient.transport import errors
 from ncclient.operations.rpc import RPCError
 from paramiko import SSHException, AuthenticationException
@@ -222,9 +224,9 @@ def open_connection(ip, username, password, function, args, write_to_file,
                       | write_to_file() function
     @type no_highlight: bool
 
-    @returns: The string output that should displayed to the user, which
-            | eventually makes it to the write_output() function.
-    @rtype: str
+    @returns: a tuple of the output of the jaide command being run, and a
+            | boolean whether the output is to be highlighted or not.
+    @rtype: (str, bool) tuple
     """
     output = ""
     # this is used to track the filepath that we will output to. The
@@ -266,27 +268,6 @@ def open_connection(ip, username, password, function, args, write_to_file,
         conn.disconnect()
     # no matter what happens, return the output
     return (output, no_highlight)
-
-
-def color(out_string, color="success"):
-    """ Highlight string for terminal color coding.
-
-    @param out_string: the string to be colored
-    @type out_string: str
-    @param color: a string signifying which color to use.
-    @type color: str
-
-    @returns: the modified string, including the ANSI/win32 color codes.
-    @rtype: str
-    """
-    if color == 'error':
-        return (Fore.RED + Style.BRIGHT + out_string + Fore.RESET +
-                Style.NORMAL)
-    if color == 'info':
-        return (Fore.YELLOW + Style.BRIGHT + out_string + Fore.RESET +
-                Style.NORMAL)
-    return (Fore.GREEN + Style.BRIGHT + out_string + Fore.RESET +
-            Style.NORMAL)
 
 
 def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
@@ -601,15 +582,12 @@ def write_to_file(output):
     @returns: None
     """
     no_highlight = output[1]
-    output = output[0]
-    # compile regex for color code stripping
-    ansi_esc = re.compile(r'\x1b[^m]*m')
     if "*****WRITE_TO_FILE*****" in output:
         screen_out = ""
         dest_file = output.split('*****WRITE_TO_FILE*****')[1]
         style = output.split('*****WRITE_TO_FILE*****')[2]
         # need to strip ANSI color codes from the string
-        output = ansi_esc.sub('', output.split('*****WRITE_TO_FILE*****')[3])
+        output = strip_color(output.split('*****WRITE_TO_FILE*****')[3])
         # open the output file if one was specified.
         if style.lower() in ["s", "single"]:
             try:
@@ -646,11 +624,11 @@ def write_to_file(output):
                 screen_out += color('\nOutput appended to: ' + filepath)
                 out_file.close()
         if no_highlight:
-            screen_out = ansi_esc.sub('', screen_out)
+            screen_out = strip_color(screen_out)
         print screen_out
     else:
         if no_highlight:
-            output = ansi_esc.sub('', output)
+            output = strip_color(output)
         # --scp function copy_file will return '' if we aren't writing to a
         # file, because the output is printed to the user immediately.
         # Therefore we only need to print if something exists.

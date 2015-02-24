@@ -1,59 +1,66 @@
-# This Class is part of the jaide/jgui project.
-# It is free software for use in manipulating junos devices. More information
-# can be found at the github page found here:
-#
-#  https://github.com/NetworkAutomation/jaide
-#
-""" jgui.py
-    This python file is used to spawn the GUI that wraps around jaide.py,
-    providing ease of use for those that don't want to use the command line.
+""" The GUI wrapper for the jaide_cli.py CLI script.
+
+This python file is used to spawn the GUI that wraps around jaide.py,
+providing ease of use for those that don't want to use the command line.
+This Class is part of the jaide/jgui project.
+It is free software for use in manipulating junos devices. More information
+can be found at the github page found here:
+
+   https://github.com/NetworkAutomation/jaide
 """
 try:
     # ## Tkinter related imports.
-    import Tkinter as tk
+    import Tkinter as tk  # Tkinter is the underlying gui framework.
     import tkFileDialog
     import tkMessageBox  # to prompt users during input validation errors
     import ttk  # Used for separators between frames of the UI.
-    import Pmw  # Pmw is the extended menuwidget option giving us the ability to call a function when a option is chosen from the menu.
+    # Pmw is the extended menuwidget option giving us the ability
+    # to call a function when a option is chosen from the menu.
+    import Pmw
     # ## Processing and queuing
     import subprocess  # Used for opening help file with the browser.
     import Queue
-    # In terms of JGUI, we use multiprocessing to enable freeze_support. The worker_thread class uses multiprocessing
-    # further to run concurrent instances of the Jaide script when manipulating multiple devices.
+    # In terms of JGUI, we use multiprocessing to enable freeze_support.
+    # The worker_thread subpackage uses multiprocessing further to run
+    # concurrent instances of the Jaide script.
     import multiprocessing as mp
     # ## Basic functions and manipulation.
     import webbrowser  # for opening URL in a web browser.
     import re  # for regex testing in input validation.
-    import os  # needed for opening files, file validation, getting directory names, etc.
+    import os  # needed for opening files, validation, and getting dir names
     import sys  # needed for checking OS type.
     import base64  # for encoding/decoding text.
     import time  # needed to sleep very quickly when updating the UI, to prevent artifacts.
     # ## The following imports are modules that we have written.
-    import jaide
-    # the jgui_widgets module extends basic Tkinter widgets for expressed use within the Jaide GUI
-    from jgui_widgets import JaideEntry, JaideCheckbox, AutoScrollbar, JaideRadiobutton
-    from worker_thread import WorkerThread  # WorkerThread class, inheriting threading.Thread. Used to execute Jaide in a thread.
-    from module_locator import module_path  # Used to find the location of the running module, whether it is compiled or not, across all platforms. 
+    import jaide_cli
+    # the jgui_widgets module extends Tkinter widgets for use within Jaide GUI
+    from jgui.jgui_widgets import JaideEntry, JaideCheckbox
+    from jgui.jgui_widgets import AutoScrollbar, JaideRadiobutton
+    from jgui.worker_thread import WorkerThread  # WorkerThread class, inheriting threading.Thread. Used to execute Jaide in a thread.
+    from jgui.module_locator import module_path  # Used to find the location of the running module, whether it is compiled or not, across all platforms. 
 except ImportError as e:
     print "Failed to import one or more packages! Non-standard packages for the GUI include:\nPMW\t\thttp://pmw.sourceforge.net/\n\nScript Error:\n"
     raise e
 
+
 # TODO: make Script output non-editable, but still selectable for copying.  - Doesn't seem feasible without completely re-writing textArea widget.
 # TODO: add headers to the sections of the GUI / add coloring or styling.  - Attempted, couldn't get menuoption to work, or checkboxes on mac.
 # TODO: make entry fields fill their given space on the x-axis to give more space for filepaths?
-
 # TODO: check and make sure writing to multiple files works on windows and compiled versions.
 class JaideGUI(tk.Tk):
-    """ The JaideGUI class inherits the properties of the Tkinter.Tk class. This class encapsulates the entire methodology for
-        creating the visual representation seen by the user. Some functionality is enhanced with the use of other classes that
-        are imported and used, including WorkerThread (for running the jaide.py script and handling output gathering) and
-        AutoScrollbar (for putting scrollbars on the output_area text entry widget).
-    """
-    def __init__(self, parent):
-        """ Purpose: This is the initialization function for creating and showing the GUI.
 
-            @returns: None
-        """
+    """ The GUI wrapper for the jaide_cli.py CLI tool.
+
+    The JaideGUI class inherits the properties of the Tkinter.Tk class. This
+    class encapsulates the entire methodology for creating the visual
+    representation seen by the user. Some functionality is enhanced with the
+    use of other classes that are imported and used, including WorkerThread
+    (for running the jaide.py script and handling output gathering) and
+    AutoScrollbar (for putting scrollbars on the output_area text entry widget)
+    """
+
+    def __init__(self, parent):
+        """ Purpose: Initializes and shows the GUI. """
         tk.Tk.__init__(self, parent)
         self.parent = parent
 
@@ -72,13 +79,13 @@ class JaideGUI(tk.Tk):
 
         # Dictionary converting option_menu's displayed options with jaide's actual argument flags
         self.option_conversion = {
-            "Device Info": jaide.dev_info,
-            "Health Check": jaide.health_check,
-            "Interface Errors": jaide.int_errors,
-            "Operational Command(s)": jaide.multi_cmd,
-            "SCP Files": jaide.copy_file,
-            "Set Command(s)": jaide.make_commit,
-            "Shell Command(s)": jaide.multi_cmd
+            "Device Info": jaide_cli.dev_info,
+            "Health Check": jaide_cli.health_check,
+            "Interface Errors": jaide_cli.int_errors,
+            "Operational Command(s)": jaide_cli.multi_cmd,
+            "SCP Files": jaide_cli.copy_file,
+            "Set Command(s)": jaide_cli.commit,
+            "Shell Command(s)": jaide_cli.multi_cmd
         }
         # Dictionary for retrieving the help text based on the command name.
         self.help_conversion = {
@@ -397,28 +404,46 @@ class JaideGUI(tk.Tk):
             @type event: Tkinter.event object
             @returns: None
         """
-        # This checks the input validation and only continues if we return true.
+        # Ensure the input is valid.
         if self.input_validation():
             # puts cursor at end of text field
             self.output_area.mark_set(tk.INSERT, tk.END)
             self.write_to_output_area("****** Process Starting ******\n")
 
-            # Gets username/password/ip from appropriate StringVars
+            # Gets username/ip from appropriate StringVars
             username = self.username_entry.get().strip()
-            password = self.password_entry.get().strip()
             ip = self.ip_entry.get()
             timeout = self.timeout_entry.get()
-            wtf_style = self.wtf_radiobuttons.get()
-            if self.wtf_checkbox.get() == 1:  # test if write to file is checked.
-                wtf = self.wtf_entry.get()
-            else:
-                wtf = ""
-
+            # if they are requesting xml.
+            out_fmt = 'xml' if self.format_box.get() else 'text'
+            # build the args translation array
+            args_translation = {
+                "Operational Command(s)": [self.option_entry.get().strip(),
+                                           False, out_fmt],
+                "Device Info": None,
+                # "Diff Config": [args.diff_config],
+                "Health Check": None,
+                "Interface Errors": None,
+                "Set Command(s)": [self.option_entry.get(),
+                                   self.commit_check_button.get(),
+                                   self.commit_confirmed_button.get(),
+                                   self.commit_blank.get(),
+                                   self.commit_comment_entry.get(),
+                                   self.commit_at_entry.get(),
+                                   self.commit_synch.get()],
+                "SCP Files": [self.scp_direction_value.get(),
+                              self.option_entry.get(),
+                              self.scp_destination_entry.get(),
+                              True,
+                              None],
+                "Shell Command(s)": [self.option_entry.get().strip(),
+                                     True, timeout]
+            }
             # Looks up the selected option from dropdown against the conversion dictionary to get the right Jaide function to call
             function = self.option_conversion[self.option_value.get()]
 
             # start building the jaide command to let the user know how they can use the CLI tool to do the same thing.
-            jaide_command = 'python jaide.py -u ' + username + ' -i ' + ip
+            jaide_command = 'python jaide_cli.py -u ' + username + ' -i ' + ip
             options = {
                 "Operational Command(s)": ' -c ',
                 "Interface Errors": ' -e ',
@@ -428,95 +453,106 @@ class JaideGUI(tk.Tk):
                 "SCP Files": ' --scp ',
                 "Shell Command(s)": ' --shell '
             }
-            jaide_command += options[self.option_value.get()]  # add the argument flag for the item they've chosen in the optionMenu
+            # add the argument flag for their choice in the optionMenu
+            jaide_command += options[self.option_value.get()]
 
-            # Logic to pass appropriate variables to WorkerThread for subsequent Jaide call
-            # SCP passes a dictionary which WorkerThread has logic to pull from. Done this way because the
-            # args in Jaide.copy_file are different than the ordering and needs of jaide.do_netconf() for other commands.
-            if self.option_value.get() == "SCP Files":
-                argsToPass = {
-                    "scp_source": self.option_entry.get(),
-                    "scp_dest": self.scp_destination_entry.get(),
-                    "direction": self.scp_direction_value.get(),
-                    "write": True,
-                    "callback": None,
-                    "multi": True
-                }
-                jaide_command += self.scp_direction_value.get() + ' ' + self.option_entry.get() + ' ' + self.scp_destination_entry.get()
-            # List of args that can be easily unpacked by jaide.do_netconf
-            elif self.option_value.get() == 'Set Command(s)':
-                jaide_command += '\"' + self.option_entry.get() + '\"'
-                if self.commit_confirmed_button.get():  # Commit Confirmed
-                    jaide_command += ' --confirm ' + str(self.commit_confirmed_min_entry.get())
-                    argsToPass = [self.option_entry.get(), False, int(self.commit_confirmed_min_entry.get()), False]
-                elif self.commit_check_button.get():  # Commit Check
-                    jaide_command += ' --check '
-                    argsToPass = [self.option_entry.get(), True, False, False]
-                elif self.commit_blank.get():  # Commit Blank. 
-                    jaide_command = jaide_command.split('-s')[0] + '--blank '
-                    argsToPass = [self.option_entry.get(), False, False, True]
-                else:  # Neither confirm, check or blank, just regular commit. 
-                    argsToPass = [self.option_entry.get(), False, False, False]
-                # Attach the inclusive commit options (comment, at time, and synch) to the argsToPass for the jaide command.
-                # append the commit comment or None if there is no comment.
-                if self.commit_comment.get():
-                    argsToPass.append(self.commit_comment_entry.get())
-                    jaide_command += ' --comment \"' + self.commit_comment_entry.get() + '\" '
-                else: 
-                    argsToPass.append(None)
-                # append the commit at time or None if it is not a time delayed commit.
-                if self.commit_at.get():
-                    argsToPass.append(self.commit_at_entry.get())
-                    jaide_command += ' --at \"' + self.commit_at_entry.get() + '\" '
-                else:
-                    argsToPass.append(None)
-                # always append the commit_synch value, since the jaide.make_commit() function is expecting a bool.
-                argsToPass.append(self.commit_synch.get())
-                if self.commit_synch.get():
-                    jaide_command += ' --synchronize '
+            # set the args to pass to the final function based on their choice.
+            argsToPass = args_translation[self.option_value.get()]
 
-            elif self.option_value.get() == 'Shell Command(s)':
-                jaide_command += '\"' + self.option_entry.get() + '\"'
-                argsToPass = [self.option_entry.get().strip(), True, timeout]
 
-            # The only other option left in yes_options is "Operational Command(s)".
-            elif self.option_value.get() in self.yes_options:
-                jaide_command += '\"' + self.option_entry.get() + '\"'
-                if self.format_box.get():  # If they are requesting XML format
-                    jaide_command += ' -f xml'
-                    out_fmt = 'xml'
-                else:
-                    out_fmt = 'text'
-                argsToPass = [self.option_entry.get().strip(), False, out_fmt, timeout]
 
-            # If the function does not need any additional arguments
-            elif self.option_value.get() in self.no_options:
-                argsToPass = None
+            # # Logic to pass appropriate variables to WorkerThread for subsequent Jaide call
+            # # SCP passes a dictionary which WorkerThread has logic to pull from. Done this way because the
+            # # args in Jaide.copy_file are different than the ordering and needs of jaide.do_netconf() for other commands.
+            # if self.option_value.get() == "SCP Files":
+            #     argsToPass = {
+            #         "scp_source": self.option_entry.get(),
+            #         "scp_dest": self.scp_destination_entry.get(),
+            #         "direction": self.scp_direction_value.get(),
+            #         "write": True,
+            #         "callback": None,
+            #         "multi": True
+            #     }
+            #     jaide_command += self.scp_direction_value.get() + ' ' + self.option_entry.get() + ' ' + self.scp_destination_entry.get()
+            # # List of args that can be easily unpacked by jaide.do_netconf
+            # elif self.option_value.get() == 'Set Command(s)':
+            #     jaide_command += '\"' + self.option_entry.get() + '\"'
+            #     if self.commit_confirmed_button.get():  # Commit Confirmed
+            #         jaide_command += ' --confirm ' + str(self.commit_confirmed_min_entry.get())
+            #         argsToPass = [self.option_entry.get(), False, int(self.commit_confirmed_min_entry.get()), False]
+            #     elif self.commit_check_button.get():  # Commit Check
+            #         jaide_command += ' --check '
+            #         argsToPass = [self.option_entry.get(), True, False, False]
+            #     elif self.commit_blank.get():  # Commit Blank.
+            #         jaide_command = jaide_command.split('-s')[0] + '--blank '
+            #         argsToPass = [self.option_entry.get(), False, False, True]
+            #     else:  # Neither confirm, check or blank, just regular commit.
+            #         argsToPass = [self.option_entry.get(), False, False, False]
+            #     # Attach the inclusive commit options (comment, at time, and synch) to the argsToPass for the jaide command.
+            #     # append the commit comment or None if there is no comment.
+            #     if self.commit_comment.get():
+            #         argsToPass.append(self.commit_comment_entry.get())
+            #         jaide_command += ' --comment \"' + self.commit_comment_entry.get() + '\" '
+            #     else:
+            #         argsToPass.append(None)
+            #     # append the commit at time or None if it is not a time delayed commit.
+            #     if self.commit_at.get():
+            #         argsToPass.append(self.commit_at_entry.get())
+            #         jaide_command += ' --at \"' + self.commit_at_entry.get() + '\" '
+            #     else:
+            #         argsToPass.append(None)
+            #     # always append the commit_synch value, since the jaide.make_commit() function is expecting a bool.
+            #     argsToPass.append(self.commit_synch.get())
+            #     if self.commit_synch.get():
+            #         jaide_command += ' --synchronize '
 
-            # If we could not figure out what we're doing, error out instead of making bogus calls to doJaide()
-            # This really should never be a possibility, as long as we've coded the other parts of this if statement to catch everything.
-            else:
-                self.write_to_output_area("We've hit an error parsing the command you entered. Our code must be terrible.")
-                return
+            # elif self.option_value.get() == 'Shell Command(s)':
+            #     jaide_command += '\"' + self.option_entry.get() + '\"'
+            #     argsToPass = [self.option_entry.get().strip(), True, timeout]
+
+            # # The only other option left in yes_options is "Operational Command(s)".
+            # elif self.option_value.get() in self.yes_options:
+            #     jaide_command += '\"' + self.option_entry.get() + '\"'
+            #     if self.format_box.get():  # If they are requesting XML format
+            #         jaide_command += ' -f xml'
+            #         out_fmt = 'xml'
+            #     else:
+            #         out_fmt = 'text'
+            #     argsToPass = [self.option_entry.get().strip(), False, out_fmt, timeout]
+
+            # # If the function does not need any additional arguments
+            # elif self.option_value.get() in self.no_options:
+            #     argsToPass = None
+
+            # # If we could not figure out what we're doing, error out instead of making bogus calls to doJaide()
+            # # This really should never be a possibility, as long as we've coded the other parts of this if statement to catch everything.
+            # else:
+            #     self.write_to_output_area("We've hit an error parsing the command you entered. Our code must be terrible.")
+            #     return
 
             # print the CLI command to the user so they know how about jaide.py
             self.write_to_output_area('The following command can be used to do this same thing on the command line:\n\t%s' % jaide_command)
             if "|" in jaide_command:
                 self.write_to_output_area('Your CLI command will have pipes, \'|\'. Be wary of your environment and necessary escaping.' +
-                                            '\nCheck the working-with-pipes.html file in the examples folder for more information.')
+                                          '\nCheck the working-with-pipes.html file in the examples folder for more information.')
             self.write_to_output_area('\n')  # add an extra line to separate the CLI suggestion from the rest of the output.
 
+            # TODO: hard setting conn_timeout and port for now, need to allow user to specifiy
+            conn_timeout = 5
+            port = 22
             # Create the WorkerThread class to run the Jaide functions.
             self.thread = WorkerThread(
                 argsToPass=argsToPass,
-                timeout=timeout,
+                sess_timeout=timeout,
+                conn_timeout=conn_timeout,
+                port=port,
                 command=function,
                 stdout_queue=self.stdout_queue,
                 ip=ip,
                 username=username,
-                password=password,
-                write_to_file=wtf,
-                wtf_style=wtf_style,
+                password=self.password_entry.get().strip(),
+                write_to_file=self.wtf_entry.get(),
+                wtf_style=self.wtf_radiobuttons.get(),
             )
             self.thread.daemon = True
             self.thread.start()
