@@ -146,8 +146,8 @@ class WorkerThread(threading.Thread):
 
         @returns: None
         """
+        # build the list of IPs
         iplist = [ip for ip in clean_lines(self.ip)]
-        print iplist
         for ip in iplist:
             # TODO: set back to mp_pool before finishing release.
             self.write_to_queue(run_jaide(ip.strip(), self.username,

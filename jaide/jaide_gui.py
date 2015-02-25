@@ -71,14 +71,19 @@ class JaideGUI(tk.Tk):
 
         # ## Argument and option lists for user input
         # arguments that require extra input
-        self.yes_options = ["Operational Command(s)", "Set Command(s)", "Shell Command(s)", "SCP Files"]
+        self.yes_options = ["Operational Command(s)", "Set Command(s)",
+                            "Shell Command(s)", "SCP Files", "Diff Config"]
         # arguments that don't require extra input
         self.no_options = ["Interface Errors", "Health Check", "Device Info"]
         # List of argument options
-        self.options_list = ["Operational Command(s)", "Set Command(s)", "Shell Command(s)", "SCP Files", "------", "Device Info", "Health Check", "Interface Errors"]
+        self.options_list = ["Diff Config", "Operational Command(s)",
+                             "Set Command(s)", "Shell Command(s)", "SCP Files",
+                             "------", "Device Info", "Health Check",
+                             "Interface Errors"]
 
-        # Dictionary converting option_menu's displayed options with jaide's actual argument flags
+        # Maps optionMenu choice to jaide_cli function.
         self.option_conversion = {
+            "Diff Config": jaide_cli.diff_config,
             "Device Info": jaide_cli.dev_info,
             "Health Check": jaide_cli.health_check,
             "Interface Errors": jaide_cli.int_errors,
@@ -87,14 +92,16 @@ class JaideGUI(tk.Tk):
             "Set Command(s)": jaide_cli.commit,
             "Shell Command(s)": jaide_cli.multi_cmd
         }
-        # Dictionary for retrieving the help text based on the command name.
+        # Maps optionMenu choice to help text.
         self.help_conversion = {
             "Device Info": "Quick Help: Device Info pulls some baseline information from the device(s), including " +
                         "Hostname, Model, Junos Version, and Chassis Serial Number.",
+            "Diff Config": "Quick Help: Compare the configuration between two devices. Specify the second IP/hostname," +
+                        " and choose whether to do set mode or stanza mode.",
             "Health Check": "Quick Help: Health Check runs multiple commands to get routing-engine CPU/memory info, " +
                         "busy processes, temperatures, and alarms. The output will likely show the mgd process using " +
                         "high CPU, this is normal due to the execution of the script logging in and running the commands.",
-            "Interface Errors": "Quick Help: Interface Errors will tell you of any input or output errors on active interfaces.",
+            "Interface Errors": "Quick Help: Interface Errors will tell you of any input or output errors on all interfaces.",
             "Operational Command(s)": "Quick Help: Run one or more operational command(s) against the device(s). This can " +
                         "be any non-interactive command(s) that can be run from operational mode. This includes show, " +
                         "request, traceroute, op scripts, etc.",
@@ -109,21 +116,22 @@ class JaideGUI(tk.Tk):
                         "commands, you can make instant changes or potentially harm the networking device. Care should be taken."
         }
 
-        # stdout_queue is the output queue that the WorkerThread class will put output to.
+        # stdout_queue is where the WorkerThread class will dump output to.
         self.stdout_queue = Queue.Queue()
         # thread will be the WorkerThread instantiation.
         self.thread = ""
-        # frames_shown boolean for keeping track if the upper options of the GUI are shown or not.
+        # boolean for tracking if the upper options of the GUI are shown.
         self.frames_shown = True
 
         # ## CREATE THE TOP MENUBAR OPTIONS
         self.menubar = tk.Menu(self)
-        # tearoff=0 is to prohibit windows users from being able to pop out the menus.
+        # tearoff=0 prohibits windows users from pulling out the menus.
         self.menu_file = tk.Menu(self.menubar, tearoff=0)
         self.menu_help = tk.Menu(self.menubar, tearoff=0)
 
         self.menubar.add_cascade(menu=self.menu_file, label="File")
-        self.menubar.add_cascade(menu=self.menu_help, label="Help ")  # Added space after Help to prevent OSX from putting spotlight in
+        # Added space after Help to prevent OSX from putting spotlight in.
+        self.menubar.add_cascade(menu=self.menu_help, label="Help ")
 
         # Create the File menu and appropriate keyboard shortcuts.
         self.menu_file.add_command(label="Save Template", command=lambda: self.ask_template_save(None), accelerator='Ctrl-S')
@@ -185,13 +193,19 @@ class JaideGUI(tk.Tk):
         # Entry for IP or IP list
         self.ip_entry = JaideEntry(self.ip_frame)
         # Button to open file of list of IPs
-        self.ip_button = tk.Button(self.ip_frame, text="Select File", command=lambda: self.open_file(self.ip_entry), takefocus=0)
-        # compiled regex for testing IP address(es)
-        self.ip_test = re.compile(r'^(((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(,|(,\ ))?)+$')
+        self.ip_button = tk.Button(self.ip_frame, text="Select File",
+                                   command=lambda:
+                                   self.open_file(self.ip_entry), takefocus=0)
 
-        # ### CONNECTION TIMEOUT
-        self.timeout_label = tk.Label(self.ip_frame, text="Timeout:")
-        self.timeout_entry = JaideEntry(self.ip_frame, instance_type=int, contents=300)
+        # ### TIMEOUTS
+        self.timeout_label = tk.Label(self.ip_frame, text="Session Timeout:")
+        self.timeout_entry = JaideEntry(self.ip_frame, instance_type=int,
+                                        contents=300)
+        # TODO: just added these two, need to add port entry and grid them.
+        self.conn_timeout_label = tk.Label(self.ip_frame,
+                                           text="Connection Timeout:")
+        self.conn_timeout_entry = JaideEntry(self.ip_frame, instance_type=int,
+                                             contents=5)
 
         # #### USERNAME
         # label for Username
@@ -263,6 +277,11 @@ class JaideGUI(tk.Tk):
         self.commit_at = JaideCheckbox(self.set_frame, text="At Time", command=lambda: self.commit_option_update('at'), takefocus=0)
         self.commit_at_entry = JaideEntry(self.set_frame, contents="[yyyy-mm-dd ]hh:mm[:ss]")
 
+        # ### Diff Config options
+        self.diff_config_mode = tk.StringVar()
+        self.diff_config_mode.set("set")
+        self.diff_config_menu = tk.OptionMenu(self.options_frame, self.diff_config_mode, "Set", "Stanza")
+
         # These are used to keep rows 1 and 2 of options_frame from being empty and thus hidden
         self.spacer_label = tk.Label(self.options_frame, takefocus=0)
 
@@ -271,17 +290,36 @@ class JaideGUI(tk.Tk):
         self.help_label = tk.Label(self.help_frame, textvariable=self.help_value, justify="left", anchor="nw", wraplength=790)
 
         # ## Buttons
-        self.go_button = tk.Button(self.buttons_frame, command=lambda: self.go(None), text="Run Script", takefocus=0)
-        self.stop_button = tk.Button(self.buttons_frame, text="Stop Script", command=self.stop_script, state="disabled", takefocus=0)
-        self.clear_button = tk.Button(self.buttons_frame, command=lambda: self.clear_output(None), text="Clear Output", state="disabled", takefocus=0)
-        self.save_button = tk.Button(self.buttons_frame, command=self.save_output, text="Save Output", state="disabled", takefocus=0)
-        self.toggle_frames_button = tk.Button(self.buttons_frame, command=self.toggle_frames, text="Toggle Options", takefocus=0)
+        self.go_button = tk.Button(self.buttons_frame, command=lambda:
+                                   self.go(None), text="Run Script",
+                                   takefocus=0)
+        self.stop_button = tk.Button(self.buttons_frame, text="Stop Script",
+                                     command=self.stop_script,
+                                     state="disabled", takefocus=0)
+        self.clear_button = tk.Button(self.buttons_frame, command=lambda:
+                                      self.clear_output(None),
+                                      text="Clear Output", state="disabled",
+                                      takefocus=0)
+        self.save_button = tk.Button(self.buttons_frame,
+                                     command=self.save_output,
+                                     text="Save Output", state="disabled",
+                                     takefocus=0)
+        self.toggle_frames_button = tk.Button(self.buttons_frame,
+                                              command=self.toggle_frames,
+                                              text="Toggle Options",
+                                              takefocus=0)
 
         # ## SCRIPT OUTPUT AREA
         self.output_area = tk.Text(self.output_frame, wrap=tk.NONE)
-        self.xscrollbar = AutoScrollbar(self.output_frame, command=self.output_area.xview, orient=tk.HORIZONTAL, takefocus=0)
-        self.yscrollbar = AutoScrollbar(self.output_frame, command=self.output_area.yview, takefocus=0)
-        self.output_area.config(yscrollcommand=self.yscrollbar.set, xscrollcommand=self.xscrollbar.set, takefocus=0)
+        self.xscrollbar = AutoScrollbar(self.output_frame,
+                                        command=self.output_area.xview,
+                                        orient=tk.HORIZONTAL, takefocus=0)
+        self.yscrollbar = AutoScrollbar(self.output_frame,
+                                        command=self.output_area.yview,
+                                        takefocus=0)
+        self.output_area.config(yscrollcommand=self.yscrollbar.set,
+                                xscrollcommand=self.xscrollbar.set,
+                                takefocus=0)
 
         # Separators
         self.sep1 = ttk.Separator(self.ip_cred_frame)
@@ -351,8 +389,8 @@ class JaideGUI(tk.Tk):
         self.commit_at.grid(column=1, row=0, sticky="NW")
         self.commit_at_entry.grid(column=2, row=0, sticky="NW")
         self.commit_confirmed_min_entry.grid(column=4, row=0, sticky="NW")
-        # Set the window to a given size. This prevents autoscrollbar 'fluttering' behaviour,
-        # and stabilizes how the Toggle Output button behaves.
+        # Set the window to a given size. This prevents autoscrollbar
+        # 'fluttering' behaviour, and stabilizes the Toggle Output button.
         self.geometry('840x800')
 
         # Sets the tab order correctly
@@ -386,7 +424,8 @@ class JaideGUI(tk.Tk):
             "CommitComment": self.commit_comment,
             "CommitCommentValue": self.commit_comment_entry,
             "CommitSynch": self.commit_synch,
-            "Format": self.format_box
+            "Format": self.format_box,
+            "DiffMode": self.diff_config_mode
         }
 
         # Load the defaults from file if defaults.ini exists
@@ -421,7 +460,8 @@ class JaideGUI(tk.Tk):
                 "Operational Command(s)": [self.option_entry.get().strip(),
                                            False, out_fmt],
                 "Device Info": None,
-                # "Diff Config": [args.diff_config],
+                "Diff Config": [[self.option_entry.get(),
+                                 self.diff_config_mode.get().lower()]],
                 "Health Check": None,
                 "Interface Errors": None,
                 "Set Command(s)": [self.option_entry.get(),
@@ -434,32 +474,32 @@ class JaideGUI(tk.Tk):
                 "SCP Files": [self.scp_direction_value.get(),
                               self.option_entry.get(),
                               self.scp_destination_entry.get(),
-                              True,
-                              None],
+                              True, None],
                 "Shell Command(s)": [self.option_entry.get().strip(),
                                      True, timeout]
             }
-            # Looks up the selected option from dropdown against the conversion dictionary to get the right Jaide function to call
+            # Looks up the selected option from dropdown against the conversion
+            # dictionary to get the right Jaide function to call
             function = self.option_conversion[self.option_value.get()]
-
-            # start building the jaide command to let the user know how they can use the CLI tool to do the same thing.
-            jaide_command = 'python jaide_cli.py -u ' + username + ' -i ' + ip
-            options = {
-                "Operational Command(s)": ' -c ',
-                "Interface Errors": ' -e ',
-                "Health Check": ' --health ',
-                "Device Info": ' --info ',
-                "Set Command(s)": ' -s ',
-                "SCP Files": ' --scp ',
-                "Shell Command(s)": ' --shell '
-            }
-            # add the argument flag for their choice in the optionMenu
-            jaide_command += options[self.option_value.get()]
 
             # set the args to pass to the final function based on their choice.
             argsToPass = args_translation[self.option_value.get()]
 
-
+            # # start building the jaide command to let the user know how they
+            # # can use the CLI tool to do the same thing.
+            # jaide_command = 'python jaide_cli.py -u ' + username + ' -i ' + ip
+            # options = {
+            #     "Diff Config": ' -d ',
+            #     "Operational Command(s)": ' -c ',
+            #     "Interface Errors": ' -e ',
+            #     "Health Check": ' --health ',
+            #     "Device Info": ' --info ',
+            #     "Set Command(s)": ' -s ',
+            #     "SCP Files": ' --scp ',
+            #     "Shell Command(s)": ' --shell '
+            # }
+            # # add the argument flag for their choice in the optionMenu
+            # jaide_command += options[self.option_value.get()]
 
             # # Logic to pass appropriate variables to WorkerThread for subsequent Jaide call
             # # SCP passes a dictionary which WorkerThread has logic to pull from. Done this way because the
@@ -547,7 +587,7 @@ class JaideGUI(tk.Tk):
                 conn_timeout=conn_timeout,
                 port=port,
                 command=function,
-                stdout_queue=self.stdout_queue,
+                stdout=self.stdout_queue,
                 ip=ip,
                 username=username,
                 password=self.password_entry.get().strip(),
@@ -598,11 +638,6 @@ class JaideGUI(tk.Tk):
         # Making sure the user typed something into the IP field.
         if self.ip_entry.get() == "":
             tkMessageBox.showinfo("IP Entry", "Please enter an IP address or IP address list file.")
-        # FIXME: this validation breaks hostnames, I think it should just be pulled out, since not a good regex for hostname check.
-        # IP address entry must be a valid IPv4 address if we're running against a single IP
-        elif not re.match(self.ip_test, self.ip_entry.get().strip()) and not os.path.isfile(self.ip_entry.get().strip()):
-            tkMessageBox.showinfo("IP Entry", "Either an invalid IP address was entered, an invalid comma separated list of IPs, " +
-                                  "or the IP Address list file not found.")
         # Ensure there is a value typed into the username and password fields.
         elif self.username_entry.get() == "" or self.password_entry.get() == "":
             tkMessageBox.showinfo("Credentials", "Please enter both a username and password.")
@@ -683,29 +718,28 @@ class JaideGUI(tk.Tk):
                     pass
 
     def show_examples(self):
-        """ Purpose: This method opens the example folder for the user, or open the github page for the example folder.
-
-            @returns: None
-        """
+        """ Open the example folder or github page. """
         # Grab the directory that the script is running from.
         examples = module_path()
-        # Determin our OS, attach the README.html file to the path, and open that file.
+        # Determine our OS, attach readme.html to the path, and open that file.
         if sys.platform.startswith('darwin'):
             examples += "/examples/"
             if os.path.isdir(examples):
                 subprocess.call(('open', examples))
             else:
                 try:
-                    webbrowser.open('https://github.com/NetworkAutomation/jaide/tree/master/examples')
+                    webbrowser.open('https://github.com/NetworkAutomation/'
+                                    'jaide/tree/master/examples')
                 except webbrowser.Error:
                     pass
         elif os.name == 'nt':
             examples += "\\examples\\"
             if os.path.isdir(examples):
-                os.startfile(examples)  # this works on windows, not sure why pylint shows an error.
+                os.startfile(examples)
             else:
                 try:
-                    webbrowser.open('https://github.com/NetworkAutomation/jaide/tree/master/examples')
+                    webbrowser.open('https://github.com/NetworkAutomation/'
+                                    'jaide/tree/master/examples')
                 except webbrowser.Error:
                     pass
         elif os.name == 'posix':
@@ -714,17 +748,19 @@ class JaideGUI(tk.Tk):
                 subprocess.call(('xdg-open', examples))
             else:
                 try:
-                    webbrowser.open('https://github.com/NetworkAutomation/jaide/tree/master/examples')
+                    webbrowser.open('https://github.com/NetworkAutomation/'
+                                    'jaide/tree/master/examples')
                 except webbrowser.Error:
                     pass
 
     def write_to_output_area(self, output):
-        """ Purpose: This method will insert the passed string 'output' at the end of the output_area, and will
-                     also scroll the viewable area to the bottom.
+        """
+        Insert string at the end of the output_area, and scroll to the bottom.
 
-            @param output: String of the output to dump to the output_area
-            @type output: str or unicode
-            @returns: None
+        @param output: String of the output to dump to the output_area
+        @type output: str or unicode
+
+        @returns: None
         """
         if isinstance(output, basestring):
             if output[-1:] is not "\n":
@@ -850,6 +886,7 @@ class JaideGUI(tk.Tk):
         self.scp_destination_button.grid_forget()
         self.scp_direction_menu.grid_forget()
         self.spacer_label.grid_forget()
+        self.diff_config_menu.grid_forget()
         # We only want to deselect the commit options if we're changing to something other than 'Set Command(s)'
         # This prevents these commit options from being cleared on loading a template/defaults file.
         if opt != "Set Command(s)":
@@ -886,13 +923,15 @@ class JaideGUI(tk.Tk):
             if opt == "Operational Command(s)":
                 self.set_list_button.grid(column=3, row=0, sticky="NW", padx=2)
                 self.format_box.grid(column=0, row=1, sticky="NW")
+            elif opt == "Diff Config":
+                self.diff_config_menu.grid(column=3, row=0, sticky="NW", padx=2)
         else:
             # No option
             self.spacer_label.grid(column=1, columnspan=2, row=1, sticky="NW")
 
         # Update the help text for the new command
         self.help_value.set(self.help_conversion[opt])
-        time.sleep(.05)  # sleep needed to avoid artifacts when updating the frames
+        time.sleep(.05)  # sleep needed to avoid artifacts when updating frames
         # Update the UI after we've made our changes
         self.update()
 

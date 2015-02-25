@@ -4,3 +4,5 @@
 .codeintel/*
 # ignore testing file
 test.py
+# ignore defaults file
+*.ini

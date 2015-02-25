@@ -660,7 +660,7 @@ if __name__ == '__main__':
             [args.make_commit, args.commit_check, args.commit_confirm,
                 args.commit_blank, args.commit_comment, args.commit_at,
                 args.commit_synchronize],
-        "diff_config": [args.diff_config],
+        "diff_config": [args.diff_config.lower()],
         "health_check": None,
         "info": None,
         "int_error": None,
