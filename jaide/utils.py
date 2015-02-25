@@ -3,7 +3,8 @@
 from os import path
 from lxml import etree, objectify
 import xml.etree.ElementTree as ET
-from colorama import Fore, init, Style  # Color coding terminal output
+# Color coding terminal output
+from colorama import Fore, init, Style
 import re
 
 
@@ -110,6 +111,7 @@ def color(out_string, color="success"):
     @returns: the modified string, including the ANSI/win32 color codes.
     @rtype: str
     """
+    init()
     if color == 'error':
         return (Fore.RED + Style.BRIGHT + out_string + Fore.RESET +
                 Style.NORMAL)
@@ -121,5 +123,6 @@ def color(out_string, color="success"):
 
 
 def strip_color(search):
-    ansi_esc = re.compile(r'\x1b[^m]*m')
-    return ansi_esc.sub('', search)
+    """ Remove ANSI/Win32 color codes from string. """
+    ansi_escape = re.compile(r'\x1b[^m]*m')
+    return ansi_escape.sub('', search)

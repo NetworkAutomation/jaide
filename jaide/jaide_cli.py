@@ -219,7 +219,7 @@ def open_connection(ip, username, password, function, args, write_to_file,
                        | be desired for long running commands, such as
                        | 'request system snapshot slice alternate'
     @type sess_timeout: int
-    @param no_highlist: the value of the no_highlight argument. Needed to
+    @param no_highlight: the value of the no_highlight argument. Needed to
                       | be returned as part of tuple for passing to the
                       | write_to_file() function
     @type no_highlight: bool
@@ -575,13 +575,14 @@ def write_to_file(output):
 
     @param output: Two value tuple. the first is the output that we should be
                  | printing to the user, or writing to file. The second is the
-                 | value of the no_hightlight argument, to let us know if we
+                 | value of the no_highlight argument, to let us know if we
                  | should color the output to the user or not.
     @type output: (str, bool) tuple
 
     @returns: None
     """
     no_highlight = output[1]
+    output = output[0]
     if "*****WRITE_TO_FILE*****" in output:
         screen_out = ""
         dest_file = output.split('*****WRITE_TO_FILE*****')[1]
@@ -638,9 +639,6 @@ def write_to_file(output):
 # Start of script proper #
 ##########################
 if __name__ == '__main__':
-    # Start colorama for color highlighting
-    init()
-
     args = prs.parse_args()
     # Correlates argument with function pointer
     function_translation = {

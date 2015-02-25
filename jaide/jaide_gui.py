@@ -598,6 +598,7 @@ class JaideGUI(tk.Tk):
         # Making sure the user typed something into the IP field.
         if self.ip_entry.get() == "":
             tkMessageBox.showinfo("IP Entry", "Please enter an IP address or IP address list file.")
+        # FIXME: this validation breaks hostnames, I think it should just be pulled out, since not a good regex for hostname check.
         # IP address entry must be a valid IPv4 address if we're running against a single IP
         elif not re.match(self.ip_test, self.ip_entry.get().strip()) and not os.path.isfile(self.ip_entry.get().strip()):
             tkMessageBox.showinfo("IP Entry", "Either an invalid IP address was entered, an invalid comma separated list of IPs, " +

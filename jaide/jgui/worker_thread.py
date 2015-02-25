@@ -1,8 +1,8 @@
 """ WorkerThread Class.
 
 Purpose: This class takes command and a queue during construction, runs the
-command with the doJaide() method, either in a multiple processing pool for
-multiple devices, or in one call to doJaide() if we are running against a
+command with the run_jaide() method, either in a multiple processing pool for
+multiple devices, or in one call to run_jaide() if we are running against a
 single device. Any output is written to the jaide_gui.outputArea and
 potentially also to an output file, if the user specified so. It also provides
 functionality for ending the subprocess before completion.
@@ -22,7 +22,7 @@ import Queue
 import multiprocessing
 import os
 import jaide_cli
-from utils import strip_color
+from utils import strip_color, clean_lines
 from os import path
 
 
@@ -31,18 +31,18 @@ class WorkerThread(threading.Thread):
     """ WorkerThread class. Used to execute the script in a thread. """
 
     def __init__(self, argsToPass, sess_timeout, conn_timeout, port, command,
-                 stdout_queue, ip, username, password, write_to_file,
+                 stdout, ip, username, password, write_to_file,
                  wtf_style):
         """ Initialize the WorkerThread object.
 
         Purpose: The initialize function for the WorkerThread Class. The
-               | parameters are all used to pass information down to doJaide()
+               | parameters are all used to pass information down to run_jaide
                | for executing the script properly. Only the ip and
                | write_to_file parameters are tested against or used within
                | WorkerThread.
 
         @param argsToPass: The list of all the arguments that need to be passed
-                         | through doJaide() for proper script execution.
+                         | through run_jaide() for proper script execution.
         @type argsToPass: list
         @param sess_timeout: The session timeout value in seconds for the
                            | Jaide object session. The default value is set to
@@ -58,14 +58,14 @@ class WorkerThread(threading.Thread):
                       | An example of this being deciphered and used is within
                       | the class jaide_gui.__init__() method.
         @type command: function
-        @param stdout_queue: A queue where all output will be put, the
-                           | writeToQueue() method is used as a callback
-                           | function for the doJaide() method, so that any
-                           | results from doJaide() are writted to the
-                           | stdout_queue. The stdout_queue is actively watched
+        @param stdout: A queue where all output will be put, the
+                           | write_to_queue() method is used as a callback
+                           | function for the run_jaide() method, so that any
+                           | results from run_jaide() are writted to the
+                           | stdout. The stdout is actively watched
                            | by the jaide_gui.__getoutput() method for printing
                            | output to the user.
-        @type stdout_queue: Queue.Queue()
+        @type stdout: Queue.Queue()
         @param ip: The IP string can be one of three things: A single IP
                  | address, a comma separated list of IPs, or a filepath
                  | pointing to a plaintext file of IPs, each one on a separate
@@ -88,7 +88,7 @@ class WorkerThread(threading.Thread):
         self.argsToPass = argsToPass
         self.sess_timeout = sess_timeout
         self.command = command
-        self.stdout_queue = stdout_queue
+        self.stdout = stdout
         self.ip = ip
         self.port = port
         self.conn_timeout = conn_timeout
@@ -101,11 +101,11 @@ class WorkerThread(threading.Thread):
         self.wtfQueue = Queue.Queue()
         self.wtf_style = wtf_style
 
-    def writeToQueue(self, results):
+    def write_to_queue(self, results):
         """ Write script output to the queue.
 
         Purpose: This function is used for callback from pressing the 'Run
-               | Script' button. It will always output to the stdout_queue,
+               | Script' button. It will always output to the stdout,
                | which __writeToOutputArea is watching, and will therefore
                | be showed to the user within the output area at the bottom
                | of the application.
@@ -124,7 +124,7 @@ class WorkerThread(threading.Thread):
         # jaide_cli.open_connection returns a tuple, with the first index being
         # the output, but it has ANSI color codes inserted. We strip them out.
         results = strip_color(results[0])
-        self.stdout_queue.put(results)
+        self.stdout.put(results)
         if self.write_to_file:
             self.wtfQueue.put(results)
 
@@ -135,55 +135,49 @@ class WorkerThread(threading.Thread):
                | by doing WorkerThread.start(). The overaching goal is to
                | decide if we are running against a single IP address, or
                | against a list of IP's. If we are doing the latter, we need
-               | to start a multiprocessing pool, and run the doJaide method
+               | to start a multiprocessing pool, and run the run_jaide method
                | for each IP address asynchronously.
                |
-               | The script is executed, either via writeToQueue() directly
+               | The script is executed, either via write_to_queue() directly
                | for a single IP address, or mp_pool.apply_async() with a
-               | callback to writeToQueue() for a list of IP addresses. Once we
-               | have executed the script, we check the write_to_file parameter
-               | to see if we need to output to a file.
+               | callback to write_to_queue() for a list of IP addresses. Once
+               | we have executed the script, we check the write_to_file
+               | parameter to see if we need to output to a file.
 
         @returns: None
         """
-        # TODO: replace this with clean_lines() utility
-        iplist = ""
-        if len(self.ip.split(',')) > 1:
-            # multiple IPs passed in with commas
-            iplist = self.ip.split(',')
-        elif os.path.isfile(self.ip):
-            # file was passed in for IP
-            try:
-                iplist = open(self.ip, 'rb')
-            except IOError as e:
-                self.stdout_queue.put("Couldn't open IP list file " + self.ip + " due to the error:\n" + str(e))
-        else:  # A single IP address.
-            iplist = [self.ip]
+        iplist = [ip for ip in clean_lines(self.ip)]
+        print iplist
+        for ip in iplist:
+            # TODO: set back to mp_pool before finishing release.
+            self.write_to_queue(run_jaide(ip.strip(), self.username,
+                                          self.password, self.command,
+                                          self.sess_timeout, self.argsToPass,
+                                          self.conn_timeout, self.port))
+        #     self.mp_pool.apply_async(run_jaide, args=(ip.strip(), self.username,
+        #                                             self.password,
+        #                                             self.command,
+        #                                             self.sess_timeout,
+        #                                             self.argsToPass,
+        #                                             self.conn_timeout,
+        #                                             self.port),
+        #                              callback=self.write_to_queue)
+        # self.mp_pool.close()
+        # self.mp_pool.join()
 
-        # If we're doing an action against more than one device, we need to run the doJaide function in a multiprocessing pool,
-        # to run against all devices at the same time.
-        if iplist != "":
-            for IP in iplist:
-                IP = IP.strip()
-                if IP != "":  # skip blank lines
-                    if IP[0] != "#":  # skip comments in an IP list file.
-                        self.writeToQueue(doJaide(IP, self.username, self.password, self.command, self.sess_timeout, self.argsToPass, self.conn_timeout, self.port))
-            #             self.mp_pool.apply_async(doJaide, args=(IP, self.username, self.password, self.command, self.sess_timeout, self.argsToPass, self.conn_timeout, self.port), callback=self.writeToQueue)
-            # self.mp_pool.close()
-            # self.mp_pool.join()
-
-        # If we're writing output to a file, we open the output file and write the Queue here.
         if self.write_to_file:
             # Just dumping all output to a single file.
             if self.wtf_style == "s":
                 try:
                     out_file = open(self.write_to_file, "a+b")
                 except IOError as e:
-                    self.stdout_queue.put("Could not save script output to file. Error:\n" + str(e))
+                    self.stdout.put("Could not save script output to file."
+                                    " Error:\n" + str(e))
                 else:
                     while not self.wtfQueue.empty():
                         out_file.write(self.wtfQueue.get())
-                    self.writeToQueue(("\nSuccessfully wrote/appended output to " + self.write_to_file + "\n"), "")
+                    self.write_to_queue(("\nSuccessfully appended output to "
+                                         + self.write_to_file + "\n"), "")
             # Dump output to one file for each IP touched.
             elif self.wtf_style == "m":
                 temp_output = ""
@@ -191,15 +185,25 @@ class WorkerThread(threading.Thread):
                     temp_output += self.wtfQueue.get()
                 temp_output = temp_output.split("=" * 50)
                 for x in range(1, len(temp_output)):
+                    # get each of the IP/hostnames we touched
                     ip = temp_output[x].split('Results from device: ')[1].split('\n')[0].strip()
-                    filepath = path.join(path.split(self.write_to_file)[0], ip + "_" + path.split(self.write_to_file)[1])
+                    # inject the ip into the front of the filename
+                    filepath = path.join(path.split(self.write_to_file)[0], ip
+                                         + "_" +
+                                         path.split(self.write_to_file)[1])
                     try:
                         out_file = open(filepath, 'a+b')
+                    # use stdout.put here instead of write_to_queue since it is
+                    # not usable after we've already written everything
+                    # to the file.
                     except IOError as e:
-                        self.stdout_queue.put('Error opening output file \'%s\' for writing. The Error was:\n%s' % (filepath, str(e)))
+                        self.stdout.put('Error opening output file \'%s\' for'
+                                        ' writing. The Error was:\n%s' %
+                                        (filepath, str(e)))
                     else:
                         out_file.write(temp_output[x])
-                        self.stdout_queue.put('\nOutput written/appended to: ' + filepath)
+                        self.stdout.put('\nOutput written/appended to: '
+                                        + filepath)
                         out_file.close()
 
     def join(self, timeout=None):
@@ -229,8 +233,8 @@ class WorkerThread(threading.Thread):
         self.mp_pool.terminate()
 
 
-def doJaide(ip, username, password, command, sess_timeout, argsToPass,
-            conn_timeout, port):
+def run_jaide(ip, username, password, command, sess_timeout, argsToPass,
+              conn_timeout, port):
     """ Run the jaide_cli script to retrieve the device output.
 
     Purpose: This function is created outside of the WorkerThread class due
@@ -255,7 +259,7 @@ def doJaide(ip, username, password, command, sess_timeout, argsToPass,
                        | 300 seconds.
     @type sess_timeout: int
     @param argsToPass: The list of all the arguments that need to be passed
-                     | through doJaide() to jaide_tool.open_connection().
+                     | through run_jaide() to jaide_tool.open_connection().
     @type argsToPass: list
     @param conn_timeout: the connection timeout to use when initally
                        | connecting to the device. Defaults to 5 seconds.
@@ -267,22 +271,6 @@ def doJaide(ip, username, password, command, sess_timeout, argsToPass,
             | boolean whether the output is to be highlighted or not (for CLI).
     @rtype: (str, bool) tuple
     """
-    # an SCP operation is handled serpately, calling the jaide.copy_file function
-    # if command == jaide_tool.copy_file:
-    #     return jaide_tool.copy_file(
-    #         argsToPass["scp_source"],
-    #         argsToPass["scp_dest"],
-    #         ip,
-    #         username,
-    #         password,
-    #         argsToPass["direction"],
-    #         argsToPass["write"],
-    #         argsToPass["multi"],
-    #         argsToPass["callback"]
-    #     )
-    # All other functions are handled by do_netconf(), with a standardized
-    # argsToPass variable for handling args.
-    # else:
     return jaide_cli.open_connection(ip, username, password, command,
                                      argsToPass, "", conn_timeout,
                                      sess_timeout, port)
