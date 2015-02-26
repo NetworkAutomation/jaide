@@ -471,8 +471,10 @@ def diff_config(conn, second_host):
     @rtype: str
     """
     try:
-        output = '\n'.join([diff for diff in conn.diff_config(second_host[0],
-                                                              second_host[1])])
+        # iterate over the diff lines between the two devices, merging them
+        output = '\n'.join([diff for diff in
+                            conn.diff_config(second_host[0],
+                                             second_host[1].lower())])
     except errors.AuthenticationError:  # NCClient auth failure
         output = color('Authentication failed for device: %s\n' %
                        second_host[0], 'error')
@@ -660,7 +662,7 @@ if __name__ == '__main__':
             [args.make_commit, args.commit_check, args.commit_confirm,
                 args.commit_blank, args.commit_comment, args.commit_at,
                 args.commit_synchronize],
-        "diff_config": [args.diff_config.lower()],
+        "diff_config": [args.diff_config],
         "health_check": None,
         "info": None,
         "int_error": None,
@@ -672,13 +674,19 @@ if __name__ == '__main__':
     }
 
     # Verify requirements.
+    if args.diff_config:
+        if args.diff_config[1].lower() not in ['set', 'stanza']:
+            prs.error(color("When using the -d/--diff flag, you must specify "
+                            "two arguments, the second host and the mode, "
+                            "either set or stanza. For example: '-d "
+                            "10.0.0.10 set'", 'error'))
     if args.scp:
-        args_translation["scp"] = [args.scp[0], args.scp[1], args.scp[2],
-                                   False, True]
         if (args.scp[0].lower() not in ['pull', 'push']):
             prs.error(color('When using the --scp flag, you must specify the '
                       'direction as the first argument. For example: "--scp '
                             'pull /var/tmp /path/to/local/folder"', 'error'))
+        args_translation["scp"] = [args.scp[0], args.scp[1], args.scp[2],
+                                   False, True]
 
     # if they are doing commit_at, ensure the input is formatted correctly.
     if args.commit_at:

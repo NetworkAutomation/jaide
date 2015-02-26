@@ -410,7 +410,7 @@ class Jaide():
             if not self.cli_to_shell():
                 self._shell.recv(9999)
         elif self.conn_type == 'root':
-            # open the shell if necessary, and move it into CLI
+            # open the shell if necessary, and move into CLI
             if not self._shell:
                 self._shell = self._session.invoke_shell()
                 time.sleep(2)

@@ -25,19 +25,19 @@ try:
     # concurrent instances of the Jaide script.
     import multiprocessing as mp
     # ## Basic functions and manipulation.
-    import webbrowser  # for opening URL in a web browser.
-    import re  # for regex testing in input validation.
-    import os  # needed for opening files, validation, and getting dir names
-    import sys  # needed for checking OS type.
-    import base64  # for encoding/decoding text.
-    import time  # needed to sleep very quickly when updating the UI, to prevent artifacts.
+    import webbrowser
+    import re
+    import os
+    import sys
+    import base64
+    import time
     # ## The following imports are modules that we have written.
     import jaide_cli
     # the jgui_widgets module extends Tkinter widgets for use within Jaide GUI
     from jgui.jgui_widgets import JaideEntry, JaideCheckbox
     from jgui.jgui_widgets import AutoScrollbar, JaideRadiobutton
-    from jgui.worker_thread import WorkerThread  # WorkerThread class, inheriting threading.Thread. Used to execute Jaide in a thread.
-    from jgui.module_locator import module_path  # Used to find the location of the running module, whether it is compiled or not, across all platforms. 
+    from jgui.worker_thread import WorkerThread
+    from jgui.module_locator import module_path
 except ImportError as e:
     print "Failed to import one or more packages! Non-standard packages for the GUI include:\nPMW\t\thttp://pmw.sourceforge.net/\n\nScript Error:\n"
     raise e
@@ -134,20 +134,28 @@ class JaideGUI(tk.Tk):
         self.menubar.add_cascade(menu=self.menu_help, label="Help ")
 
         # Create the File menu and appropriate keyboard shortcuts.
-        self.menu_file.add_command(label="Save Template", command=lambda: self.ask_template_save(None), accelerator='Ctrl-S')
+        self.menu_file.add_command(label="Save Template", accelerator='Ctrl-S',
+                                   command=lambda: self.ask_template_save(None))
         self.bind_all("<Control-s>", self.ask_template_save)
-        self.menu_file.add_command(label="Open Template", command=lambda: self.ask_template_open(None), accelerator='Ctrl-O')
+        self.menu_file.add_command(label="Open Template", accelerator='Ctrl-O',
+                                   command=lambda: self.ask_template_open(None))
         self.bind_all("<Control-o>", self.ask_template_open)
-        self.menu_file.add_command(label="Set as Defaults", command=lambda: self.save_template(self.defaults_file, "defaults"))
+        self.menu_file.add_command(label="Set as Defaults",
+                                   command=lambda: self.save_template(
+                                   self.defaults_file, "defaults"))
         self.menu_file.add_separator()
-        self.menu_file.add_command(label="Clear Fields", command=lambda: self.clear_fields(None), accelerator='Ctrl-F')
+        self.menu_file.add_command(label="Clear Fields", accelerator='Ctrl-F',
+                                   command=lambda: self.clear_fields(None))
         self.bind_all("<Control-f>", self.clear_fields)
-        self.menu_file.add_command(label="Clear Output", command=lambda: self.clear_output(None), accelerator='Ctrl-W')
+        self.menu_file.add_command(label="Clear Output", accelerator='Ctrl-W',
+                                   command=lambda: self.clear_output(None))
         self.bind_all("<Control-w>", self.clear_output)
-        self.menu_file.add_command(label="Run Script", command=lambda: self.go(None), accelerator='Ctrl-R')
+        self.menu_file.add_command(label="Run Script", accelerator='Ctrl-R',
+                                   command=lambda: self.go(None))
         self.bind_all("<Control-r>", self.go)
         self.menu_file.add_separator()
-        self.menu_file.add_command(label="Quit", command=lambda: self.quit(None), accelerator='Ctrl-Q')
+        self.menu_file.add_command(label="Quit", accelerator='Ctrl-Q',
+                                   command=lambda: self.quit(None))
         self.bind_all("<Control-q>", self.quit)
 
         # Create the Help menu
@@ -161,30 +169,21 @@ class JaideGUI(tk.Tk):
         ############################################
         # GUI frames, and all user entry widgets   #
         ############################################
-        # ## FRAME INITIALIZATION
 
-        # IP+Cred+Sep Frame
-        # Had to do this because Grid was treating all of the frames & separators as 1x1 units
-        # so without combining creds & ip in a single container frame the IP side was subject to resizing
-        # based on the other frames
+        # ## FRAME INITIALIZATION
+        # outer frame to hold the ip and creds frames
         self.ip_cred_frame = tk.Frame(self)
 
-        # IP frame
         self.ip_frame = tk.Frame(self.ip_cred_frame)
-        # Credentials frame
         self.creds_frame = tk.Frame(self.ip_cred_frame)
         # write to file frame
         self.wtf_frame = tk.Frame(self)
-        # Options frame
         self.options_frame = tk.Frame(self)
         # Set Commands frames for the additional commit options
         self.set_frame = tk.Frame(self.options_frame)
         self.set_frame_2 = tk.Frame(self.options_frame)
-        # Help frame
         self.help_frame = tk.Frame(self)
-        # go button frame
         self.buttons_frame = tk.Frame(self)
-        # output area frame
         self.output_frame = tk.Frame(self, bd=3, relief="groove")
 
         # #### Target device Section
@@ -197,89 +196,103 @@ class JaideGUI(tk.Tk):
                                    command=lambda:
                                    self.open_file(self.ip_entry), takefocus=0)
 
-        # ### TIMEOUTS
+        # ### TIMEOUTS AND PORT
         self.timeout_label = tk.Label(self.ip_frame, text="Session Timeout:")
         self.timeout_entry = JaideEntry(self.ip_frame, instance_type=int,
                                         contents=300)
-        # TODO: just added these two, need to add port entry and grid them.
         self.conn_timeout_label = tk.Label(self.ip_frame,
                                            text="Connection Timeout:")
         self.conn_timeout_entry = JaideEntry(self.ip_frame, instance_type=int,
                                              contents=5)
 
-        # #### USERNAME
-        # label for Username
+        # #### Authentication
         self.username_label = tk.Label(self.creds_frame, text="Username: ")
-        # Entry widget for username
         self.username_entry = JaideEntry(self.creds_frame)
-
-        # #### PASSWORD
-        # label for Password
         self.password_label = tk.Label(self.creds_frame, text="Password: ")
-        # Entry widget for the password
         self.password_entry = JaideEntry(self.creds_frame, show="*")
 
+        self.port_label = tk.Label(self.creds_frame, text="Port: ")
+        self.port_entry = JaideEntry(self.creds_frame, instance_type=int,
+                                     contents=22)
+
         # ## WRITE TO FILE
-        # Entry for Write to File
         self.wtf_entry = JaideEntry(self.wtf_frame)
-        # Write to File button
-        self.wtf_button = tk.Button(self.wtf_frame, text="Select File", command=self.open_wtf, takefocus=0)
-        # Write to file checkbox
-        self.wtf_checkbox = JaideCheckbox(self.wtf_frame, text="Write to file", command=self.check_wtf, takefocus=0)
-        # Option radiobuttons
-        self.wtf_radiobuttons = JaideRadiobutton(self.wtf_frame, ["Single File", "Multiple Files"], ["s", "m"], takefocus=0)
+        self.wtf_button = tk.Button(self.wtf_frame, text="Select File",
+                                    command=self.open_wtf, takefocus=0)
+        self.wtf_checkbox = JaideCheckbox(self.wtf_frame, text="Write to file",
+                                          command=self.check_wtf, takefocus=0)
+        self.wtf_radiobuttons = JaideRadiobutton(self.wtf_frame,
+                                                 ["Single File",
+                                                  "Multiple Files"],
+                                                 ["s", "m"], takefocus=0)
 
         # ## OPTIONS
         # stores which option from options_list is selected
         self.option_value = tk.StringVar()
         # sets defaulted option to first one
         self.option_value.set(self.options_list[0])
-        # Actual dropdown list widget. Uses PMW because tk base doesn't allow an action to be bound to an option_menu.
-        self.option_menu = Pmw.OptionMenu(self.options_frame, command=self.opt_select, menubutton_textvariable=self.option_value, items=self.options_list)
+        # Actual dropdown list widget. Uses PMW because tk base doesn't allow
+        # an action to be bound to an option_menu.
+        self.option_menu = Pmw.OptionMenu(self.options_frame,
+                                          command=self.opt_select,
+                                          menubutton_textvariable=self.option_value,
+                                          items=self.options_list)
         # Prevents option_menu from taking focus while tabbing
         self.option_menu.component('menubutton').config(takefocus=0)
-        # Entry field for argument modifier.
         self.option_entry = JaideEntry(self.options_frame)
         # format checkbox for operational commands
         self.format_box = JaideCheckbox(self.options_frame, text="Request XML Format", takefocus=0)
 
         # ## SCP OPTIONS
-        # variable to track what is chosen in the scp_direction_menu menu
         self.scp_direction_value = tk.StringVar()
         self.scp_direction_value.set("Push")
-        # scp direction menu to choose push or pull
-        self.scp_direction_menu = tk.OptionMenu(self.options_frame, self.scp_direction_value, 'Push', 'Pull')
-        # File load button for SCP source
-        self.scp_source_button = tk.Button(self.options_frame, text="Local Source", command=lambda: self.open_file(self.option_entry), takefocus=0)
-        # second file load button for SCPing
-        self.scp_destination_button = tk.Button(self.options_frame, text="Local Destination", command=lambda: self.open_file(self.scp_destination_entry), takefocus=0)
-        # second entry field for SCPing
+        self.scp_direction_menu = tk.OptionMenu(self.options_frame,
+                                                self.scp_direction_value,
+                                                'Push', 'Pull')
+        self.scp_source_button = tk.Button(self.options_frame,
+                                           text="Local Source",
+                                           command=lambda: self.open_file(self.option_entry),
+                                           takefocus=0)
+        self.scp_destination_button = tk.Button(self.options_frame,
+                                                text="Local Destination",
+                                                command=lambda: self.open_file(self.scp_destination_entry),
+                                                takefocus=0)
         self.scp_destination_entry = JaideEntry(self.options_frame)
 
-        # set_list_button is used to find a file containing a list of set commands.
-        self.set_list_button = tk.Button(self.options_frame, text="Select File", command=lambda: self.open_file(self.option_entry), takefocus=0)
-
-        # ## COMMIT CHECK, COMMIT CONFIRMED, and COMMIT BLANK options.
-        # commit check checkbox
-        self.commit_check_button = JaideCheckbox(self.set_frame, text="Check Only", command=lambda: self.commit_option_update('check'), takefocus=0)
-        # Commit blank option
-        self.commit_blank = JaideCheckbox(self.set_frame_2, text="Blank", command=lambda: self.commit_option_update('blank'), takefocus=0)
-        # commit confirmed checkbox and minutes entry label / field.
-        self.commit_confirmed_button = JaideCheckbox(self.set_frame, text="Confirmed Minutes", command=lambda: self.commit_option_update('confirmed'), takefocus=0)
-        # The commit confirmed minutes entry field.
-        self.commit_confirmed_min_entry = JaideEntry(self.set_frame, contents="[1-60]")
-        # Commit Synchronize
-        self.commit_synch = JaideCheckbox(self.set_frame_2, text="Synchronize", command=lambda: self.commit_option_update('synchronize'), takefocus=0)
-        # Commit Comment
-        self.commit_comment = JaideCheckbox(self.set_frame_2, text="Comment", command=lambda: self.commit_option_update('comment'), takefocus=0)
+        # ## COMMIT OPTIONS
+        self.set_list_button = tk.Button(self.options_frame,
+                                         text="Select File",
+                                         command=lambda: self.open_file(self.option_entry),
+                                         takefocus=0)
+        self.commit_check_button = JaideCheckbox(self.set_frame,
+                                                 text="Check Only",
+                                                 command=lambda: self.commit_option_update('check'),
+                                                 takefocus=0)
+        self.commit_blank = JaideCheckbox(self.set_frame_2, text="Blank",
+                                          command=lambda: self.commit_option_update('blank'),
+                                          takefocus=0)
+        self.commit_confirmed_button = JaideCheckbox(self.set_frame,
+                                                     text="Confirmed Minutes",
+                                                     command=lambda: self.commit_option_update('confirmed'),
+                                                     takefocus=0)
+        self.commit_confirmed_min_entry = JaideEntry(self.set_frame,
+                                                     contents="[1-60]")
+        self.commit_synch = JaideCheckbox(self.set_frame_2, text="Synchronize",
+                                          command=lambda: self.commit_option_update('synchronize'),
+                                          takefocus=0)
+        self.commit_comment = JaideCheckbox(self.set_frame_2, text="Comment",
+                                            command=lambda: self.commit_option_update('comment'),
+                                            takefocus=0)
         self.commit_comment_entry = JaideEntry(self.set_frame_2)
-        # Commit At
-        self.commit_at = JaideCheckbox(self.set_frame, text="At Time", command=lambda: self.commit_option_update('at'), takefocus=0)
-        self.commit_at_entry = JaideEntry(self.set_frame, contents="[yyyy-mm-dd ]hh:mm[:ss]")
+        self.commit_at = JaideCheckbox(self.set_frame, text="At Time",
+                                       command=lambda: self.commit_option_update('at'),
+                                       takefocus=0)
+        self.commit_at_entry = JaideEntry(self.set_frame,
+                                          contents="[yyyy-mm-dd ]hh:mm[:ss]")
 
         # ### Diff Config options
         self.diff_config_mode = tk.StringVar()
-        self.diff_config_mode.set("set")
+        self.diff_config_mode.set("Set")
         self.diff_config_menu = tk.OptionMenu(self.options_frame, self.diff_config_mode, "Set", "Stanza")
 
         # These are used to keep rows 1 and 2 of options_frame from being empty and thus hidden
@@ -347,6 +360,8 @@ class JaideGUI(tk.Tk):
         self.ip_button.grid(column=2, row=0, sticky="NW")
         self.timeout_label.grid(column=0, row=1, sticky="NW")
         self.timeout_entry.grid(column=1, row=1, sticky="NW")
+        self.conn_timeout_label.grid(column=0, row=2, sticky="NW")
+        self.conn_timeout_entry.grid(column=1, row=2, sticky="NW")
         self.sep1.grid(column=1, row=0, sticky="NS", padx=(18, 18))
 
         # Section 1 - Authentication - creds_frame
@@ -355,6 +370,8 @@ class JaideGUI(tk.Tk):
         self.username_entry.grid(column=1, row=0, sticky="NW")
         self.password_label.grid(column=0, row=1, sticky="NW")
         self.password_entry.grid(column=1, row=1, sticky="NW")
+        self.port_label.grid(column=0, row=2, sticky="NW")
+        self.port_entry.grid(column=1, row=2, sticky="NW")
 
         # This is the help label in the frame below the options frame.
         self.help_label.grid(column=0, row=0, sticky="NWES")
@@ -571,21 +588,19 @@ class JaideGUI(tk.Tk):
             #     return
 
             # print the CLI command to the user so they know how about jaide.py
-            self.write_to_output_area('The following command can be used to do this same thing on the command line:\n\t%s' % jaide_command)
-            if "|" in jaide_command:
-                self.write_to_output_area('Your CLI command will have pipes, \'|\'. Be wary of your environment and necessary escaping.' +
-                                          '\nCheck the working-with-pipes.html file in the examples folder for more information.')
-            self.write_to_output_area('\n')  # add an extra line to separate the CLI suggestion from the rest of the output.
+            # self.write_to_output_area('The following command can be used to do this same thing on the command line:\n\t%s' % jaide_command)
+            # if "|" in jaide_command:
+            #     self.write_to_output_area('Your CLI command will have pipes, \'|\'. Be wary of your environment and necessary escaping.' +
+            #                               '\nCheck the working-with-pipes.html file in the examples folder for more information.')
+            # self.write_to_output_area('\n')  # add an extra line to separate the CLI suggestion from the rest of the output.
 
             # TODO: hard setting conn_timeout and port for now, need to allow user to specifiy
-            conn_timeout = 5
-            port = 22
             # Create the WorkerThread class to run the Jaide functions.
             self.thread = WorkerThread(
                 argsToPass=argsToPass,
                 sess_timeout=timeout,
-                conn_timeout=conn_timeout,
-                port=port,
+                conn_timeout=self.conn_timeout_entry.get(),
+                port=self.port_entry.get(),
                 command=function,
                 stdout=self.stdout_queue,
                 ip=ip,
