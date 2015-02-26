@@ -25,7 +25,7 @@ try:
     # concurrent instances of the Jaide script.
     import multiprocessing as mp
     # ## Basic functions and manipulation.
-    import webbrowser
+    import webbrowser as webb
     import re
     import os
     import sys
@@ -295,13 +295,15 @@ class JaideGUI(tk.Tk):
         self.diff_config_mode.set("Set")
         self.diff_config_menu = tk.OptionMenu(self.options_frame, self.diff_config_mode, "Set", "Stanza")
 
-        # These are used to keep rows 1 and 2 of options_frame from being empty and thus hidden
+        # Used to keep rows 1 and 2 of options_frame from being hidden
         self.spacer_label = tk.Label(self.options_frame, takefocus=0)
 
         # Help label sits next in the target device section
         self.help_value = tk.StringVar("")
-        self.help_label = tk.Label(self.help_frame, textvariable=self.help_value, justify="left", anchor="nw", wraplength=790)
-
+        self.help_label = tk.Label(self.help_frame,
+                                   textvariable=self.help_value,
+                                   justify="left", anchor="nw",
+                                   wraplength=790)
         # ## Buttons
         self.go_button = tk.Button(self.buttons_frame, command=lambda:
                                    self.go(None), text="Run Script",
@@ -450,15 +452,20 @@ class JaideGUI(tk.Tk):
             self.open_template(self.defaults_file, "defaults")
 
     def go(self, event):
-        """ Purpose: This function is called when the user clicks on the 'Run Script' button. It inserts output
-                   | letting the user know the script has started, spawns a subprocess running a WorkerThread instance.
-                   | It also builds and presents the user with the jaide.py commmand,  and modifies the different buttons
-                   | availability, now that the script has started.
+        """ Execute the jaide_cli script with the user specified options.
 
-            @param event: Any command that tkinter binds a keyboard shortcut to will receive the event
-                        | parameter. It is a description of the keyboard shortcut that generated the event.
-            @type event: Tkinter.event object
-            @returns: None
+        Purpose: This function is called when the user clicks on the 'Run
+               | Script' button. It inserts output letting the user know the
+               | script has started, and spawns a subprocess running a
+               | WorkerThread instance. It also builds and presents the user
+               | with the jaide.py commmand,  and modifies the different
+               | buttons availability, now that the script has started.
+
+        @param event: Any command that tkinter binds a keyboard shortcut to
+                    | will receive the event parameter. It is a description of
+                    | the keyboard shortcut that generated the event.
+        @type event: Tkinter.event object
+        @returns: None
         """
         # Ensure the input is valid.
         if self.input_validation():
@@ -468,7 +475,6 @@ class JaideGUI(tk.Tk):
 
             # Gets username/ip from appropriate StringVars
             username = self.username_entry.get().strip()
-            ip = self.ip_entry.get()
             timeout = self.timeout_entry.get()
             # if they are requesting xml.
             out_fmt = 'xml' if self.format_box.get() else 'text'
@@ -502,99 +508,6 @@ class JaideGUI(tk.Tk):
             # set the args to pass to the final function based on their choice.
             argsToPass = args_translation[self.option_value.get()]
 
-            # # start building the jaide command to let the user know how they
-            # # can use the CLI tool to do the same thing.
-            # jaide_command = 'python jaide_cli.py -u ' + username + ' -i ' + ip
-            # options = {
-            #     "Diff Config": ' -d ',
-            #     "Operational Command(s)": ' -c ',
-            #     "Interface Errors": ' -e ',
-            #     "Health Check": ' --health ',
-            #     "Device Info": ' --info ',
-            #     "Set Command(s)": ' -s ',
-            #     "SCP Files": ' --scp ',
-            #     "Shell Command(s)": ' --shell '
-            # }
-            # # add the argument flag for their choice in the optionMenu
-            # jaide_command += options[self.option_value.get()]
-
-            # # Logic to pass appropriate variables to WorkerThread for subsequent Jaide call
-            # # SCP passes a dictionary which WorkerThread has logic to pull from. Done this way because the
-            # # args in Jaide.copy_file are different than the ordering and needs of jaide.do_netconf() for other commands.
-            # if self.option_value.get() == "SCP Files":
-            #     argsToPass = {
-            #         "scp_source": self.option_entry.get(),
-            #         "scp_dest": self.scp_destination_entry.get(),
-            #         "direction": self.scp_direction_value.get(),
-            #         "write": True,
-            #         "callback": None,
-            #         "multi": True
-            #     }
-            #     jaide_command += self.scp_direction_value.get() + ' ' + self.option_entry.get() + ' ' + self.scp_destination_entry.get()
-            # # List of args that can be easily unpacked by jaide.do_netconf
-            # elif self.option_value.get() == 'Set Command(s)':
-            #     jaide_command += '\"' + self.option_entry.get() + '\"'
-            #     if self.commit_confirmed_button.get():  # Commit Confirmed
-            #         jaide_command += ' --confirm ' + str(self.commit_confirmed_min_entry.get())
-            #         argsToPass = [self.option_entry.get(), False, int(self.commit_confirmed_min_entry.get()), False]
-            #     elif self.commit_check_button.get():  # Commit Check
-            #         jaide_command += ' --check '
-            #         argsToPass = [self.option_entry.get(), True, False, False]
-            #     elif self.commit_blank.get():  # Commit Blank.
-            #         jaide_command = jaide_command.split('-s')[0] + '--blank '
-            #         argsToPass = [self.option_entry.get(), False, False, True]
-            #     else:  # Neither confirm, check or blank, just regular commit.
-            #         argsToPass = [self.option_entry.get(), False, False, False]
-            #     # Attach the inclusive commit options (comment, at time, and synch) to the argsToPass for the jaide command.
-            #     # append the commit comment or None if there is no comment.
-            #     if self.commit_comment.get():
-            #         argsToPass.append(self.commit_comment_entry.get())
-            #         jaide_command += ' --comment \"' + self.commit_comment_entry.get() + '\" '
-            #     else:
-            #         argsToPass.append(None)
-            #     # append the commit at time or None if it is not a time delayed commit.
-            #     if self.commit_at.get():
-            #         argsToPass.append(self.commit_at_entry.get())
-            #         jaide_command += ' --at \"' + self.commit_at_entry.get() + '\" '
-            #     else:
-            #         argsToPass.append(None)
-            #     # always append the commit_synch value, since the jaide.make_commit() function is expecting a bool.
-            #     argsToPass.append(self.commit_synch.get())
-            #     if self.commit_synch.get():
-            #         jaide_command += ' --synchronize '
-
-            # elif self.option_value.get() == 'Shell Command(s)':
-            #     jaide_command += '\"' + self.option_entry.get() + '\"'
-            #     argsToPass = [self.option_entry.get().strip(), True, timeout]
-
-            # # The only other option left in yes_options is "Operational Command(s)".
-            # elif self.option_value.get() in self.yes_options:
-            #     jaide_command += '\"' + self.option_entry.get() + '\"'
-            #     if self.format_box.get():  # If they are requesting XML format
-            #         jaide_command += ' -f xml'
-            #         out_fmt = 'xml'
-            #     else:
-            #         out_fmt = 'text'
-            #     argsToPass = [self.option_entry.get().strip(), False, out_fmt, timeout]
-
-            # # If the function does not need any additional arguments
-            # elif self.option_value.get() in self.no_options:
-            #     argsToPass = None
-
-            # # If we could not figure out what we're doing, error out instead of making bogus calls to doJaide()
-            # # This really should never be a possibility, as long as we've coded the other parts of this if statement to catch everything.
-            # else:
-            #     self.write_to_output_area("We've hit an error parsing the command you entered. Our code must be terrible.")
-            #     return
-
-            # print the CLI command to the user so they know how about jaide.py
-            # self.write_to_output_area('The following command can be used to do this same thing on the command line:\n\t%s' % jaide_command)
-            # if "|" in jaide_command:
-            #     self.write_to_output_area('Your CLI command will have pipes, \'|\'. Be wary of your environment and necessary escaping.' +
-            #                               '\nCheck the working-with-pipes.html file in the examples folder for more information.')
-            # self.write_to_output_area('\n')  # add an extra line to separate the CLI suggestion from the rest of the output.
-
-            # TODO: hard setting conn_timeout and port for now, need to allow user to specifiy
             # Create the WorkerThread class to run the Jaide functions.
             self.thread = WorkerThread(
                 argsToPass=argsToPass,
@@ -603,7 +516,7 @@ class JaideGUI(tk.Tk):
                 port=self.port_entry.get(),
                 command=function,
                 stdout=self.stdout_queue,
-                ip=ip,
+                ip=self.ip_entry.get(),
                 username=username,
                 password=self.password_entry.get().strip(),
                 write_to_file=self.wtf_entry.get(),
@@ -612,7 +525,8 @@ class JaideGUI(tk.Tk):
             self.thread.daemon = True
             self.thread.start()
 
-            # Change the state of the buttons now that the script is running, so the user can save the output, kill the script, etc.
+            # Change the state of the buttons now that the script is running,
+            # so the user can save the output, kill the script, etc.
             self.go_button.configure(state="disabled")
             self.clear_button.configure(state="disabled")
             self.stop_button.configure(state="normal")
@@ -620,18 +534,23 @@ class JaideGUI(tk.Tk):
             self.get_output()
 
     def get_output(self):
-        """ Purpose: This function listens to the sub process generated by the 'Run Script' button, and
-                   | dumps the output to the output_area using the function write_to_output_area. If the process
-                   | is no longer alive, it changes the activation of buttons, and lets the user know that the script
-                   | is done.
+        """ Listen to WorkerThread and retrieve stdout from the Jaide script.
 
-            @returns: None
+        Purpose: This function listens to the sub process generated by the
+               | 'Run Script' button, and dumps the output to the output_area
+               | using the function write_to_output_area. If the process is no
+               | longer alive, it changes the activation of buttons, and lets
+               | the user know that the script is done.
+
+        @returns: None
         """
         try:  # pull from the stdout_queue, and write it to the output_area
             self.write_to_output_area(self.stdout_queue.get_nowait())
-        except Queue.Empty:  # Nothing in the queue, but the thread could be still alive, try again next time around.
+        # Nothing in the queue, but the thread could be alive.
+        except Queue.Empty:
             pass
-        if not self.thread.isAlive():  # The WorkerThread subprocess has completed, and we need to wrap up.
+        # The WorkerThread subprocess has completed, and we need to wrap up.
+        if not self.thread.isAlive():
             while not self.stdout_queue.empty():
                 self.write_to_output_area(self.stdout_queue.get_nowait())
             self.go_button.configure(state="normal")
@@ -641,53 +560,70 @@ class JaideGUI(tk.Tk):
             self.write_to_output_area("\n****** Process Completed ******\n")
             self.thread.join()
             return
-        self.after(100, self.get_output)  # recursively call this function every 100ms, writing any new output.
+        # recursively call this function every 100ms, writing any new output.
+        self.after(100, self.get_output)
 
     def input_validation(self):
-        """ Purpose: This function is used to validate the inputs of the user when they press the 'Run Script' button.
-                     It will return a boolean with True for passing the checks, and False if we failed the validation.
+        """ Validate the inputs the user has entered.
 
-            @returns: True if all checks pass, False if any single check fails.
-            @rtype: bool
+        Purpose: This function is used to validate the inputs of the user when
+               | they press the 'Run Script' button. It will return a boolean
+               | with True for passing the checks, and otherwise False.
+
+        @returns: True if all checks pass, False if any single check fails.
+        @rtype: bool
         """
         # Making sure the user typed something into the IP field.
         if self.ip_entry.get() == "":
-            tkMessageBox.showinfo("IP Entry", "Please enter an IP address or IP address list file.")
+            tkMessageBox.showinfo("IP Entry", "Please enter an IP address or"
+                                  " IP address list file.")
         # Ensure there is a value typed into the username and password fields.
-        elif self.username_entry.get() == "" or self.password_entry.get() == "":
-            tkMessageBox.showinfo("Credentials", "Please enter both a username and password.")
-        # If the write to file box is checked, they must have something typed in for an output file.
+        elif "" in [self.username_entry.get(), self.password_entry.get()]:
+            tkMessageBox.showinfo("Credentials", "Please enter both a username"
+                                  " and password.")
         elif self.wtf_entry.get() == "" and self.wtf_checkbox.get():
-            tkMessageBox.showinfo("Write to File", "When writing to a file, a filename must be specified.")
-        # Ensure that if an option is chosen that requires extra input that they have something in the entry widget.
+            tkMessageBox.showinfo("Write to File", "When writing to a file, a "
+                                  "filename must be specified.")
+        # Ensure that if an option is chosen that requires extra input that
+        # they have something in the entry widget.
         elif self.option_value.get() in self.yes_options and self.option_entry.get() == "" and self.commit_blank.get() == 0:
-            tkMessageBox.showinfo("Option Input", "You chose an option that requires extra input, and didn't specify any additional information. " +
-                "For example, when selecting \"Operational Command(s)\", a command string must be typed into the entry box.")
+            tkMessageBox.showinfo("Option Input", "You chose an option that "
+                                  "requires extra input, and didn't specify"
+                                  " any additional information. For example,"
+                                  " when selecting \"Operational Command(s)\","
+                                  " a command string must be typed into the "
+                                  "entry box.")
         elif (self.option_value.get() == 'Set Command(s)' and self.commit_at.get()) and (self.commit_at_entry.get() == "" or (re.match(r'([0-2]\d)(:[0-5]\d){1,2}', self.commit_at_entry.get()) is None and re.match(r'\d{4}-[01]\d-[0-3]\d [0-2]\d:[0-5]\d(:[0-5]\d)?', self.commit_at_entry.get()) is None)):
-            tkMessageBox.showinfo("Commit At Time", "The time value you wrote for commit at was not valid. It must be one of two formats (seconds are optional):\n'hh:mm[:ss]'\n'yyyy-mm-dd hh:mm[:ss]'")
+            tkMessageBox.showinfo("Commit At Time", "The time value you wrote "
+                                  "for commit at was not valid. It must be one"
+                                  " of two formats (seconds are optional):"
+                                  "\n'hh:mm[:ss]'\n'yyyy-mm-dd hh:mm[:ss]'")
         elif (self.option_value.get() == 'Set Command(s)' and self.commit_comment.get()) and (self.commit_comment_entry.get() == "" or '"' in self.commit_comment_entry.get()):
-            tkMessageBox.showinfo("Commit Comment", "If commenting on the commit, you must specify a string, and it cannot contain double-quotes (\").")
+            tkMessageBox.showinfo("Commit Comment", "If commenting on the "
+                                  "commit, you must specify a string, and "
+                                  "it cannot contain double-quotes (\").")
         else:
             try:
                 if self.option_value.get() == 'Set Command(s)' and self.commit_confirmed_button.get():
                     int(self.commit_confirmed_min_entry.get())
             except ValueError:
-                tkMessageBox.showinfo("Commit Confirmed", "A Commit Confirmed value must be an integer between 1 and 60 minutes.")
+                tkMessageBox.showinfo("Commit Confirmed", "A Commit Confirmed "
+                                      "value must be an integer between 1 and"
+                                      " 60 minutes.")
             else:
                 # Make sure the timeout value is a number.
                 try:
                     isinstance(self.timeout_entry.get(), int)
                 except ValueError:
-                    tkMessageBox.showinfo("Timeout", "A timeout value must be an integer, in seconds.")
+                    tkMessageBox.showinfo("Timeout", "A timeout value must be "
+                                          "an integer, in minutes, between 1 "
+                                          "and 60.")
                 else:  # They've passed all checks.
                     return True
         return False
 
     def show_about(self):
-        """ Purpose: This will show the about text for the application.
-
-            @returns: None
-        """
+        """ Show the about text for the application. """
         aboutInfo = tk.Toplevel()
         aboutInfoLabel = tk.Label(aboutInfo, text="The Jaide GUI Application is a GUI wrapper for the jaide.py script.\n"
             "Version 1.1.0\n\rContributors:\n Geoff Rhodes (https://github.com/geoffrhodes) and Nathan Printz (https://github.com/nprintz)" +
@@ -696,40 +632,39 @@ class JaideGUI(tk.Tk):
         aboutInfoLabel.pack()
 
     def show_help(self):
-        """ Purpose: This is called when the user selects the 'Help Text' menubar option. It opens the README.html file
-                   | in their default browser. If the file doesn't exist it opens the github readme page instead.
+        """ Show the help file or webpage.
 
-            @returns:
+        Purpose: This is called when the user selects the 'Help Text' menubar
+               | option. It opens the README.html file in their default
+               | browser. If the file doesn't exist it opens the github
+               | readme page instead.
         """
         # Grab the directory where the script is running.
-        readme = module_path()
-        # Determine our OS, attach the README.html file to the path, and open that file.
+        readme = os.path.normpath(module_path() + '/README.html')
+        # Determine our OS and open the readme.
         if sys.platform.startswith('darwin'):
-            readme += "/README.html"
             if os.path.isfile(readme):
                 subprocess.call(('open', readme))
             else:
                 try:
-                    webbrowser.open('https://github.com/NetworkAutomation/jaide')
-                except webbrowser.Error:
+                    webb.open('https://github.com/NetworkAutomation/jaide')
+                except webb.Error:
                     pass
         elif os.name == 'nt':
-            readme += "\\README.html"
             if os.path.isfile(readme):
-                os.startfile(readme)  # this works on windows, not sure why pylint shows an error.
+                os.startfile(readme)
             else:
                 try:
-                    webbrowser.open('https://github.com/NetworkAutomation/jaide')
-                except webbrowser.Error:
+                    webb.open('https://github.com/NetworkAutomation/jaide')
+                except webb.Error:
                     pass
         elif os.name == 'posix':
-            readme += "/README.html"
             if os.path.isfile(readme):
                 subprocess.call(('xdg-open', readme))
             else:
                 try:
-                    webbrowser.open('https://github.com/NetworkAutomation/jaide')
-                except webbrowser.Error:
+                    webb.open('https://github.com/NetworkAutomation/jaide')
+                except webb.Error:
                     pass
 
     def show_examples(self):
@@ -769,8 +704,7 @@ class JaideGUI(tk.Tk):
                     pass
 
     def write_to_output_area(self, output):
-        """
-        Insert string at the end of the output_area, and scroll to the bottom.
+        """ Append string to output_area, and scroll to the bottom.
 
         @param output: String of the output to dump to the output_area
         @type output: str or unicode
@@ -780,79 +714,98 @@ class JaideGUI(tk.Tk):
         if isinstance(output, basestring):
             if output[-1:] is not "\n":
                 output += "\n"
-            # SCP was putting None to the output queue and this throws an error with insert
             self.output_area.insert(tk.END, output)
             self.output_area.see(tk.END)
 
     def ask_template_save(self, event):
-        """ Purpose: Asks for the filepath of where to save the template file. If they give us one, we pass it to the
-                   | save_template() function to actually be opened.
+        """ Prompt to save a template.
 
-            @param event: Any command that tkinter binds a keyboard shortcut to will receive the event
-                        | parameter. It is a description of the keyboard shortcut that generated the event.
-            @type event: Tkinter.event object
-            @returns: None
+        Purpose: Asks for the filepath of where to save the template file.
+               | If they give us one, we pass it to the save_template()
+               | function to actually be opened.
+
+        @param event: Any command that tkinter binds a keyboard shortcut to
+                    | will receive the event parameter. It is a description
+                    | of the keyboard shortcut that generated the event.
+        @type event: Tkinter.event object
+
+        @returns: None
         """
         return_file = tkFileDialog.asksaveasfilename()
         if return_file:
             self.save_template(return_file, "template")
 
     def save_template(self, filepath, filetype):
-        """ Purpose: asks for a file name and writes all variable information to it.
-                   | Passwords are obfuscated with Base64 encoding, but this is
-                   | by no means considered secure.
+        """ Save the template file.
 
-            @param filepath: The filepath of the template file that we are opening to save to
-                           | with the information from the objects in the GUI.
-            @type filepath: str or unicode
-            @param filetype: This should be a string of either "defaults" or "template". This is used to
-                           | notify the user what type of file failed to open for writing in case of a problem.
-            @type filetype: str or unicode
-            @returns: None
-         """
+        Purpose: Ask for a file name and writes all variable information to it.
+               | Passwords are obfuscated with Base64 encoding, but this is
+               | by no means considered secure.
+
+        @param filepath: The filepath of the template file that we are saving
+                       | to with the information from the objects in the GUI.
+        @type filepath: str or unicode
+        @param filetype: This should be a string of either "defaults" or
+                       | "template". This is used to notify the user what type
+                       | of file failed to open in case of a problem.
+        @type filetype: str or unicode
+        @returns: None
+        """
         try:
             output_file = open(filepath, 'wb')
         except IOError as e:
-            self.write_to_output_area("Couldn't open file to save the " + filetype + " file. Attempted location: " +
-                                      output_file + "\nError: \n" + str(e))
+            self.write_to_output_area("Couldn't open file to save the " +
+                                      filetype + " file. Attempted location: "
+                                      + output_file + "\nError: \n" + str(e))
         else:
             # Write each template option in the dictionary to the template.
             for key, value in self.template_opts.iteritems():
                 if key == "Password":  # passwords need to be encoded.
-                    output_file.write(key + ":~:" + base64.b64encode(value.get()) + "\n")
+                    output_file.write(key + ":~:" +
+                                      base64.b64encode(value.get()) + "\n")
                 else:
                     output_file.write(key + ":~:" + str(value.get()) + "\n")
             output_file.close()
 
     def ask_template_open(self, event):
-        """ Purpose: Asks for the filepath of a template file. If they give us one, we pass it to the
-                   | open_template() function to actually be opened.
+        """ Prompt for a filepath to open a template.
 
-            @param event: Any command that tkinter binds a keyboard shortcut to will receive the event
-                        | parameter. It is a description of the keyboard shortcut that generated the event.
-            @type event: Tkinter.event object
-            @returns: None
+        Purpose: Asks for the filepath of a template file. If they give us
+               | one, we pass it to the open_template() function to actually
+               | be opened.
+
+        @param event: Any command that tkinter binds a keyboard shortcut to
+                    | will receive the event parameter. It is a description
+                    | of the keyboard shortcut that generated the event.
+        @type event: Tkinter.event object
+
+        @returns: None
         """
         return_file = tkFileDialog.askopenfilename()
         if return_file:
             self.open_template(return_file, "template")
 
     def open_template(self, filepath, filetype):
-        """ Purpose: Loads information from a template file and replaces the options in the GUI with that
-                   | of the template file.
+        """ Open a template file.
 
-            @param filepath: The filepath of the template file that we are opening to read in and replace
-                           | the options with the information from the template.
+        Purpose: Loads information from a template file and replaces the
+               | options in the GUI with that of the template file.
+
+            @param filepath: The filepath of the template file that we are
+                           | opening to read in and replace the options with
+                           | the information from the template.
             @type filepath: str or unicode
-            @param filetype: This should be a string of either "defaults" or "template". This is used to
-                           | notify the user what type of file failed to load in case of a problem.
+            @param filetype: This should be a string of either "defaults" or
+                           | "template". This is used to notify the user what
+                           | type of file failed to load in case of a problem.
             @type filetype: str or unicode
             @returns: None
         """
         try:
             input_file = open(filepath, "rb")
         except IOError as e:
-            self.write_to_output_area("Couldn't open " + filetype + " file to import values. Attempted file: " +
+            self.write_to_output_area("Couldn't open " + filetype + " file to "
+                                      "import values. Attempted file: " +
                                       filepath + " Error: \n" + str(e))
         else:
             try:
@@ -860,22 +813,28 @@ class JaideGUI(tk.Tk):
                 for line in input_file.readlines():
                     line = line.split(':~:')
                     if line[0] == "SingleOrMultipleFiles":
-                        self.template_opts[line[0]].set("key", line[1].rstrip())
+                        self.template_opts[line[0]].set("key",
+                                                        line[1].rstrip())
                     elif line[0] == "Password":
                         self.password_entry.set(base64.b64decode(line[1].rstrip()))
                     else:
                         self.template_opts[line[0]].set(line[1].rstrip())
-                # check the option menu, wtf, commit check, and commit confirmed to update the visible options.
+                # check the option menu, wtf, commit check, and commit
+                # confirmed to update the visible options.
                 self.opt_select(self.option_value.get())
                 self.check_wtf()
             except Exception as e:
-                self.write_to_output_area("Could not open template. Error:\n" + str(e))
+                self.write_to_output_area("Could not open template. Error:\n"
+                                          + str(e))
             finally:
                 input_file.close()
 
     def stop_script(self):
-        """ Purpose: Called to kill the subprocess 'jaide' which is actually running the jaide.py script.
-                   | This is called when the user clicks on the Stop Script button.
+        """ Kill the active running script.
+
+        Purpose: Called to kill the subprocess 'thread' which is actually
+               | running the jaide_cli.py script. This is called when the user
+               | clicks on the Stop Script button.
 
             @returns: None
         """
@@ -883,14 +842,17 @@ class JaideGUI(tk.Tk):
         self.write_to_output_area("\n****** Attempting to stop process ******")
 
     def opt_select(self, opt):
-        """ Purpose: This is used to show and hide options as different items are selected from the drop down accordingly.
+        """ Purpose: Show and hide options fields drop down item is selected.
 
-            @param opt: The name of the option chosen by the user. The PMWmenu object passes this automatically when
-                      | the opt_select function is called by the act of choosing an option within the menu.
-            @type opt: str
-            @returns: None
+        @param opt: The name of the option chosen by the user. The PMWmenu
+                  | object passes this automatically when the opt_select
+                  | function is called by choosing an option.
+        @type opt: str
+
+        @returns: None
         """
-        # First thing we do is forget all placement and deselect options, then we'll update according to what they chose afterwards.
+        # First thing we do is forget all placement and deselect options,
+        # then we'll update according to what they chose afterwards.
         self.format_box.grid_forget()
         self.set_frame.grid_forget()
         self.set_frame_2.grid_forget()
@@ -902,8 +864,9 @@ class JaideGUI(tk.Tk):
         self.scp_direction_menu.grid_forget()
         self.spacer_label.grid_forget()
         self.diff_config_menu.grid_forget()
-        # We only want to deselect the commit options if we're changing to something other than 'Set Command(s)'
-        # This prevents these commit options from being cleared on loading a template/defaults file.
+        # We only want to deselect the commit options if we're changing to
+        # something other than 'Set Command(s)'. This prevents these commit
+        # options from being cleared on loading a template/defaults file.
         if opt != "Set Command(s)":
             self.commit_check_button.deselect()
             self.commit_confirmed_button.deselect()
@@ -915,31 +878,37 @@ class JaideGUI(tk.Tk):
         if opt == "------":
             self.option_value.set("Device Info")
 
-        # SCP
         if opt == "SCP Files":
-            self.scp_direction_menu.grid(column=1, columnspan=2, row=0, sticky="NW")
+            self.scp_direction_menu.grid(column=1, columnspan=2,
+                                         row=0, sticky="NW")
             self.option_entry.grid(column=0, row=1, sticky="NW")
             self.scp_source_button.grid(column=1, row=1, sticky="NW", padx=2)
             self.scp_destination_entry.grid(column=2, row=1, sticky="NW")
-            self.scp_destination_button.grid(column=3, row=1, sticky="NW", padx=2)
+            self.scp_destination_button.grid(column=3, row=1, sticky="NW",
+                                             padx=2)
 
         # Any option that requires a single text arg
         elif opt in self.yes_options:
             self.option_entry.grid(column=1, columnspan=2, row=0, sticky="NEW")
 
-            # If we are getting a list of set command, show file open button and commit check / confirmed boxes
+            # If we are getting a list of set command, show file open button
+            # and commit check / confirmed boxes
             if opt == "Set Command(s)":
                 self.set_list_button.grid(column=3, row=0, sticky="NW", padx=2)
-                self.set_frame.grid(column=0, columnspan=4, row=1, sticky="NW", pady=(2, 2))
-                self.set_frame_2.grid(column=0, columnspan=4, row=2, sticky="NW", pady=(2, 2))
+                self.set_frame.grid(column=0, columnspan=4, row=1,
+                                    sticky="NW", pady=(2, 2))
+                self.set_frame_2.grid(column=0, columnspan=4, row=2,
+                                      sticky="NW", pady=(2, 2))
             else:
-                self.spacer_label.grid(column=1, columnspan=2, row=1, sticky="NW")
+                self.spacer_label.grid(column=1, columnspan=2,
+                                       row=1, sticky="NW")
 
             if opt == "Operational Command(s)":
                 self.set_list_button.grid(column=3, row=0, sticky="NW", padx=2)
                 self.format_box.grid(column=0, row=1, sticky="NW")
             elif opt == "Diff Config":
-                self.diff_config_menu.grid(column=3, row=0, sticky="NW", padx=2)
+                self.diff_config_menu.grid(column=3, row=0,
+                                           sticky="NW", padx=2)
         else:
             # No option
             self.spacer_label.grid(column=1, columnspan=2, row=1, sticky="NW")
@@ -951,52 +920,53 @@ class JaideGUI(tk.Tk):
         self.update()
 
     def open_file(self, entry_object):
-        """ Purpose: This method is used to prompt the user to find a file on their local machine that already exists. Once
-                   | they've selected a file, we will put the full filepath to that file in the text entry object that was
-                   | passed to this method. If the user does not specify a file (ie. presses the 'cancel' button on the
-                   | dialog box), then we will not update the entry field, we do nothing.
+        """ Find a filepath and place it in entry_object.
 
-            @param entry_object: This is the actual displayed Tkinter Entry object where the filepath
-                               | that the user specifies will be dumped to.
-            @type entry_object: Tkinter.Entry object
-            @returns: None
+        Purpose: This method is used to prompt the user to find a file on
+               | their local machine that already exists. Puts the filepath in
+               | the text entry object that was passed to this method. If the
+               | user does not specify a file (ie. presses the 'cancel' button
+               | on the dialog box), we do nothing.
+
+        @param entry_object: This is the Tkinter Entry object where the
+                           | filepath that the user specifies will be set.
+        @type entry_object: Tkinter.Entry object
+
+        @returns: None
         """
-        # ask the user for a local file, and if they give us one, replace the passed entry field.
         return_file = tkFileDialog.askopenfilename()
         if return_file:
-            # Deletes whatever is in the field currently
             entry_object.delete(0, tk.END)
-            # Puts the selected file (w/ full path) in to field
             entry_object.insert(0, return_file)
 
     def open_wtf(self):
-        """ Purpose: This will delete whatever is in the wtf_entry field, and prompt the user with a find file dialog box.
-                   | Once they've found the file, it will insert that filepath into wtf_entry. This function is only called
-                   | when the 'Select File' button next to wtf_entry is clicked.
-
-            @returns: None
-        """
-        # Retrieve a filename from the user
+        """ Find and insert a filepath into the write_to_file object. """
         return_file = tkFileDialog.asksaveasfilename()
         if return_file:
-            # removes everything in wtf_entry
             self.wtf_entry.delete(0, tk.END)
-            # puts full path of selected file to save as in wtf_entry
             self.wtf_entry.insert(0, return_file)
 
     def check_wtf(self):
-        """ Purpose: This function is called whenever the user clicks on the checkbox for writing output to a file. It will take the
-                   | appropriate action based on whether the box was checked previously or not. If it is now checked, it
-                   | will add the wtf_entry and wtf_button options for specifying a file to write the output to. If it is
-                   | now unchecked, it will remove these two objects.
-            @returns: None
+        """ Check if write to file is checked or not.
+
+        Purpose: This function is called whenever the user clicks on the
+               | checkbox for writing output to a file. It will take the
+               | appropriate action based on whether the box was checked
+               | previously or not. If it is now checked, it will add the
+               | wtf_entry and wtf_button options for specifying a file to
+               | write the output to. If it is now unchecked, it will
+               | remove these two objects.
+
+        @returns: None
         """
         # if WTF checkbox is checked, enable the Entry and file load button
         if self.wtf_checkbox.get() == 1:
             self.wtf_entry.grid(column=1, row=0)
             self.wtf_button.grid(column=2, row=0, sticky="NW", padx=2)
-            self.wtf_radiobuttons.grid("index", 0, column=4, row=0, sticky="NSW")
-            self.wtf_radiobuttons.grid("index", 1, column=5, row=0, sticky="NSW")
+            self.wtf_radiobuttons.grid("index", 0, column=4,
+                                       row=0, sticky="NSW")
+            self.wtf_radiobuttons.grid("index", 1, column=5,
+                                       row=0, sticky="NSW")
 
         # if WTF checkbox is not checked, re-disable the entry options
         if self.wtf_checkbox.get() == 0:
@@ -1006,13 +976,19 @@ class JaideGUI(tk.Tk):
             self.wtf_radiobuttons.grid_forget("index", 1)
 
     def commit_option_update(self, check_type):
-        """ Purpose: This function is called when any of the commit option check boxes are clicked. Depending on which one we click, we
-                   | deselect the other two, and forget or create the grid for the commit confirmed minutes entry as necessary.
+        """ Update the commit options.
 
-            @param check_type: A string identifier stating which commit option is being clicked. We are expecting one of three
-                             | options: 'blank', 'check', or 'confirmed'.
-            @type check_type: str
-            @returns: None
+        Purpose: This function is called when any of the commit option check
+               | boxes are clicked. Depending on which one we click, we
+               | deselect the other two, and forget or create the grid for
+               | the commit confirmed minutes entry as necessary.
+
+        @param check_type: A string identifier stating which commit option
+                         | is being clicked. We are expecting one of three
+                         | options: 'blank', 'check', or 'confirmed'.
+        @type check_type: str
+
+        @returns: None
         """
         if check_type == 'blank' and self.commit_blank.get():
             self.commit_confirmed_button.deselect()
@@ -1037,49 +1013,52 @@ class JaideGUI(tk.Tk):
             self.commit_check_button.deselect()
 
     def clear_output(self, event):
-        """ Purpose: This function is called by the 'clear output' button and is used to remove all text from the output window.
+        """ Clear the output field.
 
-            @param event: Any command that tkinter binds a keyboard shortcut to will receive the event
-                        | parameter. It is a description of the keyboard shortcut that generated the event.
-            @type event: Tkinter.event object
-            @returns: None
+        @param event: Any command that tkinter binds a keyboard shortcut to
+                    | will receive the event parameter. It is a description of
+                    | the keyboard shortcut that generated the event.
+        @type event: Tkinter.event object
+
+        @returns: None
         """
         self.output_area.delete(1.0, tk.END)
 
     def save_output(self):
-        """ Purpose: This function is called by the 'save output' button and is used to open a save file dialog box, and write
-                   | the text within the output_area window to that file.
-
-            @returns: None
-        """
+        """ Save the output area text to a file. """
         return_file = tkFileDialog.asksaveasfilename()
         # If no file is chosen, do not try to open it.
         if return_file:
             try:
-                outFile = open(return_file, 'w+b')  # 'w' will open for overwriting, 'b' is for windows compatibility
+                outFile = open(return_file, 'w+b')
             except IOError:
-                tkMessageBox.showinfo("Couldn't open file.", "The file you specified could not be opened for writing.")
+                tkMessageBox.showinfo("Couldn't open file.", "The file you"
+                                      " specified could not be opened.")
             else:
                 outFile.write(self.output_area.get(1.0, tk.END))
                 outFile.close()
 
     def quit(self, event):
-        """ Purpose: Quit the application, called on selecting File > Quit, or by pressing Ctrl-Q.
+        """ Quit the application, called on selecting File > Quit.
 
-            @param event: Any command that tkinter binds a keyboard shortcut to will receive the event
-                        | parameter. It is a description of the keyboard shortcut that generated the event.
-            @type event: Tkinter.event object
-            @returns: None
+        @param event: Any command that tkinter binds a keyboard shortcut to
+                    | will receive the event parameter. It is a description of
+                    | the keyboard shortcut that generated the event.
+        @type event: Tkinter.event object
+
+        @returns: None
         """
         sys.exit(0)
 
     def clear_fields(self, event):
-        """ Purpose: Clear all input fields. Called by hitting Ctrl-C or clicking the appropriate menu option in the file menu.
+        """ Clear all input fields.
 
-            @param event: Any command that tkinter binds a keyboard shortcut to will receive the event
-                        | parameter. It is a description of the keyboard shortcut that generated the event.
-            @type event: Tkinter.event object
-            @returns: None
+        @param event: Any command that tkinter binds a keyboard shortcut to
+                    | will receive the event parameter. It is a description of
+                    | the keyboard shortcut that generated the event.
+        @type event: Tkinter.event object
+
+        @returns: None
         """
         self.ip_entry.delete(0, tk.END)
         self.timeout_entry.delete(0, tk.END)
@@ -1101,13 +1080,9 @@ class JaideGUI(tk.Tk):
         self.commit_comment.deselect()
 
     def show_frames(self):
-        """ Purpose: This function grids all frames and separators. It is called by the Toggle Options button, and used by
-                   | __init__() to create the frames on starting the program.
-
-            @returns: None
-        """
-
-        self.ip_cred_frame.grid(row=0, column=0, sticky="NEW", padx=(25, 25), pady=(25, 0))
+        """ Grid all separators and frames. """
+        self.ip_cred_frame.grid(row=0, column=0, sticky="NEW",
+                                padx=(25, 25), pady=(25, 0))
         self.sep2.grid(row=1, column=0, sticky="WE", pady=12, padx=12)
 
         self.wtf_frame.grid(row=2, column=0, sticky="NW", padx=(25, 0))
@@ -1119,16 +1094,15 @@ class JaideGUI(tk.Tk):
         self.help_frame.grid(row=6, column=0, sticky="NW", padx=(25, 0))
         self.sep5.grid(row=7, column=0, sticky="WE", pady=12, padx=12)
 
-        self.buttons_frame.grid(row=8, column=0, sticky="NW", padx=(25, 25), pady=(0, 10))
-        self.output_frame.grid(row=9, column=0, padx=(25, 25), sticky="SWNE", pady=(0, 25))
+        self.buttons_frame.grid(row=8, column=0, sticky="NW",
+                                padx=(25, 25), pady=(0, 10))
+        self.output_frame.grid(row=9, column=0, sticky="SWNE",
+                               padx=(25, 25), pady=(0, 25))
 
         self.update()
 
     def toggle_frames(self):
-        """ This function is called by toggle_frames_button to toggle whether non-output frames are shown.
-
-            @returns: None
-        """
+        """ Show or hide the non-output frames. """
         if self.frames_shown:
             self.ip_cred_frame.grid_forget()
             self.wtf_frame.grid_forget()

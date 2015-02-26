@@ -831,72 +831,58 @@ class Jaide():
 
     @property
     def host(self):
-        """ Getter for host. """
         return self.host
 
     @host.setter
     def host(self, value):
-        """ Setter for host. """
         self.host = value
 
     @property
     def conn_type(self):
-        """ Getter for conn_type. """
         return self.conn_type
 
     @conn_type.setter
     def conn_type(self, value):
-        """ Setter for conn_type. """
         self.conn_type = value
 
     @property
     def username(self):
-        """ Getter for username. """
         return self.username
 
     @username.setter
     def username(self, value):
-        """ Setter for username. """
         self.username = value
 
     @property
     def password(self):
-        """ Getter for password. """
         return self.password
 
     @password.setter
     def password(self, value):
-        """ Setter for password. """
         self.password = value
 
     @property
     def port(self):
-        """ Getter for port. """
         return self.port
 
     @port.setter
     def port(self, value):
-        """ Setter for port. """
         self.port = value
 
     @property
     def conn_timeout(self):
-        """ Getter for conn_timeout. """
         return self.conn_timeout
 
     @conn_timeout.setter
     def conn_timeout(self, value):
-        """ Setter for conn_timeout. """
         self.conn_timeout = value
 
     @property
     def sess_timeout(self):
-        """ Getter for sess_timeout. """
         return self.sess_timeout
 
     @sess_timeout.setter
     def sess_timeout(self, value):
-        """ Setter for sess_timeout. """
         self.sess_timeout = value
 
 if __name__ == '__main__':
