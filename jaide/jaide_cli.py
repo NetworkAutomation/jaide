@@ -42,7 +42,8 @@ import re
 import socket
 # intra-Jaide imports
 from core import Jaide
-from utils import clean_lines, color, strip_color
+from utils import clean_lines
+from color_utils import color, strip_color
 # The rest are non-standard modules:
 from ncclient.transport import errors
 from ncclient.operations.rpc import RPCError

@@ -6,3 +6,5 @@
 test.py
 # ignore defaults file
 *.ini
+# ignore pypi, setuptools, etc
+jaide.egg-info/*
