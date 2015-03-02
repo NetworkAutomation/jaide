@@ -1,35 +1,16 @@
-"""Jaide CLI script for manipulating Junos devices.
+#!/usr/bin/env python
+""" Jaide CLI script for manipulating Junos devices.
 
 This is the cli script that is a base use case of the jaide module.
-It creates a command line tool for using the jaide module, to allow for
-communicating with, manipulating, and many other functions with Junos based
-devices.
+It is a command line tool, able to be used with the 'jaide' command that is
+installed along with the jaide package. It allows for communicating with,
+manipulating, and retrieving data from Junos based devices.
 
-For expansive information on the Jaide script, and how JGUI interacts with it,
-refer to the readme file or the associated examples/documentation.
+For expansive information on the Jaide class, and the jaide CLI tool,
+refer to the readme file or the associated examples/documentation. More
+information can be found at the github page:
 
-We have provided some information about NCClient here, since it can get
-confusing in some situations.
-
-    manager.command() can be run with format = 'xml' or 'text', and returns an
-    XML object or string
-
-    manager.command() returns an NCElement object with a .tostring attribute
-    and an xpath() function
-
-    Using .tostring will return a text string of the values of all leaves
-    within the xml tree.
-
-    Using xpath() will return an array of xml leaves, that each has the text
-    property for returning the value of a leaf.
-
-    By default, a show config command run on JUNOS does not return with full
-    XML tags and cannot be explicitly xpath'd. To do xpath on a show config
-    command, explicitly include '| display xml' on the end of the command
-    before handing off to manager.command().
-
-    On Junos, non-config commands can be run with '| display xml rpc' appended
-    to get the rpc command.
+https://github.com/NetworkAutomation/jaide
 """
 # standard modules
 import sys
@@ -50,6 +31,9 @@ from ncclient.operations.rpc import RPCError
 from paramiko import SSHException, AuthenticationException
 from scp import SCPException
 
+# TODO: use 'click' instead of argparse?
+# TODO: Verbosity argument for seeing more/less output?
+# TODO: related to above, maybe change --quiet to show nothing?
 # -i is a required parameter, the rest are optional arguments
 prs = ArgumentParser(formatter_class=RawDescriptionHelpFormatter,
                      description="Required Modules:\n\tNCCLIENT - "
@@ -403,13 +387,8 @@ def copy_file(conn, direction, source, dest, multi, progress):
     # remotely, and not just the contents. Basically, this forces the behavior
     # 'scp -r /var/log /dest/loc' instead of 'scp -r /var/log/* /dest/loc'
     source = source[:-1] if source[-1] == '/' else source
-    # Escape spaces
-    source = source.replace(' ', '\\ ')
-    dest = dest.replace(' ', '\\ ')
     # get just the source filename, in case we're pulling from multiple devices
     source_file = path.basename(source) if not '' else path.basename(path.join(source, '..'))
-    # Only see the live progress when copying against one device.
-    progress = not multi
     if direction.lower() == 'pull':
         # try to create the local directory
         if '.' not in path.basename(dest):
@@ -419,17 +398,17 @@ def copy_file(conn, direction, source, dest, multi, progress):
         dest_file = dest + conn.host + '_' + source_file if multi else dest + source_file
         output += ('Retrieving %s:%s, and putting it in %s\n' %
                    (conn.host, source, path.normpath(dest_file)))
-        dest_file = dest_file.replace(' ', '\\ ')  # escape spaces
         try:
             conn.scp_pull(source, dest_file, progress)
         except SCPException as e:
-            return color(output + '!!! Error during copy from ' + conn.host +
-                         '. Some files may have failed to transfer. SCP Module'
-                         ' error:\n' + str(e) + '\n!!!\n', 'error')
+            return output + color('!!! Error during copy from ' + conn.host +
+                                  '. Some files may have failed to transfer. '
+                                  'SCP Module error:\n' + str(e) + ' !!!\n',
+                                  'error')
         except (IOError, OSError) as e:
-            return color(output + '!!! The local filepath was not found! Note'
-                         ' that \'~\' cannot be used. Error:\n' + str(e) +
-                         ' !!!\n', 'error')
+            return output + color('!!! The local filepath was not found! Note'
+                                  ' that \'~\' cannot be used. Error:\n'
+                                  + str(e) + ' !!!\n', 'error')
         else:
             output += color('Received %s:%s and stored it in %s.\n' %
                             (conn.host, source, path.normpath(dest_file)))
@@ -439,13 +418,14 @@ def copy_file(conn, direction, source, dest, multi, progress):
         try:
             conn.scp_push(source, dest, progress)
         except SCPException as e:
-            return color(output + '!!! Error during copy from ' + conn.host +
-                         '. Some files may have failed to transfer. SCP Module'
-                         ' error:\n' + str(e) + '\n!!!\n', 'error')
+            return output + color('!!! Error during copy from ' + conn.host +
+                                  '. Some files may have failed to transfer. '
+                                  'SCP Module error:\n' + str(e) + ' !!!\n',
+                                  'error')
         except (IOError, OSError) as e:
-            return color(output + '!!! The local filepath was not found! Note'
-                         ' that \'~\' cannot be used. Error: ' + str(e) +
-                         ' !!!\n')
+            return output + color('!!! The local filepath was not found! Note'
+                                  ' that \'~\' cannot be used. Error:\n'
+                                  + str(e) + ' !!!\n', 'error')
         else:
             output += color('Pushed %s to %s:%s\n' % (source, conn.host, dest))
     if progress:
@@ -638,10 +618,15 @@ def write_to_file(output):
         # Therefore we only need to print if something exists.
         print output if output else None
 
-##########################
-# Start of script proper #
-##########################
-if __name__ == '__main__':
+
+def main():
+    """ Execute the script, and perform the appropriate function.
+
+    Purpose: This function handles all argument parsing and validation,
+           | along with mapping the argument they used with the correct
+           | function. A pool is spawned for running the function they
+           | need.
+    """
     args = prs.parse_args()
     # Correlates argument with function pointer
     function_translation = {
@@ -750,3 +735,6 @@ if __name__ == '__main__':
                                       function, argsToPass, args.write,
                                       args.conn_timeout, args.sess_timeout,
                                       args.port, args.no_highlight))
+
+if __name__ == '__main__':
+    main()

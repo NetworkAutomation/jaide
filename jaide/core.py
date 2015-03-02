@@ -1,8 +1,8 @@
 """
-This module is the Junos Aide/Jaide/JGUI project.
+This package is the Junos Aide/Jaide/JGUI project.
 
 It is free software for use in manipulating junos devices. To immediately get
-started, take a look at the examples or test files for implementation
+started, take a look at the example files for implementation
 guidelines. More information can be found at the github page found here:
 
 https://github.com/NetworkAutomation/jaide
@@ -10,23 +10,23 @@ https://github.com/NetworkAutomation/jaide
 # This is for modifying printed output (used for --scp to rewrite the same line
 # multiple times.) It is required to be at the top of the file.
 from __future__ import print_function
+# standard modules.
+from os import path
+import time
+import difflib
+# from lxml import etree, objectify
+# needed to parse strings into xml for cases when ncclient doesn't handle
+# it (commit, validate, etc)
+import xml.etree.ElementTree as ET
+import logging  # logging needed for disabling paramiko logging output
+# intra-Jaide imports
+from errors import InvalidCommandError
+from utils import clean_lines, xpath
+# network modules for device connections
 try:
-    # standard modules.
-    from os import path
-    import time
-    import difflib
-    # from lxml import etree, objectify
-    # needed to parse strings into xml for cases when ncclient doesn't handle
-    # it (commit, validate, etc)
-    import xml.etree.ElementTree as ET
-    # network modules for device connections
     from ncclient import manager
     from scp import SCPClient
     import paramiko
-    import logging  # logging needed for disabling paramiko logging output
-    # intra-Jaide imports
-    from errors import InvalidCommandError
-    from utils import clean_lines, xpath
 except ImportError as e:
     print("FAILED TO IMPORT ONE OR MORE PACKAGES.\n"
           "NCCLIENT\thttps://github.com/leopoul/ncclient/\n"
@@ -226,7 +226,7 @@ class Jaide():
         for cmd in clean_lines(commands):
             clean_cmds.append(cmd)
         # try to lock the candidate config so we can make changes.
-        self._session.lock()
+        self.lock()
         self._session.load_configuration(action='set', config=commands)
         results = ""
         # commit_confirm and commit at are mutually exclusive. commit confirm
@@ -736,7 +736,7 @@ class Jaide():
         return out if not xpath_expr else xpath(out, xpath_expr)
 
     @check_instance
-    def scp_pull(self, src, dest, progress=False):
+    def scp_pull(self, src, dest, progress=False, preserve_times=True):
         """ Purpose: Makes an SCP pull request for the specified file(s)/dir.
 
         @param src: string containing the source file or directory
@@ -746,18 +746,22 @@ class Jaide():
         @param progress: set to true to have the progress callback be
                        | returned as the operation is copying.
         @type progress: bool
+        @param preserve_times: Set to false to have the times of the copied
+                             | files set at the time of copy.
 
         @returns: True if the copy succeeds.
         @rtype: bool
         """
+        # TODO: add scp permissions error issue to github
+        # TODO: add scp file/folder exist error issue to github
         # set up the progress callback if they want to see the process
         self._scp._progress = self._copy_status if progress else None
         # retrieve the file(s)
-        self._scp.get(src, dest, recursive=True, preserve_times=True)
+        self._scp.get(src, dest, recursive=True, preserve_times=preserve_times)
         return True
 
     @check_instance
-    def scp_push(self, src, dest, progress=False):
+    def scp_push(self, src, dest, progress=False, preserve_times=True):
         """ Purpose: Makes an SCP push request for the specified file(s)/dir.
 
         @param src: string containing the source file or directory
@@ -767,6 +771,8 @@ class Jaide():
         @param progress: set to true to have the progress callback be
                        | returned as the operation is copying.
         @type progress: bool
+        @param preserve_times: Set to false to have the times of the copied
+                             | files set at the time of copy.
 
         @returns: True if the copy succeeds.
         @rtype: bool
@@ -774,7 +780,7 @@ class Jaide():
         # set up the progress callback if they want to see the process
         self._scp._progress = self._copy_status if progress else None
         # push the file(s)
-        self._scp.put(src, dest, recursive=True, preserve_times=True)
+        self._scp.put(src, dest, recursive=True, preserve_times=preserve_times)
         return True
 
     @check_instance
@@ -884,10 +890,12 @@ class Jaide():
     @sess_timeout.setter
     def sess_timeout(self, value):
         self.sess_timeout = value
+        # TODO: added this to update the value, need to confirm it's working.
+        self._update_timeout(value)
 
-if __name__ == '__main__':
-    # Run testing suite
-    from testing import test
-    for function in dir(test):
-        if hasattr(function, '__call__'):
-            function()
+# if __name__ == '__main__':
+#     # Run testing suite
+#     from testing import test
+#     for function in dir(test):
+#         if hasattr(function, '__call__'):
+#             function()
