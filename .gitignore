@@ -4,7 +4,8 @@
 .codeintel/*
 # ignore testing file
 test.py
-# ignore defaults file
+# ignore gui defaults file
 *.ini
 # ignore pypi, setuptools, etc
 jaide.egg-info/*
+.pypirc
