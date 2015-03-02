@@ -1,5 +1,5 @@
 """
-This package is the Junos Aide/Jaide/JGUI project.
+This core.py module is part of the Jaide (Junos Aide) package.
 
 It is free software for use in manipulating junos devices. To immediately get
 started, take a look at the example files for implementation
