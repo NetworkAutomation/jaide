@@ -152,11 +152,11 @@ group2.add_argument("-k", "--check", dest="commit_check", action='store_true',
                     help="Can be used with -s to only run a commit check, and"
                     " not commit the changes. --confirm, --check, --blank, and"
                     " --at are mutually exclusive!")
-group2.add_argument("-m", "--confirm", dest='commit_confirm',
-                    metavar="CONFIRM_MINUTES", type=int, choices=range(1, 61),
+group2.add_argument("-m", "--confirm", dest='confirmed', type=int,
+                    metavar="CONFIRM_SECONDS", choices=range(60, 3601),
                     help="Can be used with -s to make a confirmed commit. "
-                    "Accepts a number in /minutes/ between 1 and 60! --confirm"
-                    ", --check, --blank, and --at are mutually exclusive!")
+                    "Accepts a number in **seconds** between 60 and 3600! "
+                    "--confirm, --check, --blank, and --at are mutually exclusive!")
 
 # Inclusive commit options that can be used with each other and the other
 # mutually exclusive options.
@@ -255,7 +255,7 @@ def open_connection(ip, username, password, function, args, write_to_file,
     return (output, no_highlight)
 
 
-def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
+def commit(conn, cmds, commit_check, confirmed, commit_blank,
            comment, at_time, synchronize):
     """Execute a commit against the device.
 
@@ -273,9 +273,9 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
     @param commit_check: A bool set to true if the user wants to only run a
                        | commit check, and not commit any changes.
     @type commit_check: bool
-    @param commit_confirm: An integer of minutes that the user wants to
+    @param confirmed: An integer of minutes that the user wants to
                          | commit confirm for.
-    @type commit_confirm: int
+    @type confirmed: int
     @param commit_blank: A bool set to true if the user wants to only make
                        | a blank commit.
     @type commit_blank: bool
@@ -322,14 +322,14 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
         if not commit_blank:  # no results to show on blank commit.
             output += (color("Compare results:\n") + conn.compare_config(cmds)
                        + '\n')
-        if commit_confirm:
+        if confirmed:
             output += color("Attempting to commit confirm on device: %s\n"
                             % conn.host)
         else:
             output += color("Attempting to commit on device: %s\n\n" %
                             conn.host)
         try:
-            output += conn.commit(commit_confirm=commit_confirm,
+            output += conn.commit(confirmed=confirmed,
                                   comment=comment, at_time=at_time,
                                   synchronize=synchronize, commands=cmds)
         except RPCError as e:
@@ -340,10 +340,10 @@ def commit(conn, cmds, commit_check, commit_confirm, commit_blank,
                 output = (output.split('commit complete')[0] +
                           color('Commit complete on device: ' +
                                 conn.host + '\n'))
-                if commit_confirm:
+                if confirmed:
                     output += color('Commit confirm will rollback in %s '
                                     'minutes unless you commit again' %
-                                    str(commit_confirm))
+                                    str(confirmed))
             elif 'commit at' in output:
                 output = (output.split('commit at will be executed at')[0] +
                           color('Commit staged to happen at: %s' % at_time))
@@ -645,7 +645,7 @@ def main():
     args_translation = {
         "command": [args.command, False, args.format.lower()],
         "commit_blank":
-            [args.make_commit, args.commit_check, args.commit_confirm,
+            [args.make_commit, args.commit_check, args.confirmed,
                 args.commit_blank, args.commit_comment, args.commit_at,
                 args.commit_synchronize],
         "diff_config": [args.diff_config],
@@ -653,7 +653,7 @@ def main():
         "info": None,
         "int_error": None,
         "make_commit":
-            [args.make_commit, args.commit_check, args.commit_confirm,
+            [args.make_commit, args.commit_check, args.confirmed,
                 args.commit_blank, args.commit_comment, args.commit_at,
                 args.commit_synchronize],
         "shell": [args.shell, True, args.sess_timeout]

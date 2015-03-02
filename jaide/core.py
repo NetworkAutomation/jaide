@@ -142,6 +142,9 @@ class Jaide():
             # connection, and move to cli to perform the command
             # this is a one-off because the isinstance() check will be bypassed
             if self.username == "root" and function.__name__ == "op_cmd":
+                if not self._session:
+                    self.conn_type = "paramiko"
+                    self.connect()
                 if not self._shell:
                     self.conn_type = "root"
                     self.connect()
@@ -183,17 +186,24 @@ class Jaide():
         return False
 
     @check_instance
-    def commit(self, commit_confirm=None, comment=None, at_time=None,
-               synchronize=False, commands="", req_format='text'):
+    def commit(self, commands="", confirmed=None, comment=None,
+               at_time=None, synchronize=False, req_format='text'):
         """ Perform a commit operation.
 
         Purpose: Executes a commit operation. All parameters are optional.
                | commit confirm and commit at are mutually exclusive. All
                | the others can be used with each other and commit confirm/at.
 
-        @param commit_confirm: integer value of the number of minutes to
+        @param commands: A string or list of multiple commands
+                       | that the device will compare with.
+                       | If a string, it can be a single command,
+                       | multiple commands separated by commas, or
+                       | a filepath location of a file with multiple
+                       | commands, each on its own line.
+        @type commands: str or list
+        @param confirmed: integer value of the number of **seconds** to
                              | confirm the commit for, if requested.
-        @type commit_confirm: int
+        @type confirmed: int
         @param comment: string that the user wants to comment the commit
                       | with. Will show up in the 'show system commit' log.
         @type comment: str
@@ -204,13 +214,6 @@ class Jaide():
         @param synchronize: boolean set to true if desiring a commit
                           | synchronize operation.
         @type synchronize: bool
-        @param commands: A string or list of multiple commands
-                       | that the device will compare with.
-                       | If a string, it can be a single command,
-                       | multiple commands separated by commas, or
-                       | a filepath location of a file with multiple
-                       | commands, each on its own line.
-        @type commands: str or list
         @param req_format: string to specificy the response format. Accepts
                          | either 'text' or 'xml'
         @type req_format: str
@@ -229,16 +232,17 @@ class Jaide():
         self.lock()
         self._session.load_configuration(action='set', config=commands)
         results = ""
-        # commit_confirm and commit at are mutually exclusive. commit confirm
+        # confirmed and commit at are mutually exclusive. commit confirm
         # takes precedence.
-        if commit_confirm:
+        if confirmed:
             results = self._session.commit(confirmed=True,
-                                           timeout=str(commit_confirm),
+                                           timeout=str(confirmed),
                                            comment=comment,
                                            synchronize=synchronize)
         else:
             results = self._session.commit(comment=comment, at_time=at_time,
                                            synchronize=synchronize)
+        self.unlock()
         if results:
             # commit() DOES NOT return a parse-able xml tree, so we
             # convert it to an ElementTree xml tree.
@@ -341,9 +345,7 @@ class Jaide():
         """
         if not commands:
             raise InvalidCommandError('No commands specified')
-        clean_cmds = []
-        for cmd in clean_lines(commands):
-            clean_cmds.append(cmd)
+        clean_cmds = [cmd for cmd in clean_lines(commands)]
         self.lock()
         self._session.load_configuration(action='set', config=clean_cmds)
         out = self._session.compare_configuration()
@@ -892,10 +894,3 @@ class Jaide():
         self.sess_timeout = value
         # TODO: added this to update the value, need to confirm it's working.
         self._update_timeout(value)
-
-# if __name__ == '__main__':
-#     # Run testing suite
-#     from testing import test
-#     for function in dir(test):
-#         if hasattr(function, '__call__'):
-#             function()
