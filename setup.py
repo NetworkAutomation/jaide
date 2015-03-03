@@ -35,8 +35,12 @@ setup(
         'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
+        'Intended Audience :: Developers',
+        'Intended Audience :: Information Technology',
+        'Intended Audience :: Telecommunications Industry',
         'Intended Audience :: System Administrators',
         'Topic :: System :: Networking',
+        'Topic :: System :: Systems Administration',
         'Topic :: Utilities',
 
         # Pick your license as you wish (should match "license" above)
@@ -51,7 +55,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='networking junos juniper ',
+    keywords='networking junos juniper',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
