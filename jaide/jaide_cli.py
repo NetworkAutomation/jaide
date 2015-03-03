@@ -31,10 +31,10 @@ from ncclient.operations.rpc import RPCError
 from paramiko import SSHException, AuthenticationException
 from scp import SCPException
 
+# TODO: --compare argument for doing just comparison without commit checking.
 # TODO: use 'click' instead of argparse?
 # TODO: Verbosity argument for seeing more/less output?
 # TODO: related to above, maybe change --quiet to show nothing?
-# -i is a required parameter, the rest are optional arguments
 prs = ArgumentParser(formatter_class=RawDescriptionHelpFormatter,
                      description="Required Modules:\n\tNCCLIENT - "
                      "https://github.com/leopoul/ncclient/ \n\tPARAMIKO - "
