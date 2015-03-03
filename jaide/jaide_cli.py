@@ -224,8 +224,8 @@ def open_connection(ip, username, password, function, args, write_to_file,
     output += color('=' * 50 + '\nResults from device: %s\n' % ip, 'info')
     try:
         # create the Jaide session object for the device.
-        conn = Jaide(ip, username, password, conn_timeout=conn_timeout,
-                     sess_timeout=sess_timeout, port=port)
+        conn = Jaide(ip, username, password, connect_timeout=conn_timeout,
+                     session_timeout=sess_timeout, port=port)
     except errors.SSHError:
         output += color('Unable to connect to port %s on device: %s\n' %
                         (str(port), ip), 'error')

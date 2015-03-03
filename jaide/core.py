@@ -45,8 +45,8 @@ class Jaide():
     interface errors, and getting device status/information.
     """
 
-    def __init__(self, host, username, password, conn_timeout=5,
-                 sess_timeout=300, conn_type="paramiko", port=22):
+    def __init__(self, host, username, password, connect_timeout=5,
+                 session_timeout=300, conn_type="paramiko", port=22):
         """ Initialize the Jaide object.
 
         Purpose: This is the initialization function for the Jaide class,
@@ -61,15 +61,15 @@ class Jaide():
         @type username: str
         @param password: The password for the connection
         @type password: str
-        @param conn_timeout: The timeout value, in seconds, for attempting
-                           | to connect to the device.
-        @type conn_timeout: int
-        @param sess_timeout: The timeout value, in seconds, for the
-                           | session. If a command is sent and nothing
-                           | is heard back from the device in this
-                           | timeframe, the session is declared dead,
-                           | and times out.
-        @type sess_timeout: int
+        @param connect_timeout: The timeout value, in seconds, for attempting
+                              | to connect to the device.
+        @type connect_timeout: int
+        @param session_timeout: The timeout value, in seconds, for the
+                              | session. If a command is sent and nothing
+                              | is heard back from the device in this
+                              | timeframe, the session is declared dead,
+                              | and times out.
+        @type session_timeout: int
         @param conn_type: The connection type that should be made. Several
                         | options are available: 'ncclient', 'scp', and
                         | 'paramiko', 'shell' and 'root'. 'paramiko' is
@@ -98,8 +98,8 @@ class Jaide():
         self.port = port
         self.username = username
         self.password = password
-        self.sess_timeout = sess_timeout
-        self.conn_timeout = conn_timeout
+        self.session_timeout = session_timeout
+        self.connect_timeout = connect_timeout
         self._shell = ""
         self._scp = ""
         self.conn_type = conn_type
@@ -373,12 +373,11 @@ class Jaide():
         @returns: None
         @rtype: None
         """
-        if self.conn_type in ['paramiko', 'scp']:
+        if self.conn_type == 'paramiko':
             self._session = paramiko.SSHClient()
             # These two lines set the paramiko logging to Critical to
             # remove extra messages from being sent to the user output.
-            logger = logging.Logger.manager.getLogger(
-                'paramiko.transport')
+            logger = logging.Logger.manager.getLogger('paramiko.transport')
             logger.setLevel(logging.CRITICAL)
             self._session.set_missing_host_key_policy(
                 paramiko.AutoAddPolicy())
@@ -386,16 +385,26 @@ class Jaide():
                                   username=self.username,
                                   password=self.password,
                                   port=self.port,
-                                  timeout=self.conn_timeout)
-            if self.conn_type == 'scp':
-                self._scp = SCPClient(self._session.get_transport())
+                                  timeout=self.connect_timeout)
+        if self.conn_type == 'scp':
+            self._scp_session = paramiko.SSHClient()
+            logger = logging.Logger.manager.getLogger('paramiko.transport')
+            logger.setLevel(logging.CRITICAL)
+            self._scp_session.set_missing_host_key_policy(
+                paramiko.AutoAddPolicy())
+            self._scp_session.connect(hostname=self.host,
+                                      username=self.username,
+                                      password=self.password,
+                                      port=self.port,
+                                      timeout=self.connect_timeout)
+            self._scp = SCPClient(self._scp_session.get_transport())
         elif self.conn_type == "ncclient":
             self._session = manager.connect(
                 host=self.host,
                 port=self.port,
                 username=self.username,
                 password=self.password,
-                timeout=self.conn_timeout,
+                timeout=self.connect_timeout,
                 device_params={'name': 'junos'},
                 hostkey_verify=False
             )
@@ -418,7 +427,7 @@ class Jaide():
                 time.sleep(2)
             if not self.shell_to_cli():
                 self._shell.recv(9999)
-        self._update_timeout(self.sess_timeout)
+        self._update_timeout(self.session_timeout)
 
     def _copy_status(self, filename, size, sent):
         """ Echo status of an SCP operation.
@@ -489,7 +498,7 @@ class Jaide():
             port=self.port,
             username=self.username,
             password=self.password,
-            timeout=self.conn_timeout,
+            timeout=self.connect_timeout,
             device_params={'name': 'junos'},
             hostkey_verify=False
         )
@@ -725,7 +734,7 @@ class Jaide():
         # not logging in as root, and can grab the output as normal.
         else:
             stdin, stdout, stderr = self._session.exec_command(command=command,
-                                            timeout=float(self.sess_timeout))
+                                           timeout=float(self.session_timeout))
             stdin.close()
             # read normal output
             while not stdout.channel.exit_status_ready():
@@ -812,8 +821,7 @@ class Jaide():
             out += self._shell.recv(999999)
             time.sleep(.75)
         # take off the command being sent and the prompt at the end.
-        out = '\n'.join(out.split('\n')[1:-1])
-        return out
+        return '\n'.join(out.split('\n')[1:-1])
 
     def shell_to_cli(self):
         """ Move _shell to the command line interface (CLI). """
@@ -878,19 +886,18 @@ class Jaide():
         self.port = value
 
     @property
-    def conn_timeout(self):
-        return self.conn_timeout
+    def connect_timeout(self):
+        return self.connect_timeout
 
-    @conn_timeout.setter
-    def conn_timeout(self, value):
-        self.conn_timeout = value
+    @connect_timeout.setter
+    def connect_timeout(self, value):
+        self.connect_timeout = value
 
     @property
-    def sess_timeout(self):
-        return self.sess_timeout
+    def session_timeout(self):
+        return self.session_timeout
 
-    @sess_timeout.setter
-    def sess_timeout(self, value):
-        self.sess_timeout = value
-        # TODO: added this to update the value, need to confirm it's working.
+    @session_timeout.setter
+    def session_timeout(self, value):
+        self.session_timeout = value
         self._update_timeout(value)
