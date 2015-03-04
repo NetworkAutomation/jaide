@@ -1,0 +1,5 @@
+# regular command
+show version
+
+# command with piping
+show route | match 0.0.0.0
