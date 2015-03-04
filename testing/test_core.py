@@ -10,16 +10,19 @@ import os
 
 
 def op_commands(session, op_list):
+    """ Run operational commands. """
     # Try a single op command
     print color('Single op command: show interfaces terse | match lo0', 'info')
     print session.op_cmd('show interfaces terse | match lo0')
 
     # single op command with xml output
-    print color('Single op command in xml format: show interfaces terse | match lo0', 'info')
+    print color('Single op command in xml format: show interfaces terse'
+                ' | match lo0', 'info')
     print session.op_cmd('show interfaces terse | match lo0', req_format='xml')
 
     # single op command with xpath filtering
-    print color('Single op command with xpath filtering on package-information: show version', 'info')
+    print color('Single op command with xpath filtering on package-'
+                'information: show version', 'info')
     print session.op_cmd('show version', xpath_expr='//package-information')
 
     # Try a list of op commands, includes the following:
@@ -35,6 +38,7 @@ def op_commands(session, op_list):
 
 
 def shell_commands(session, shell_list):
+    """ Run shell commands. """
     # try a single shell command
     print color('Single shell command: pwd', 'info')
     print session.shell_cmd('pwd')
@@ -55,23 +59,28 @@ def shell_commands(session, shell_list):
 
 
 def conn_timeout_test(host):
+    """ Connect to a device that doesn't exist, hoping for a timeout. """
     try:
         Jaide(host, 'asdf', '123', connect_timeout=10)
     except socket.timeout:
         print color('The connection failed, as expected')
         return True
-    print color('The connection did not fail, check settings for this test.', 'error')
+    print color('The connection did not fail, check settings for this test.',
+                'error')
 
 
 def commit_check_test(session, set_list):
+    """ Run a commit check. """
     print session.commit_check(set_list)
 
 
 def compare_config_test(session, set_list):
+    """ Run a 'show | compare'. """
     print session.compare_config(set_list)
 
 
 def commit_tests(session):
+    """ Attempt all manner of commit types. """
     print color('Starting commit log', 'info')
     print session.op_cmd('show system commit')
 
@@ -81,8 +90,10 @@ def commit_tests(session):
     print color('Attempting blank commit with comment:', 'info')
     print session.commit(comment="blank with comment")
 
-    print color('Attempting blank commit with comment and synchronize:', 'info')
-    print session.commit(comment="blank with comment and synch", synchronize=True)
+    print color('Attempting blank commit with comment and synchronize:',
+                'info')
+    print session.commit(comment="blank with comment and synch",
+                         synchronize=True)
 
     print color('Attempting blank commit confirmed for 20 minutes:', 'info')
     print session.commit(confirmed=1200)
@@ -99,11 +110,13 @@ def commit_tests(session):
 
 
 def config_diff_test(session, second_host):
+    """ Perform a config diff with a second device. """
     for output in session.diff_config(second_host):
         print output
 
 
 def scp_tests(session, remote_dir, local_dir, remote_file, local_file):
+    """ Try all four directions of SCP operations. """
     print color('Copying a single file TO device', 'info')
     print session.scp_push(local_file, remote_dir, True)
     session.shell_cmd('rm %s/%s' % (remote_dir, os.path.basename(local_file)))
@@ -113,7 +126,8 @@ def scp_tests(session, remote_dir, local_dir, remote_file, local_file):
 
     print color('Copying a directory TO device', 'info')
     print session.scp_push(local_dir, remote_dir, True)
-    session.shell_cmd('rm -R %s/%s' % (remote_dir, os.path.basename(local_dir)))
+    session.shell_cmd('rm -R %s/%s' % (remote_dir,
+                                       os.path.basename(local_dir)))
 
     print color('Copying a directory FROM device', 'info')
     print session.scp_pull(remote_dir, local_dir, True)
@@ -121,13 +135,16 @@ def scp_tests(session, remote_dir, local_dir, remote_file, local_file):
 # needed for '-h' to be a help option
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+
 @click.command(context_settings=CONTEXT_SETTINGS,
                help="Run the test suite. Warning: Several commits will be made!")
 @click.option('-i', '--host', prompt='First host')
 @click.option('-u', '--username', prompt='First host username')
-@click.password_option('-p', '--password', prompt='First host password', confirmation_prompt=False)
+@click.password_option('-p', '--password', prompt='First host password',
+                       confirmation_prompt=False)
 @click.option('-I', '--second-host', prompt='Second host for root account')
-@click.password_option('-P', '--second-password', prompt='Second password for root account', confirmation_prompt=False)
+@click.password_option('-P', '--second-password', confirmation_prompt=False,
+                       prompt='Second password for root account')
 @click.option('-H', '--third-host', prompt='Third host that doesn\'t exist')
 @click.option('-D', '--remote-dir', prompt="Directory on remote device",
               type=click.Path(file_okay=False))
@@ -148,8 +165,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 def main(host, username, password, second_host, second_password, third_host,
          remote_dir, local_dir, remote_file, local_file, set_list, op_list,
          shell_list):
+    """ Test suite for testing the jaide package core.py. """
     # open connection
-    print color('Connecting to %s with %s / %s' % (host, username, password), 'info')
+    print color('Connecting to %s with %s / %s' % (host, username,
+                                                   password), 'info')
     session = Jaide(host, username, password)
 
     # test op and shell commands
@@ -164,7 +183,8 @@ def main(host, username, password, second_host, second_password, third_host,
 
     # changing to the root user will test other use case of migration from
     # shell to cli on initialization of the connection
-    print color('\nChanging parameters to root:%s@%s' % (second_password, second_host), 'info')
+    print color('\nChanging parameters to root:%s@%s' % (second_password,
+                                                         second_host), 'info')
     session.username = 'root'
     session.password = second_password
     session.host = second_host
@@ -178,8 +198,10 @@ def main(host, username, password, second_host, second_password, third_host,
     print color('Testing SCP operations', 'info')
     scp_tests(session, remote_dir, local_dir, remote_file, local_file)
 
-    print color('\nTesting modifying conn_timeout to 10 seconds connection that will fail:', 'info')
-    print color('the method \'connect\' should clock total time of 10 seconds:', 'info')
+    print color('\nTesting modifying conn_timeout to 10 seconds connection '
+                'that will fail:', 'info')
+    print color('the method \'connect\' should clock total time of 10 '
+                'seconds:', 'info')
     cProfile.runctx('conn_timeout_test(host)', globals(), {'host': third_host})
 
     print color('Disconnecting session again.', 'info')
@@ -208,7 +230,8 @@ def main(host, username, password, second_host, second_password, third_host,
     commit_tests(session)
 
     # change session timeout
-    print color('changing timeout to 1 second and doing an RSI, which should timeout', 'info')
+    print color('changing timeout to 1 second and doing an RSI, '
+                'which should timeout', 'info')
     session.session_timeout = 1
     try:
         print session.op_cmd('request support information')
