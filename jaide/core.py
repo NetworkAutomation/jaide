@@ -46,7 +46,7 @@ class Jaide():
     """
 
     def __init__(self, host, username, password, connect_timeout=5,
-                 session_timeout=300, conn_type="paramiko", port=22):
+                 session_timeout=300, connect="paramiko", port=22):
         """ Initialize the Jaide object.
 
         Purpose: This is the initialization function for the Jaide class,
@@ -70,22 +70,34 @@ class Jaide():
                               | timeframe, the session is declared dead,
                               | and times out.
         @type session_timeout: int
-        @param conn_type: The connection type that should be made. Several
+        @param connect: The connection type that should be made. Several
                         | options are available: 'ncclient', 'scp', and
-                        | 'paramiko', 'shell' and 'root'. 'paramiko' is
-                        | used for operational commands, to allow for
-                        | pipes. 'scp' is used for copying files to/from
-                        | the device, and uses an SCP connection. 'shell'
-                        | is for sending shell commands. 'root' is when the
-                        | user is doing operational commands, but is logged
-                        | in as root, (requires handling separately, since
-                        | this puts the sessions into a shell prompt)
-                        | 'ncclient' is used for all other commands. Even
-                        | though we default to paramiko, the @check_instance
-                        | decorator function will handle sliding between
-                        | session types depending on what function is being
-                        | called.
-        @type conn_type: str
+                        | 'paramiko', 'shell' and 'root'.
+                        |
+                        | 'paramiko' is used for operational commands
+                        | (couldn't use ncclient because of lack of pipes `|`
+                        | support.
+                        |
+                        | 'scp' is used for copying files to/from
+                        | the device, and uses an SCP connection.
+                        |
+                        | 'shell' is for sending shell commands.
+                        |
+                        | 'root' is when the user is doing operational
+                        | commands, but is logged in as root, (requires
+                        | handling separately, since this puts the session
+                        | into a shell prompt)
+                        |
+                        | 'ncclient' is used for all other commands.
+                        |
+                        | We default to 'paramiko', but this parameter can be
+                        | set to False to prevent connecting on object
+                        | instantiation. The @check_instance decorator function
+                        | will handle sliding between session types depending
+                        | on what function is being called, meaning generally
+                        | self.conn_type and this connect parameter can be
+                        | ignored.
+        @type connect: str
         @param port: The destination port on the device to attempt the
                    | connection.
         @type port: int
@@ -102,11 +114,12 @@ class Jaide():
         self.connect_timeout = connect_timeout
         self._shell = ""
         self._scp = ""
-        self.conn_type = conn_type
+        self.conn_type = connect
         self._in_cli = False
         self._filename = ""
         # make the connection to the device
-        self.connect()
+        if connect:
+            self.connect()
 
     def check_instance(function):
         """ Wrapper that tests the type of _session.
@@ -128,10 +141,10 @@ class Jaide():
                 "commit": manager.Manager,
                 "compare_config": manager.Manager,
                 "commit_check": manager.Manager,
-                "dev_info": manager.Manager,
+                "device_info": manager.Manager,
                 "diff_config": manager.Manager,
                 "health_check": manager.Manager,
-                "int_errors": manager.Manager,
+                "interface_errors": manager.Manager,
                 "op_cmd": paramiko.client.SSHClient,
                 "shell_cmd": paramiko.client.SSHClient,
                 "scp_pull": paramiko.client.SSHClient,
@@ -444,7 +457,7 @@ class Jaide():
         print(output, end='\r')
 
     @check_instance
-    def dev_info(self):
+    def device_info(self):
         """ Pull basic device information.
 
         Purpose: This function grabs the hostname, model, running version, and
@@ -650,7 +663,7 @@ class Jaide():
         return output
 
     @check_instance
-    def int_errors(self):
+    def interface_errors(self):
         """ Parse 'show interfaces extensive' and return interfaces with errors.
 
         Purpose: This function is called for the -e flag. It will let the user

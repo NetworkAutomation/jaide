@@ -433,9 +433,9 @@ def copy_file(conn, direction, source, dest, multi, progress):
     return output
 
 
-def dev_info(conn):
+def device_info(conn):
     """Get basic device information."""
-    return '\n' + conn.dev_info()
+    return '\n' + conn.device_info()
 
 
 def diff_config(conn, second_host):
@@ -486,9 +486,9 @@ def health_check(conn):
     return '\n' + conn.health_check()
 
 
-def int_errors(conn):
+def interface_errors(conn):
     """Get any interface errors from the device."""
-    response = '\n' + conn.int_errors()
+    response = '\n' + conn.interface_errors()
     if 'No interface errors' in response:
         response = color(response)
     else:
@@ -634,8 +634,8 @@ def main():
         "commit_blank": commit,
         "diff_config": diff_config,
         "health_check": health_check,
-        "info": dev_info,
-        "int_error": int_errors,
+        "info": device_info,
+        "int_error": interface_errors,
         "make_commit": commit,
         "scp": copy_file,
         "shell": multi_cmd
