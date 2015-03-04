@@ -763,8 +763,6 @@ class Jaide():
         @returns: True if the copy succeeds.
         @rtype: bool
         """
-        # TODO: add scp permissions error issue to github
-        # TODO: add scp file/folder exist error issue to github
         # set up the progress callback if they want to see the process
         self._scp._progress = self._copy_status if progress else None
         # retrieve the file(s)
