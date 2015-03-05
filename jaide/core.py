@@ -116,7 +116,7 @@ class Jaide():
         self._scp = ""
         self.conn_type = connect
         self._in_cli = False
-        self._filename = ""
+        self._filename = None
         # make the connection to the device
         if connect:
             self.connect()
@@ -452,7 +452,8 @@ class Jaide():
             (float(sent) / float(size) * 100), path.normpath(filename))
         output += (' ' * (120 - len(output)))
         if filename != self._filename:
-            print('')
+            if self._filename is not None:
+                print('')
             self._filename = filename
         print(output, end='\r')
 
@@ -767,8 +768,10 @@ class Jaide():
         @type src: str
         @param dest: destination string of where to put the file(s)/dir
         @type dest: str
-        @param progress: set to true to have the progress callback be
-                       | returned as the operation is copying.
+        @param progress: set to `True` to have the progress callback be
+                       | printed as the operation is copying. Can also pass
+                       | a function pointer to handoff the progress callback
+                       | elsewhere.
         @type progress: bool
         @param preserve_times: Set to false to have the times of the copied
                              | files set at the time of copy.
@@ -777,10 +780,17 @@ class Jaide():
         @rtype: bool
         """
         # set up the progress callback if they want to see the process
-        self._scp._progress = self._copy_status if progress else None
+        if progress is True:
+            self._scp._progress = self._copy_status
+        # redirect to another function
+        elif hasattr(progress, '__call__'):
+            self._scp._progress = progress
+        else:  # no progress callback
+            self._scp._progress = None
         # retrieve the file(s)
         self._scp.get(src, dest, recursive=True, preserve_times=preserve_times)
-        return True
+        self._filename = None
+        return False
 
     @check_instance
     def scp_push(self, src, dest, progress=False, preserve_times=True):
@@ -790,8 +800,10 @@ class Jaide():
         @type src: str
         @param dest: destination string of where to put the file(s)/dir
         @type dest: str
-        @param progress: set to true to have the progress callback be
-                       | returned as the operation is copying.
+        @param progress: set to `True` to have the progress callback be
+                       | printed as the operation is copying. Can also pass
+                       | a function pointer to handoff the progress callback
+                       | elsewhere.
         @type progress: bool
         @param preserve_times: Set to false to have the times of the copied
                              | files set at the time of copy.
@@ -800,10 +812,17 @@ class Jaide():
         @rtype: bool
         """
         # set up the progress callback if they want to see the process
-        self._scp._progress = self._copy_status if progress else None
+        if progress is True:
+            self._scp._progress = self._copy_status
+        # redirect to another function
+        elif hasattr(progress, '__call__'):
+            self._scp._progress = progress
+        else:  # no progress callback
+            self._scp._progress = None
         # push the file(s)
         self._scp.put(src, dest, recursive=True, preserve_times=preserve_times)
-        return True
+        self._filename = None
+        return False
 
     @check_instance
     def shell_cmd(self, command=""):
