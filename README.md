@@ -20,7 +20,7 @@ Contributors: [Nathan Printz](https://github.com/nprintz) and [Geoff Rhodes](htt
 
 ## Description:
 
-The `jaide` package contains two parts: a class library for developers (from here on called Jaide), and a CLI tool for network engineers (referred to as the CLI tool). The function of the Jaide class is to allow an engineer or developer to create and use a Jaide object for manipulating Junos devices. Similarly, the CLI tool can be used to manipulate or retrieve information/files/output from one or many devices. Some features of both Jaide and the CLI tool include being able to poll devices for interface errors, grab basic system information, send any operational mode commands, send and commit a file containing a list of set commands, copy files to/from devices, get a configuration diff between two devices, perform a commit check, and run shell commands. A full list of features and their usage is available in the [documentation](https://github.com/NetworkAutomation/jaide).  
+The `jaide` package contains two parts: a class library for developers (from here on called Jaide), and a CLI tool for network engineers (referred to as the CLI tool). The function of the Jaide class is to allow an engineer or developer to create and use a Jaide object for manipulating Junos devices. Similarly, the CLI tool can be used to manipulate or retrieve information/files/output from one or many devices. Some features of both Jaide and the CLI tool include being able to poll devices for interface errors, grab basic system information, send any operational mode commands, send and commit a file containing a list of set commands, copy files to/from devices, get a configuration diff between two devices, perform a commit check, and run shell commands. A full list of features and their usage is available in the [documentation](READ THE DOCS page).  
 
 Jaide, and therefore the CLI tool and the Jaide GUI, leverage several connection types to JunOS devices using python, including: ncclient, paramiko, and scp. With this base of packages, our goal is the ability to perform as many functions that you can do by directly connecting to a device from a remote, programmatic interface (either Jaide object, or the CLI tool). Since we can perform these functions easily from one remote interface, we can also leverage multiprocessing for manipulating multiple devices simultaneously. Both the CLI tool and the GUI leverage multiprocessing for this purpose.  
 
@@ -73,6 +73,7 @@ Pip should handle retrieving any necessary requirements, but we list them here f
 
 The CLI tool has the following additional requirements:  
 [COLORAMA 0.3.3](https://pypi.python.org/pypi/colorama) - https://pypi.python.org/pypi/colorama  
+TODO: maybe not?  
 [CLICK 3.3](http://click.pocoo.org/3/) - http://click.pocoo.org/3/  
 
 ## Usage: 

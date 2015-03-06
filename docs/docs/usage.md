@@ -1,6 +1,10 @@
 Basic Usage  
 ===========  
 
+TODO: update links  
+TODO: update usage for cli tool  
+This page is for Basic usage of both the CLI tool and the Jaide library. Expansive information can be found in the respective sections of the [documentation](READ THE DOCS page).  
+
 ## Jaide CLI tool  
 There are many combinations of arguments that can be used to perform all functions available using the Jaide.py command line tool. Two arguments are always required: the `-i` target device(s), and one of the arguments for performing a given function [ -b | -c | -e | --health | --info | -s | --scp | --shell ]. These functions are detailed below in the second table. 
 
