@@ -17,8 +17,8 @@ TODO: update links.
 
 
  * **Are you wanting to write python scripts that can manipulate Junos?**  
- 	- Follow the [pip installation instructions](#installation.md) and take a look at the [Jaide Class Examples](examples/lib/examples.md) section of the docs.  
+ 	- Follow the [pip installation instructions](installation.md) and take a look at the [Jaide Class Examples](examples/lib/examples.md) section of the docs.  
 
  * **Are you wanting to help work on the Jaide project, or just want to take a look under the hood of the CLI tool or Jaide library?**  
- 	- Download the source code, and start poking around!
+ 	- [Download](https://github.com/NetworkAutomation/jaide) the source code, and start poking around!
  
