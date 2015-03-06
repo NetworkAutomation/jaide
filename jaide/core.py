@@ -106,7 +106,7 @@ class Jaide():
         @rtype: object
         """
         # store object properties and set initial values.
-        self.host = host
+        self.host = host.strip()
         self.port = port
         self.username = username
         self.password = password
