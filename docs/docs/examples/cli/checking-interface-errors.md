@@ -15,22 +15,22 @@ The errors we are looking for are in the `Input Errors` and `Output Errors` sect
 
 **Multiple Devices**  
 
-	nprintz$ python jaide.py -i ~/desktop-link/iplist.txt -e
-	Username: root
-	Password: 
-	==================================================
-	Results from device: 172.25.1.22
-	No interface errors were detected on this device.
-
-	==================================================
-	Results from device: 172.25.1.21
-	No interface errors were detected on this device.
-
-	==================================================
-	Results from device: 172.25.1.51
-	No interface errors were detected on this device.
-
-	==================================================
-	Results from device: 172.25.1.61
-	ge-0/0/3 has 6090886 of input-l2-channel-errors.
-	ge-0/0/4 has 6090885 of input-l2-channel-errors.
+	nprintz$ python jaide.py -i ~/desktop-link/iplist.txt -e  
+	Username: root  
+	Password:  
+	==================================================  
+	Results from device: 172.25.1.22  
+	No interface errors were detected on this device.  
+  
+	==================================================  
+	Results from device: 172.25.1.21  
+	No interface errors were detected on this device.  
+  
+	==================================================  
+	Results from device: 172.25.1.51  
+	No interface errors were detected on this device.  
+  
+	==================================================  
+	Results from device: 172.25.1.61  
+	ge-0/0/3 has 6090886 of input-l2-channel-errors.  
+	ge-0/0/4 has 6090885 of input-l2-channel-errors.  
