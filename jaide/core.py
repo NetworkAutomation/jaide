@@ -638,10 +638,19 @@ class Jaide():
                                + '\t' + i.xpath('mastership-state')[0].text)
                 # EX/MX cpu/memory response tags
                 if i.xpath('memory-buffer-utilization') != []:
-                    output += ('\n\tUsed Memory %: \t' +
-                               i.xpath('memory-buffer-utilization')[0].text +
-                               '\n\tCPU Temp: \t' +
-                               i.xpath('cpu-temperature')[0].text)
+                    # TODO: had to add try blocks for EX2200-C which don't have cpu-temp. a better way to handle this?
+                    try:
+                        mem = i.xpath('memory-buffer-utilization')[0].text
+                    except IndexError:
+                        pass
+                    else:
+                        try:
+                            temp = i.xpath('cpu-tempature')[0].text
+                        except IndexError:
+                            pass
+                        else:
+                            output += ('\n\tUsed Memory %: \t%s\n\tCPU Temp:'
+                                       ' \t%s' % (mem, temp))
                 # SRX cpu/memory response tags
                 if i.xpath('memory-system-total-util') != []:
                     output += ('\n\tUsed Memory %: \t' +
