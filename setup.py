@@ -98,7 +98,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'jaide=jaide.jaide_cli:main',
+            'jaide=jaide.jaide_click:run',
         ],
     },
 )
