@@ -237,7 +237,7 @@ class Jaide():
         # ncclient doesn't support a truly blank commit, so if nothing is
         # passed, use 'annotate system' to make a blank commit
         if not commands:
-            commands = "annotate system"
+            commands = 'annotate system ""'
         clean_cmds = []
         for cmd in clean_lines(commands):
             clean_cmds.append(cmd)
@@ -257,18 +257,20 @@ class Jaide():
                                            synchronize=synchronize)
         self.unlock()
         if results:
+            if req_format == 'xml':
+                return results
             # commit() DOES NOT return a parse-able xml tree, so we
             # convert it to an ElementTree xml tree.
             results = ET.fromstring(results.tostring)
             out = ''
-            if req_format == 'xml':
-                return results
             for i in results.iter():
                 # the success message is just a tag, so we need to get it
                 # specifically.
                 if i.tag == 'commit-check-success':
                     out += 'configuration check succeeds\n'
                 elif i.tag == 'commit-success':
+                    out += 'commit complete\n'
+                elif i.tag == 'ok':
                     out += 'commit complete\n'
                 # this is for normal output with a tag and inner text, it will
                 # strip the inner text and add it to the output.
