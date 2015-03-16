@@ -89,9 +89,10 @@ def open_connection(ip, username, password, function, args, write=False,
         return output
 
 
-def command(jaide, commands, format, xpath):
+def command(jaide, commands, format="text", xpath=False):
     output = ""
     for cmd in clean_lines(commands):
+        expression = ""
         output += color('> ' + cmd + '\n', 'info')
         # Get xpath expression from the command, if it is there.
         # If there is an xpath expr, the output will be xml,
@@ -99,14 +100,16 @@ def command(jaide, commands, format, xpath):
         #
         # Example command forcing xpath: show route % //rt-entry
         if len(cmd.split('%')) == 2:
-            xpath = cmd.split('%')[1].strip()
+            expression = cmd.split('%')[1].strip()
             cmd = cmd.split('%')[0] + '\n'
-        if xpath:
+        elif xpath is not False:
+            expression = xpath
+        if expression:
             try:
                 output += jaide.op_cmd(command=cmd, req_format='xml',
-                                       xpath_expr=xpath) + '\n'
+                                       xpath_expr=expression) + '\n'
             except lxml.etree.XMLSyntaxError:
-                output += color('Xpath expression resulted in no response.',
+                output += color('Xpath expression resulted in no response.\n',
                                 'error')
         else:
             output += jaide.op_cmd(cmd, req_format=format) + '\n'
