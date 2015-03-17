@@ -261,27 +261,16 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time):
                                  " both be omitted.")
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
-        write_out(wrap.open_connection(ip,
-                  ctx.obj['conn']['username'],
-                  ctx.obj['conn']['password'],
-                  wrap.commit,
-                  [commands, check, sync, comment, confirm,
-                   ctx.obj['at_time'], blank],
-                  ctx.obj['out'],
-                  ctx.obj['conn']['connect_timeout'],
-                  ctx.obj['conn']['session_timeout'],
-                  ctx.obj['conn']['port'])
-                  )
-        # mp_pool.apply_async(wrap.open_connection, args=(ip,
-        #                     ctx.obj['conn']['username'],
-        #                     ctx.obj['conn']['password'],
-        #                     wrap.commit,
-        #                     [commands, check, sync, comment, confirm,
-        #                      ctx.obj['at_time'], blank],
-        #                     ctx.obj['out'],
-        #                     ctx.obj['conn']['connect_timeout'],
-        #                     ctx.obj['conn']['session_timeout'],
-        #                     ctx.obj['conn']['port']), callback=write_out)
+        mp_pool.apply_async(wrap.open_connection, args=(ip,
+                            ctx.obj['conn']['username'],
+                            ctx.obj['conn']['password'],
+                            wrap.commit,
+                            [commands, check, sync, comment, confirm,
+                             ctx.obj['at_time'], blank],
+                            ctx.obj['out'],
+                            ctx.obj['conn']['connect_timeout'],
+                            ctx.obj['conn']['session_timeout'],
+                            ctx.obj['conn']['port']), callback=write_out)
     mp_pool.close()
     mp_pool.join()
 
@@ -314,7 +303,6 @@ def compare(ctx, commands):
 @click.option('--progress/--no-progress', default=False, help="Flag to show "
               "progress as the transfer happens. Defaults to False for "
               "multiple devices, as output will be jumbled.")
-# TODO: will need to set ctx.obj['multi'] tracking multi devices to know if we're renaming the output file.
 @click.pass_context
 def pull(ctx, source, destination, progress):
     """ Copy file(s) from device(s) -> local machine.
@@ -359,7 +347,6 @@ def pull(ctx, source, destination, progress):
 @click.option('--progress/--no-progress', default=False, help="Flag to show "
               "progress as the transfer happens. Defaults to False for "
               "multiple devices, as output would be jumbled.")
-# TODO: will need to set ctx.obj['multi'] tracking multi devices to know if we're renaming the output file.
 @click.pass_context
 def push(ctx, source, destination, progress):
     """ Copy file(s) from local machine -> device(s).
@@ -394,7 +381,10 @@ def push(ctx, source, destination, progress):
     mp_pool.join()
 
 
-@main.command(context_settings=CONTEXT_SETTINGS)
+@main.command(context_settings=CONTEXT_SETTINGS, help="Execute operational "
+              "mode command(s).\n\nMore than one command can be sent as a "
+              "comma separated list, or as a filepath containing a command on"
+              " each line.")
 @click.argument('commands', required=True)
 @click.option('-f', '--format', type=click.Choice(['text', 'xml']),
               default='text', help="The requested format of the response.")
@@ -414,12 +404,12 @@ def operational(ctx, commands, format, xpath):
               | being manipulated by other previous functions. Needed by any
               | function with the @click.pass_context decorator.
     @type ctx: click.Context
-    @param commands: The shell commands to send to the device. Can be one of
+    @param commands: The op commands to send to the device. Can be one of
                    | four things:
-                   |    1. A single shell command as a string.
-                   |    2. A string of comma separated shell commands.
-                   |    3. A python list of shell commands.
-                   |    4. A filepath of a file with shell commands on each
+                   |    1. A single op command as a string.
+                   |    2. A string of comma separated op commands.
+                   |    3. A python list of op commands.
+                   |    4. A filepath of a file with op commands on each
                    |         line.
     @type commands: str
     @param format: String specifying what format to request for the
@@ -447,7 +437,8 @@ def operational(ctx, commands, format, xpath):
     mp_pool.join()
 
 
-@main.command(name='info', context_settings=CONTEXT_SETTINGS)
+@main.command(name='info', context_settings=CONTEXT_SETTINGS, help="Get basic"
+              " device information.")
 @click.pass_context
 def device_info(ctx):
     """ Get basic device information.
@@ -471,7 +462,11 @@ def device_info(ctx):
     mp_pool.join()
 
 
-@main.command(context_settings=CONTEXT_SETTINGS)
+@main.command(context_settings=CONTEXT_SETTINGS, help="Compare the "
+              "configuration differences between two devices.\n\nFor help on "
+              "reading the output, view the following page: "
+              "http://www.git-tower.com/learn/ebook/command-line/advanced-"
+              "topics/diffs")
 @click.option('-i', '--second-host', required=True, help="The second"
               " hostname or IP address to compare against.")
 @click.option('-m', '--mode', type=click.Choice(['set', 'stanza']),
@@ -508,7 +503,8 @@ def diff_config(ctx, second_host, mode):
     mp_pool.join()
 
 
-@main.command(name="health", context_settings=CONTEXT_SETTINGS)
+@main.command(name="health", context_settings=CONTEXT_SETTINGS, help="Get "
+              "alarm and device health information.")
 @click.pass_context
 def health_check(ctx):
     """ Get alarm and device health information.
@@ -535,10 +531,11 @@ def health_check(ctx):
     mp_pool.join()
 
 
-@main.command(name="errors", context_settings=CONTEXT_SETTINGS)
+@main.command(name="errors", context_settings=CONTEXT_SETTINGS, help="Get any"
+              " interface errors from the device.")
 @click.pass_context
 def interface_errors(ctx):
-    """Get any interface errors from the device.
+    """ Get any interface errors from the device.
 
     @param ctx: The click context paramter, for receiving the object dictionary
               | being manipulated by other previous functions. Needed by any
@@ -562,7 +559,10 @@ def interface_errors(ctx):
     mp_pool.join()
 
 
-@main.command(context_settings=CONTEXT_SETTINGS)
+@main.command(context_settings=CONTEXT_SETTINGS, help="Send shell commands to "
+              "the device(s).\n\nMultiple shell commands can be sent using a "
+              "comma separate list, or a filepath to a file containing shell "
+              "commands on each line.")
 @click.argument('commands', required=True)
 @click.pass_context
 def shell(ctx, commands):
