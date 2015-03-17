@@ -30,3 +30,13 @@ def strip_color(search):
     """ Remove ANSI/Win32 color codes from string. """
     ansi_escape = re.compile(r'\x1b[^m]*m')
     return ansi_escape.sub('', search)
+
+
+def color_diffs(output):
+    """ Add color ANSI codes for diff lines. """
+    output = output.replace('--- ', color('--- ', 'error'))
+    output = output.replace('\n+++ ', color('\n+++ '))
+    output = output.replace('\n-', color('\n-', 'error'))
+    output = output.replace('\n+', color('\n+'))
+    output = output.replace('\n@@ ', color('\n@@ ', 'info'))
+    return output

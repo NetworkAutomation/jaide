@@ -19,7 +19,7 @@ import lxml
 # intra-Jaide imports
 from core import Jaide
 from utils import clean_lines
-from color_utils import color
+from color_utils import color, color_diffs
 # The rest are non-standard modules:
 from ncclient.transport import errors
 from ncclient.operations.rpc import RPCError
@@ -120,12 +120,12 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank):
     # set the commands to do nothing if the user wants a blank commit.
     if blank:
         commands = 'annotate system ""'
-    # add show | compare output
     output = ""
+    # add show | compare output
     if commands != "" and not blank:
         output += color("show | compare:\n", 'info')
         try:
-            output += jaide.compare_config(commands) + '\n'
+            output += color_diffs(jaide.compare_config(commands)) + '\n'
         except RPCError as e:
             output += color("Could not get config comparison results before"
                             " committing due to the following error:\n%s" %
@@ -179,7 +179,7 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank):
 
 def compare(jaide, commands):
     output = color("show | compare:\n", 'info')
-    return output + jaide.compare_config(commands)
+    return output + color_diffs(jaide.compare_config(commands))
 
 
 def device_info(jaide):
@@ -188,7 +188,7 @@ def device_info(jaide):
 
 def diff_config(jaide, second_host, mode):
     try:
-        # iterate over the diff lines between the two devices, merging them
+        # create a list of all the lines that differ, and merge it.
         output = '\n'.join([diff for diff in
                             jaide.diff_config(second_host, mode.lower())])
     except errors.SSHError:
@@ -217,11 +217,7 @@ def diff_config(jaide, second_host, mode):
                        (jaide.host, second_host), 'info')
     else:
         # color removals as errors, and additions as success
-        output = output.replace('---', color('---', 'error'))
-        output = output.replace('+++', color('+++'))
-        output = output.replace('\n-', color('\n-', 'error'))
-        output = output.replace('\n+', color('\n+'))
-        output = output.replace('@@', color('@@', 'info'))
+        return color_diffs(output)
     return output
 
 
