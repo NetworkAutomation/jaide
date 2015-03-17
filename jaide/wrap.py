@@ -233,7 +233,7 @@ def interface_errors(jaide):
         return color(response, 'error')
 
 
-def pull(jaide, source, destination, progress):
+def pull(jaide, source, destination, progress, multi):
     output = color('Retrieving %s:%s, and putting it in %s\n' %
                    (jaide.host, source, path.normpath(destination)), 'info')
     # Check if the destination ends in a '/', if not, we need to add it.
@@ -243,8 +243,10 @@ def pull(jaide, source, destination, progress):
     # remotely, and not just the contents. Basically, this forces the behavior
     # 'scp -r /var/log /dest/loc' instead of 'scp -r /var/log/* /dest/loc'
     source = source[:-1] if source[-1] == '/' else source
+    source_file = path.basename(source) if not '' else path.basename(path.join(source, '..'))
+    dest_file = destination + jaide.host + '_' + source_file if multi else destination + source_file
     try:
-        jaide.scp_pull(source, destination, progress)
+        jaide.scp_pull(source, dest_file, progress)
         if progress:  # move to the next line if we were printing the progress
             click.echo('')
     except SCPException as e:
@@ -257,11 +259,11 @@ def pull(jaide, source, destination, progress):
                         'error')
     else:
         output += color('Received %s:%s and stored it in %s.\n' %
-                        (jaide.host, source, path.normpath(destination)))
+                        (jaide.host, source, path.normpath(dest_file)))
     return output
 
 
-def push(jaide, source, destination, progress):
+def push(jaide, source, destination, progress, multi=False):
     output = color('Pushing %s to %s:%s\n' % (source, jaide.host, destination),
                    'info')
     # Check if the destination ends in a '/', if not, we need to add it.
