@@ -46,6 +46,20 @@ class AliasedGroup(click.Group):
                  ', '.join(sorted(matches)))
 
 
+def at_time_validate(ctx, param, value):
+    """ Callback validating the at_time commit option. """
+    # if they are doing commit_at, ensure the input is formatted correctly.
+    if value is not None:
+        if (re.search(r'([0-2]\d)(:[0-5]\d){1,2}', value) is None and
+            re.search(r'\d{4}-[01]\d-[0-3]\d [0-2]\d:[0-5]\d(:[0-5]\d)?',
+                      value) is None):
+            raise click.BadParameter("A commit at time must be in one of the "
+                                     "two formats: 'hh:mm[:ss]' or "
+                                     "'yyyy-mm-dd hh:mm[:ss]' (seconds are "
+                                     "optional).")
+    ctx.obj['at_time'] = value
+
+
 @click.pass_context
 def write_validate(ctx, param, value):
     """ Validate the -w option. """
@@ -70,7 +84,53 @@ def write_validate(ctx, param, value):
         ctx.obj['out'] = None
 
 
-# TODO: can't change the name of prog from jaide_click.py in help text using click?
+def write_out(input):
+    """ Callback function to write the output from the script.
+
+    @param input: A tuple containing two things:
+                | 1. None or Tuple of file mode and destination filepath
+                | 2. The output to be dumped.
+                |
+                | If the first index of the tuple *is not* another tuple,
+                | the output will be written to sys.stdout. If the first
+                | index *is* a tuple, that tuple is further broken down
+                | into the mode ('single' for single file or 'multiple'
+                | for one file for each IP), and the destination filepath.
+    @type input: tuple
+
+    @returns: None
+    """
+    # peel off the to_file metadata from the output.
+    to_file, output = input
+    if to_file != "quiet":
+        try:
+            # split the to_file metadata into it's separate parts.
+            mode, dest_file = to_file
+        except TypeError:
+            # just dump the output if we had an internal problem with getting
+            # the metadata.
+            click.echo(output)
+        else:
+            ip = output.split('device: ')[1].split('\n')[0].strip()
+            if mode in ['m', 'multiple']:
+                # put the IP in front of the filename if we're writing each
+                # device to its own file.
+                dest_file = path.join(path.split(dest_file)[0], ip + "_" +
+                                      path.split(dest_file)[1])
+            try:
+                out_file = open(dest_file, 'a+b')
+            except IOError as e:
+                print color("Could not open output file '%s' for writing. "
+                            "Output would have been:\n%s" %
+                            (dest_file, output), 'error')
+                print color('Here is the error for opening the output file:' +
+                            str(e), 'error')
+            else:
+                click.echo(output, nl=False, file=out_file)
+                print color('%s output appended to: %s' % (ip, dest_file))
+                out_file.close()
+
+
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 @click.option('-i', '--ip', 'host', prompt="IP or hostname of Junos device",
               help="The target hostname(s) or IP(s). Can be a comma separated"
@@ -119,104 +179,19 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
     }
     if quiet:
         ctx.obj['out'] = "quiet"
-    # function_translation = {
-    #     "command": do_command
-    # }
-    # # grab all the IPs
-    # ip_list = [ip for ip in clean_lines(host)]
-    # function = function_translation[ctx.invoked_subcommand]
-    # if len(ip_list) > 1:
-    #     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
-    #     # ctx.obj['hosts'] = {}
-    #     for ip in ip_list:
-    #         # ctx.obj['hosts'][ip] = open_connection(ctx, ip, username, password,
-    #         #                                        connect_timeout,
-    #         #                                        session_timeout, port, function)
-    #         # mp_pool.apply_async(function_translation[ctx.invoked_subcommand],
-    #         #                     args=(ctx.obj['hosts'][ip], ctx.args))
-
-    #         # TODO: got it working by making args a tuple, and pulling context object out, perhaps can go back to not needing do_command()?
-    #         mp_pool.apply_async(open_connection, args=(ctx, ip, username, password, function, ctx.args[1:],
-    #                             connect_timeout, session_timeout, port), callback=write_out)
-    #         # open_connection(ctx, ip, username, password, function, ctx.args[1:],
-    #         #                     connect_timeout, session_timeout, port)
-    #     mp_pool.close()
-    #     mp_pool.join()
-    # else:
-    #     write_out(open_connection(ctx, ip_list[0], username,
-    #                               password, function, ctx.args[1:],
-    #                               connect_timeout, session_timeout, port))
-    # sys.exit()
 
 
-def write_out(input):
-    """ Callback function to write the output from the script.
-
-        @param input: A tuple containing two things:
-                    | 1. None or Tuple of file mode and destination filepath
-                    | 2. The output to be dumped.
-                    |
-                    | If the first index of the tuple *is not* another tuple,
-                    | the output will be written to sys.stdout. If the first
-                    | index *is* a tuple, that tuple is further broken down
-                    | into the mode ('single' for single file or 'multiple'
-                    | for one file for each IP), and the destination filepath.
-        @type input: tuple
-
-        @returns: None
-    """
-    # peel off the to_file metadata from the output.
-    to_file, output = input
-    if to_file != "quiet":
-        try:
-            # split the to_file metadata into it's separate parts.
-            mode, dest_file = to_file
-        except TypeError:
-            # just dump the output if we had an internal problem with getting
-            # the metadata.
-            click.echo(output)
-        else:
-            ip = output.split('device: ')[1].split('\n')[0].strip()
-            if mode in ['m', 'multiple']:
-                # put the IP in front of the filename if we're writing each device
-                # to its own file.
-                dest_file = path.join(path.split(dest_file)[0], ip + "_" +
-                                      path.split(dest_file)[1])
-            try:
-                out_file = open(dest_file, 'a+b')
-            except IOError as e:
-                print color("Could not open output file '%s' for writing. Output "
-                            "would have been:\n%s" % (dest_file, output), 'error')
-                print color('Here is the error for opening the output file:' + str(e),
-                            'error')
-            else:
-                click.echo(output, nl=False, file=out_file)
-                print color('%s output appended to: %s' % (ip, dest_file))
-                out_file.close()
-
-
-def at_time_validate(ctx, param, value):
-    """ Callback validating the at_time commit option. """
-    # if they are doing commit_at, ensure the input is formatted correctly.
-    if value is not None:
-        if (re.search(r'([0-2]\d)(:[0-5]\d){1,2}', value) is None and
-            re.search(r'\d{4}-[01]\d-[0-3]\d [0-2]\d:[0-5]\d(:[0-5]\d)?',
-                      value) is None):
-            raise click.BadParameter("A commit at time must be in one of the "
-                                     "two formats: 'hh:mm[:ss]' or "
-                                     "'yyyy-mm-dd hh:mm[:ss]' (seconds are "
-                                     "optional).")
-    ctx.obj['at_time'] = value
-
-
-@main.command(context_settings=CONTEXT_SETTINGS)
+@main.command(context_settings=CONTEXT_SETTINGS, help="Execute a commit "
+              "against the device.\n\nThis function will send set commands to"
+              " a device, and commit the changes. Options exist for "
+              "confirming, comments, synchronizing, checking, blank commits,"
+              " or delaying to a later time/date.")
 @click.argument('commands', default='annotate system ""', required=True)
 @click.option('--blank/--no-blank', default=False, help="Flag to indicate to"
               " make a commit with no changes. Defaults to False. Functionally"
               " this commits one set command: 'annotate system'")
 @click.option('--check/--no-check', default=False, help="Flag to indicate to"
               " only do a commit check. Defaults to False.")
-# TODO: compare only
 # TODO: blank cannot work since commands are required. (maybe only SRX doesn't allow 'annotate system')
 @click.option('--sync/--no-sync', default=False, help="Flag to indicate to"
               "make the commit synchronize between routing engines. Defaults"
@@ -227,11 +202,13 @@ def at_time_validate(ctx, param, value):
               " a commit confirmed timeout, **in seconds**. If the device "
               " does not receive another commit within the timeout, the "
               "changes will be rolled back. Allowed range is 60 to 7200 "
-              "seconds.")
+              "seconds. --confirm and --at are mutually exclusive, and confirm"
+              " will override.")
 @click.option('-a', '--at', 'at_time', callback=at_time_validate,
               help="Specify the time at which the commit should occur. "
-              "Can be in one of two formats: hh:mm[:ss]  or  yyyy-mm-dd "
-              "hh:mm[:ss]")
+              "--at and --confirm are mutually exclusive, and confirm will"
+              " override. Can be in one of two formats: hh:mm[:ss]  or  "
+              "yyyy-mm-dd hh:mm[:ss]")
 @click.pass_context
 def commit(ctx, commands, blank, check, sync, comment, confirm, at_time):
     """ Execute a commit against the device.
@@ -300,7 +277,7 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time):
         #                     ctx.obj['conn']['password'],
         #                     wrap.commit,
         #                     [commands, check, sync, comment, confirm,
-        #                      ctx.obj['at_time']],
+        #                      ctx.obj['at_time'], blank],
         #                     ctx.obj['out'],
         #                     ctx.obj['conn']['connect_timeout'],
         #                     ctx.obj['conn']['session_timeout'],
@@ -313,7 +290,7 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time):
 @click.argument('commands', required=True)
 @click.pass_context
 def compare(ctx, commands):
-    """ Retrieve 'show | compare' output for set commands. """
+    """ Run 'show | compare' for set commands. """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
         mp_pool.apply_async(wrap.open_connection, args=(ip,
@@ -328,15 +305,19 @@ def compare(ctx, commands):
     mp_pool.join()
 
 
-@main.command(context_settings=CONTEXT_SETTINGS)
+@main.command(context_settings=CONTEXT_SETTINGS, help="Copy file(s) from "
+              "device(s) -> local machine.\n\nThe source can be a single file"
+              ", or a directory containing many files. If you run into "
+              "permissions errors, try using the root account.")
 @click.argument('source', type=click.Path())
 @click.argument('destination', type=click.Path(resolve_path=True))
 @click.option('--progress/--no-progress', default=False, help="Flag to show "
-              "progress as the transfer happens. Defaults to False")
+              "progress as the transfer happens. Defaults to False for "
+              "multiple devices, as output will be jumbled.")
 # TODO: will need to set ctx.obj['multi'] tracking multi devices to know if we're renaming the output file.
 @click.pass_context
 def pull(ctx, source, destination, progress):
-    """ Copy file(s) from device -> local machine.
+    """ Copy file(s) from device(s) -> local machine.
 
     @param ctx: The click context paramter, for receiving the object dictionary
               | being manipulated by other previous functions. Needed by any
@@ -355,11 +336,12 @@ def pull(ctx, source, destination, progress):
     @rtype: str
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
+    multi = True if len(ctx.obj['hosts']) > 1 else False
     for ip in ctx.obj['hosts']:
         mp_pool.apply_async(wrap.open_connection, args=(ip,
                             ctx.obj['conn']['username'],
                             ctx.obj['conn']['password'],
-                            wrap.pull, [source, destination, progress],
+                            wrap.pull, [source, destination, progress, multi],
                             ctx.obj['out'],
                             ctx.obj['conn']['connect_timeout'],
                             ctx.obj['conn']['session_timeout'],
@@ -368,15 +350,19 @@ def pull(ctx, source, destination, progress):
     mp_pool.join()
 
 
-@main.command(context_settings=CONTEXT_SETTINGS)
+@main.command(context_settings=CONTEXT_SETTINGS, help="Copy file(s) from "
+              "local machine -> device(s).\n\nThe source can be a single file"
+              ", or a directory containing many files. If you run into "
+              "permissions errors, try using the root account.")
 @click.argument('source', type=click.Path(exists=True, resolve_path=True))
 @click.argument('destination', type=click.Path())
 @click.option('--progress/--no-progress', default=False, help="Flag to show "
-              "progress as the transfer happens. Defaults to False")
+              "progress as the transfer happens. Defaults to False for "
+              "multiple devices, as output would be jumbled.")
 # TODO: will need to set ctx.obj['multi'] tracking multi devices to know if we're renaming the output file.
 @click.pass_context
 def push(ctx, source, destination, progress):
-    """ Copy file(s) from local machine -> device.
+    """ Copy file(s) from local machine -> device(s).
 
     @param ctx: The click context paramter, for receiving the object dictionary
               | being manipulated by other previous functions. Needed by any
