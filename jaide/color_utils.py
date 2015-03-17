@@ -26,25 +26,6 @@ def color(out_string, color="success"):
             Style.NORMAL)
 
 
-def secho(out_string, color="success", **kwargs):
-    """ Highlight string for terminal color coding.
-
-    @param out_string: the string to be colored
-    @type out_string: str
-    @param color: a string signifying which color to use.
-    @type color: str
-
-    @returns: the modified string, including the ANSI/win32 color codes.
-    @rtype: str
-    """
-    if color == 'error':
-        click.secho(out_string, fg='red', bold=True, **kwargs)
-    elif color == 'info':
-        click.secho(out_string, fg='yellow', bold=True, **kwargs)
-    elif color == 'success':
-        click.secho(out_string, fg='green', bold=True, **kwargs)
-
-
 def strip_color(search):
     """ Remove ANSI/Win32 color codes from string. """
     ansi_escape = re.compile(r'\x1b[^m]*m')

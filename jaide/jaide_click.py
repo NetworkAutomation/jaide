@@ -19,16 +19,12 @@ import re
 # intra-Jaide imports
 import wrap
 from utils import clean_lines
-from color_utils import secho
+from color_utils import color
 # non-standard modules:
 import click
 
 # needed for '-h' to be a help option
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
-# TODO: --compare argument for doing just comparison without commit checking.
-# TODO: Verbosity argument for seeing more/less output?
-# TODO: related to above, maybe --quiet to show nothing?
 
 
 class AliasedGroup(click.Group):
@@ -54,7 +50,6 @@ class AliasedGroup(click.Group):
 def write_validate(ctx, param, value):
     """ Validate the -w option. """
     if value != ("default", "default"):
-        # Validate the -w option
         try:
             mode, dest_file = (value[0], value[1])
         except IndexError:
@@ -68,12 +63,13 @@ def write_validate(ctx, param, value):
                                      ' to one file per device, or all device'
                                      ' output to a single file. Valid options'
                                      ' are "s", "single", "m", and "multiple"')
+        # we've passed the checks, so set the 'out' context variable to our
+        # tuple of the mode, and the destination file.
         ctx.obj['out'] = (mode.lower(), dest_file)
-    else:
+    else:  # they didn't use -w, so set the context variable accordingly.
         ctx.obj['out'] = None
 
 
-# TODO: add aliasing of commands to allow partial command names (also change command to operational) (click advanced patterns doc)
 # TODO: can't change the name of prog from jaide_click.py in help text using click?
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 @click.option('-i', '--ip', 'host', prompt="IP or hostname of Junos device",
@@ -83,6 +79,9 @@ def write_validate(ctx, param, value):
 @click.password_option('-p', '--password', prompt="Password")
 @click.option('-P', '--port', default=22, help="The port to connect to. "
               "Defaults to SSH (22)")
+@click.option('--quiet/--no-quiet', default=False, help="Boolean flag to show"
+              " no output, except in certain error scenarios. Defaults to "
+              "false (--no-quiet), which shows the output.")
 @click.option('-t', '--session-timeout', type=click.IntRange(5, 7200),
               default=300, help="The session timeout value, in seconds, for"
               " declaring a lost session. Default is 300 seconds. This should"
@@ -101,7 +100,7 @@ def write_validate(ctx, param, value):
               "format is IP_FILENAME.", metavar="[s | single | m | multiple]"
               " FILEPATH", default=("default", "default"))
 @click.pass_context
-def main(ctx, host, password, port, session_timeout, connect_timeout,
+def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
          username):
     """ Manipulate one or more Junos devices.
 
@@ -118,6 +117,8 @@ def main(ctx, host, password, port, session_timeout, connect_timeout,
         "session_timeout": session_timeout,
         "connect_timeout": connect_timeout
     }
+    if quiet:
+        ctx.obj['out'] = "quiet"
     # function_translation = {
     #     "command": do_command
     # }
@@ -158,35 +159,40 @@ def write_out(input):
                     | If the first index of the tuple *is not* another tuple,
                     | the output will be written to sys.stdout. If the first
                     | index *is* a tuple, that tuple is further broken down
-                    | into the mode (single file or one file for each IP),
-                    | and the destination filepath.
+                    | into the mode ('single' for single file or 'multiple'
+                    | for one file for each IP), and the destination filepath.
         @type input: tuple
 
         @returns: None
     """
+    # peel off the to_file metadata from the output.
     to_file, output = input
-    try:
-        mode, dest_file = to_file
-    except TypeError:
-        click.echo(output)
-    else:
-        ip = output.split('device: ')[1].split('\n')[0].strip()
-        if mode in ['m', 'multiple']:
-            # put the IP in front of the filename if we're writing each device
-            # to its own file.
-            dest_file = path.join(path.split(dest_file)[0], ip + "_" +
-                                  path.split(dest_file)[1])
+    if to_file != "quiet":
         try:
-            out_file = open(dest_file, 'a+b')
-        except IOError as e:
-            secho("Could not open output file '%s' for writing. Output "
-                  "would have been:\n%s" % (dest_file, output), 'error')
-            secho('Here is the error for opening the output file:' + str(e),
-                  'error')
+            # split the to_file metadata into it's separate parts.
+            mode, dest_file = to_file
+        except TypeError:
+            # just dump the output if we had an internal problem with getting
+            # the metadata.
+            click.echo(output)
         else:
-            click.echo(output, nl=False, file=out_file)
-            secho('%s output appended to: %s' % (ip, dest_file))
-            out_file.close()
+            ip = output.split('device: ')[1].split('\n')[0].strip()
+            if mode in ['m', 'multiple']:
+                # put the IP in front of the filename if we're writing each device
+                # to its own file.
+                dest_file = path.join(path.split(dest_file)[0], ip + "_" +
+                                      path.split(dest_file)[1])
+            try:
+                out_file = open(dest_file, 'a+b')
+            except IOError as e:
+                print color("Could not open output file '%s' for writing. Output "
+                            "would have been:\n%s" % (dest_file, output), 'error')
+                print color('Here is the error for opening the output file:' + str(e),
+                            'error')
+            else:
+                click.echo(output, nl=False, file=out_file)
+                print color('%s output appended to: %s' % (ip, dest_file))
+                out_file.close()
 
 
 def at_time_validate(ctx, param, value):
@@ -470,7 +476,7 @@ def device_info(ctx):
         mp_pool.apply_async(wrap.open_connection, args=(ip,
                             ctx.obj['conn']['username'],
                             ctx.obj['conn']['password'],
-                            wrap.device_info, None,
+                            wrap.device_info, [],
                             ctx.obj['out'],
                             ctx.obj['conn']['connect_timeout'],
                             ctx.obj['conn']['session_timeout'],
@@ -480,7 +486,7 @@ def device_info(ctx):
 
 
 @main.command(context_settings=CONTEXT_SETTINGS)
-@click.option('-o', '--second-host', required=True, help="The second"
+@click.option('-i', '--second-host', required=True, help="The second"
               " hostname or IP address to compare against.")
 @click.option('-m', '--mode', type=click.Choice(['set', 'stanza']),
               default='set', help="How to view the differences. Can be"
