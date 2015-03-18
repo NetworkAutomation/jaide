@@ -1,16 +1,16 @@
 Getting Health Checks
 =====================  
-Using the `--health` argument on the command line with jaide.py will gather the following information. 
+Using the `health` command on the jaide CLI tool will gather the following information. 
 
 * Chassis Alarms
 * System Alarms
 * Routing Engine Information (CPU/RAM utilization)
-* Last reboot time and reason.
+* Last reboot reason and uptime.
 * The top 5 busiest processes on the device. 
 
-**Single Device**  
+## Single Device  
 
-	$ python jaide.py -i 172.25.1.21 --health -u root -p root123
+	$ jaide -i 172.25.1.21 -u root -p root123 health
 	==================================================
 	Results from device: 172.25.1.21
 
@@ -38,9 +38,9 @@ Using the `--health` argument on the command line with jaide.py will gather the 
 	 1301 root        1   8    0 86780K 24508K nanslp  24.2H  1.71% pfem
 	  930 root        1  99    0 12604K  6920K select   0:34  0.20% eventd
 
-**Multiple Devices**  
+## Multiple Devices  
 
-	$ python jaide.py -i ~/desktop-link/iplist.txt --health -u root -p root123
+	$ jaide -i ~/desktop-link/iplist.txt -u root -p root123 health
 	==================================================
 	Results from device: 172.25.1.22
 
@@ -48,12 +48,7 @@ Using the `--health` argument on the command line with jaide.py will gather the 
 		No chassis alarms active.
 
 	System Alarms: 
-		Minor Alarm 		2014-07-09 18:29:30 UTC
-		RIPng Routing Protocol usage requires a license
-		Minor Alarm 		2014-07-09 18:29:30 UTC
-		OSPFv3 Routing Protocol usage requires a license
-		Minor Alarm 		2014-07-09 18:29:30 UTC
-		BGP Routing Protocol usage requires a license
+		No system alarms active.
 
 	Routing Engine Information:
 	RE0 Status: 	OK

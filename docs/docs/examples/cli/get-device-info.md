@@ -1,30 +1,32 @@
 Getting Device Information  
 ==========================  
-Using the `--info` command line argument will gather the following information from a Junos device:  
+Using the `info` command will gather the following information from a Junos device:  
 
 * Hostname
 * Device Model
 * Junos Version
 * Chassis serial number (or master FPC serial number in an EX VC)
+* System Uptime
 
-**Single Device**  
+## Single Device    
 
-	nprintz$ python jaide.py -i 172.25.1.21 --info
+	$ jaide -i 192.168.50.95 info
 	Username: operate
 	Password: 
 	==================================================
-	Results from device: 172.25.1.21
+	Results from device: 192.168.50.95
 
-	host-name: Sterling-21-R6 
-	IP: 172.25.1.21 
-	Model: ex4200-24t 
-	Junos: 12.3R3.4 
-	Chassis Serial Number (or master FPC in a VC): ***********
+	Hostname: Bender
+	Model: ex2200-c-12p-2g
+	Junos Version: 12.3R3.4
+	Routing Engine 0 Serial #: ***********
+	Current Time: 2015-03-17 23:52:58 CDT
+	Uptime: 207 days,  5:43
 
 
-**Multiple Devices**  
+## Multiple Devices  
 
-	nprintz$ python jaide.py -i ~/desktop-link/iplist.txt --info
+	$ jaide -i ~/desktop-link/iplist.txt info
 	Username: operate
 	Password: 
 	==================================================
@@ -35,6 +37,8 @@ Using the `--info` command line argument will gather the following information f
 	Model: ex4200-24t 
 	Junos: 11.4R7.5 
 	Chassis Serial Number (or master FPC in a VC): ***********
+	Current Time: 2015-03-17 23:52:58 CDT
+	Uptime: 192 days,  3:02
 
 	==================================================
 	Results from device: 172.25.1.21
@@ -44,22 +48,5 @@ Using the `--info` command line argument will gather the following information f
 	Model: ex4200-24t 
 	Junos: 12.3R3.4 
 	Chassis Serial Number (or master FPC in a VC): ***********
-
-	==================================================
-	Results from device: 172.25.1.51
-
-	host-name: EX3300-1-SW1 
-	IP: 172.25.1.51 
-	Model: ex3300-24p 
-	Junos: 11.4R7.5 
-	Chassis Serial Number (or master FPC in a VC): ***********
-
-	==================================================
-	Results from device: 172.25.1.61
-
-	host-name: OP-SRX220-61 
-	IP: 172.25.1.61 
-	Model: srx220h-poe 
-	Junos: 12.1X45-D20.4 
-	Chassis Serial Number (or master FPC in a VC): ***********
-
+	Current Time: 2015-03-17 23:52:58 CDT
+	Uptime: 181 days,  5:55

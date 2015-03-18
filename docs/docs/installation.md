@@ -7,7 +7,7 @@ The easiest way to install Jaide is through pip:
 
 	> pip install jaide  
 
-Manual installation can be accomplished by downloading the source code and running the following command:  
+Manual installation can be accomplished by downloading the source code and running the following command (don't forget sudo if needed):  
 
 	> python setup.py install  
 

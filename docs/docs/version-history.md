@@ -15,9 +15,12 @@ These are features we'd like to implement, but will likely take some additional 
 * A new object class, Jaide() is available for extending Jaide into other scripts
 * The Jaide GUI has been separated into it's own [package](link to pypi package) and [github repo](https://github.com/NetworkAutomation/jaide-gui) for ease of tracking GUI specific docs/changes.  
 * Jaide is now available via pip. Along with this, the Jaide CLI tool is globally available due to setuptools installing the `jaide` command into the OS PATH variable.  
-* A new core feature has been [added](link to diff_config docs), allowing comparison of the configuration between two devices.  
+* Two new commands have been added, allowing [comparison of the configuration between two devices](examples/cli/diff-config.md) and [comparing a list of set commands against the running config](examples/cli/show-compare.md).  
 * The Jaide CLI tool uses the Jaide class, for better code modularity.
-* The Jaide CLI tool now uses `click` instead of `argparse`, for a better CLI experience. This has modified how the jaide command is used. Refer to the [documentation](usage.md) for the Jaide CLI tool.  
+* The Jaide CLI tool now uses `click` instead of `argparse`, for a better CLI experience. This has modified how the jaide command is used. Refer to the [documentation](usage.md) for the Jaide CLI tool and the CLI examples documentation.  
+* Getting basic device info now also includes system uptime and current time.
+* Better Health Check support for EX2200-C and SRX series devices.
+* new --quiet option for CLI to suppress all output.
 * Better error handling for bad xpath expressions.
 * Added testing scripts to the /testing directory of the source code.  
 * Many changes to bring us in line with PEP 8 and PEP 257 (more comment changes to come to allow for read the docs support).  

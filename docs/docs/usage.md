@@ -2,72 +2,66 @@ Basic Usage
 ===========  
 
 TODO: update links  
-TODO: update usage for cli tool  
 This page is for Basic usage of both the CLI tool and the Jaide library. Expansive information can be found in the respective sections of the [documentation](READ THE DOCS page).  
 
 ## Jaide CLI tool  
-There are many combinations of arguments that can be used to perform all functions available using the Jaide.py command line tool. Two arguments are always required: the `-i` target device(s), and one of the arguments for performing a given function [ -b | -c | -e | --health | --info | -s | --scp | --shell ]. These functions are detailed below in the second table. 
+If you installed jaide, you automatically have access to the `jaide` command anywhere in any terminal/command prompt on your machine. There are many options and commands to use with the Jaide CLI tool. The basic usage is as follows:  
 
-**A destination IP or IP list is required:**  The script will accept a single IP address, a quoted comma separated list, or a file with a list of IPs, separated by newlines. DNS hosts will work as well; resolution uses your machine's specified DNS server(s).  
+`jaide [options] COMMAND [options | ARGS]`  
 
-| Single | Comma Separated List | Filepath |  
-| ------ | -------------------- | -------- |  
-| `-i/--ip ip.add.re.ss` | `-i/--ip "ip.add.re.ss1, ip.add.re.ss2, DNS.entry.com"` | `-i/--ip /path/to/file/of/ip/addresses.txt` |  
+**Note** The majority of this information is available by using the built in command line help, which can be accessed through:  
+`jaide -h` for generic help and `jaide COMMAND -h` for command-specific help/options.  
 
-These are the main operations that can be performed. **One and only one of the following is required:**  
+#### Basic Jaide Options  
+The first set of options (the first `[options]` instance in the command usage string above) contain the following possibilities:
 
-| Argument | Description |  
-| -------- | ----------- |  
-| `-c/--command "quoted operational mode command(s)"` | Send a single operational mode command, a comma separated list of commands, or a filepath to a file containing commands on each line. Can include `show`, `request`, `traceroute`, op scripts, etc. |  
-| `-e/--errors` | Check all up/up ports for interface errors |  
-| `-H/--health` | Pull a health check from the device |  
-| `-I/--info` | Retrieve basic device information (Serial, model, etc) |  
-| `-s/--set "quoted set command(s)"` | Send a single set command, a quoted comma separated list of commands, or specify a file containing one set command on each line. |  
-| `-b/--blank` | Make a commit with no set commands, a 'commit blank'. Useful for confirming a commit confirmed. |  
-| `-S/--scp [push OR pull] /source/file/or/folder /destination/file/or/folder` | SCP push or pull operation |  
-| `-l/--shell "quoted shell command(s)"` | Similar to `-c`, except it will run shell commands. |  
- 
-Authentication arguments are optional on the command line. If they are not provided the script will prompt for them, with the benefit of the password not being echoed to the user.  
+| Option | Full Option Flag | Type | Description |
+| ------ | ---------------- | ---- | ----------- |
+| -h 	 | --help  			| N/A  | Print the basic help information for Jaide and exit. |  
+| -i 	 | --ip 			| TEXT | The target hostname(s) or IP(s). **[1](#notes)** Will prompt if not in the command line arguments. |  
+| -p 	 | --password 		| TEXT | The password for authenticating to the device(s). Will prompt if not in the command line arguments. |  
+| -P 	 | --port 			| INTEGER | The port to connect to the device on. Defaults to port 22 (SSH) |  
+| --quiet | --no-quiet 	| N/A | Boolean flag for suppressing all output from the script. Defaults to False (--no-quiet) |  
+| -t 	  | --session-timeout | INTEGER | The session timeout, in seconds, for declaring a lost session. Default is 300 seconds. This should be increased when no return output could be seen for more than 5 minutes (for example requesting a system snapshot). |  
+| -T 	 | --connect-timeout | INTEGER | The timeout, in seconds, for declaring a device unreachable during connection establishment. Defaults to 5 seconds. |  
+| -u | --username | TEXT | The username for authenticating to the device(s). Will prompt if not in the command line arguments. |  
+| N/A | --version | N/A | Print the version of the jaide script (and jaide package) and exit. |  
+| -w | --write | TEXT FILEPATH | Write the output to one or multiple files, instead of printing to stdout. Useful when touching more than one device, as the 'm' or 'multiple' options will write the output for each device to a separate file. [More info here](#TODO: WRITE TO FILE DOC LINK) |  
 
-| Argument | Description |  
-| -------- | ----------- |  
-| `-u/--username USERNAME` | The username for the device connection(s) |  
-| `-p/--password PASSWORD` | The password for the device connection(s) |  
-  
-The `-s` argument can take one or none of the three following optional arguments for changing the commit type:  
+These are the available commands in the jaide CLI tool:  
 
-| Argument | Description |  
-| -------- | ----------- |  
-| `-m/--confirm INTEGER_OF_MINUTES` | Will change the commit operation to a commit confirmed for the integer_of_minutes length of time  |  
-| `-k/--check` | Instead of committing, this will do a 'commit check' and return the output, letting you know if it passed or not, and why.  | 
-  
-Other optional arguments:  
+| Command | Description |  
+| ------- | ----------- |  
+| commit  | Execute a commit operation. **[1](#notes)** Several options exist for further customization, such as confirming, commit check, comments, etc. |  
+| compare | Run a 'show pipe compare' for a list of set commands. **[1](#notes)** |  
+| diff_config | Compare the configuration differences between two devices. |  
+| errors | Get any interface errors from any interface. |  
+| health | Get alarm, CPU, RAM, and temperature status. |  
+| info | Get basic device information, such as version, model, hostname, serial number, and uptime. |  
+| operational | Send operational command(s) and display the output. **[1](#notes)** Pipes are supported, as well as xpath filtering **[2](#notes).** |  
+| pull | Copy files from the device(s) to the local machine. |  
+| push | Copy files from the local machine to the device(s). |  
+| shell | Send shell command(s) and display the output. **[1](#notes)** |  
 
-| Argument | Description |  
-| -------- | ----------- |  
-| `-f/--format [text OR xml]` | This changes the output of the command returned from the device. It defaults to 'text', and will only take effect on operational mode commands. With or without -f, you can do xpath filtering, by putting ` % XPATH_EXPRESSION` after your operational command. For example: `show route % //rt-entry`. |  
-| `-q/--quiet` | Used in conjunction with `-S/--scp`, when copying to/from a single device, to prevent seeing the callback status of the transfer as it happens. |  
-| `-t/--timeout INTEGER_OF_SECONDS` | Will change the timeout for operation sent to the device. Defaults to 300 seconds. Check the help file for timeout. |  
-| `-w/--write s/single_OR_m/multiple OUTPUT_FILENAME` | Write the output of the script to a file(s). `-w s ~/Desktop/output.txt` will write all output to one file, whereas `-w multiple ~/Desktop/output.txt` will write one file for each device connecting to, resulting in `~/Desktop/IP_OF_DEVICE_output.txt` being written for each device. |  
-
-#### Example jaide commands:
+More information on each of the above commands can be found in each of their CLI usage guides.
+#### Example Jaide Commands:
 Check the target IP for interface errors on all its up/up interfaces, it will prompt for authentication.  
-`jaide -i 10.2.10.12 -e`
+`jaide -i 10.2.10.12 errors`  
 
-Backup the primary partition to the backup slice, increasing the timeout value so the NCClient connection doesn't get lost.  
-`jaide -i 10.10.10.10 -c 'request system snapshot slice alternate' -t 1800`
+Backup the primary partition to the backup slice, increasing the timeout value so the connection doesn't time out waiting for the response.  
+`jaide -i 10.10.10.10 -t 7200 op 'request system snapshot slice alternate'`  
 
 Send a list of set commands and commit them to a list of IPs, without being prompted for username/password.  
-`jaide -u user -p mypassword -i ~/Downloads/iplist.txt -s ~/Desktop/list_of_set_commands.txt`
+`jaide -u user -p mypassword -i /var/iplist.txt commit "~/Desktop/list_of_set_commands.txt"`  
 
-SCP push the local code file *~/Downloads/jinstall-ex-2200-12.3R3.4-domestic-signed.tgz* file to an IP list and put it in the */var/tmp* folder.  
-`jaide -u user -p mypassword -i ~/Downloads/iplist.txt --scp push ~/Downloads/jinstall-ex-2200-12.3R3.4-domestic-signed.tgz /var/tmp/`
+SCP push the local code file */code/jinstall-ex-2200.tgz* file to an IP list and put it in the */var/tmp* folder.  
+`jaide -u user -p mypassword -i /var/iplist.txt push /code/jinstall-ex-2200.tgz /var/tmp/`  
 
-SCP pull the remote */var/tmp* directory on an IP list to the local *~/Desktop/IPaddress_tmp* folders.  
-`jaide -u user -p mypassword -i ~/Downloads/iplist.txt --scp pull /var/tmp ~/Desktop/`  
+SCP pull the remote */var/tmp* directory on an IP list to the local */Users/self/Desktop/IPaddress_tmp* folders.  
+`jaide -u user -p mypassword -i /var/iplist.txt pull /var/tmp /Users/self/Desktop/`  
 
 Send a blank commit.  
-`jaide -u user -p mypassword -i 10.0.0.123 --blank`  
+`jaide -u user -p mypassword -i 10.0.0.123 commit --blank`  
 
 ## Using the Jaide class  
 
@@ -84,14 +78,26 @@ print session.op_cmd('show interfaces terse')
 # Run a file of shell commands
 print session.shell_cmd('/path/to/file/of/shell/commands')  
 
-# Pull a file down, and echo back the progress
+# Change devices:
+session.host = '172.16.2.2'
+session.username = 'myusername'
+session.password = 'different_password'
+
+# Pull a file down, and echo back the live progress
 session.scp_pull('/var/log/messages', '/path/to/local/folder', progress=True)  
 
-# Perform a commit check operation for a set command to see if it passes
-print session.commit_check('set interfaces ge-0/0/0 description asdf')  
+# Perform a commit check operation for a set command to see if it passes syntax
+print session.commit_check(commands='set interfaces ge-0/0/0 description asdf')  
 
 # Commit a file of set commands, with a comment, and set to roll back in 10 minutes.
-print session.commit('/path/to/file/of/set/commands', comment='Making a commit', confirmed=600)  
+print session.commit(commands='/path/to/file/of/set/commands', comment='Making a commit', confirmed=600)  
+
+# Confirm the commit (prints the text response from the device, in this case 'commit complete')
+print session.commit()
 
 session.disconnect()  
 ```
+
+## Notes  
+* 1) There are multiple ways to specify these pieces of information (Hostnames/IPs, op commands, shell commands, set commands). It can be a single instance, multiple in a quoted comma-separated list, or a filepath pointing to a file with one entry on each line. More information is in their respective detailed docs.  
+* 2) Pipes are very powerful, and should be learned for advanced command usage in [Junos natively](http://www.juniper.net/techpubs/en_US/junos14.2/topics/concept/junos-cli-pipe-filter-functions-overview.html). Xpath filtering is an added feature of Jaide, and can be learned of in our [operational command guide](#TODO: operational command guide link).  

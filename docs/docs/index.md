@@ -1,6 +1,6 @@
-Junos Aide (Jaide) and the CLI tool
-===================================
-## Quick Info
+Junos Aide (Jaide) and the CLI tool  
+===================================  
+## Quick Info  
 Contributors: [Geoff Rhodes](https://github.com/geoffrhodes) and [Nathan Printz](https://github.com/nprintz)  
 [Source Repo](https://github.com/NetworkAutomation/jaide)  
 [Pypi Page](link to pypi package)  
