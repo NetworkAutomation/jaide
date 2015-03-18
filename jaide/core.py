@@ -483,7 +483,9 @@ class Jaide():
         show_hardware = self._session.get_chassis_inventory(format='xml')
         # If we're hitting an EX, grab each Routing Engine Serial number
         # to get all RE SNs in a VC
-        if ('EX' or 'ex' or 'Ex') in show_hardware.xpath('//chassis-inventory/chassis/chassis-module/description')[0].text:
+        if (('EX' or 'ex' or 'Ex') in
+            show_hardware.xpath('//chassis-inventory/chassis/chassis-module'
+                                '/description')[0].text):
             serial_num = ""
             for eng in show_hardware.xpath('//chassis-inventory/chassis/chassis-module'):
                 if 'Routing Engine' in eng.xpath('name')[0].text:
