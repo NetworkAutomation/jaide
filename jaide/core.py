@@ -475,6 +475,10 @@ class Jaide():
         model = resp.xpath('//software-information/product-model')[0].text
         version = (resp.xpath('//software-information/package-information/'
                               'comment')[0].text.split('[')[1].split(']')[0])
+        # get uptime from 'show system uptime'
+        resp = self._session.get_system_uptime_information(format='xml')
+        current_time = resp.xpath('//current-time/date-time')[0].text
+        uptime = resp.xpath('//uptime-information/up-time')[0].text
         # get serial number from 'show chassis hardware'
         show_hardware = self._session.get_chassis_inventory(format='xml')
         # If we're hitting an EX, grab each Routing Engine Serial number
@@ -483,14 +487,15 @@ class Jaide():
             serial_num = ""
             for eng in show_hardware.xpath('//chassis-inventory/chassis/chassis-module'):
                 if 'Routing Engine' in eng.xpath('name')[0].text:
-                    serial_num += (eng.xpath('name')[0].text + ' Serial #: '
-                                   + eng.xpath('serial-number')[0].text + "\n")
+                    serial_num += (eng.xpath('name')[0].text + ' Serial #: ' +
+                                   eng.xpath('serial-number')[0].text)
         else:  # Any other device type, just grab chassis SN
             serial_num = ('Chassis Serial Number: ' +
                           show_hardware.xpath('//chassis-inventory/chassis/'
-                                              'serial-number')[0].text + "\n")
-        return ('Hostname: %s\nModel: %s\nJunos Version: %s\n%s\n' %
-                (hostname, model, version, serial_num))
+                                              'serial-number')[0].text)
+        return ('Hostname: %s\nModel: %s\nJunos Version: %s\n%s\nCurrent Time:'
+                ' %s\nUptime: %s\n' %
+                (hostname, model, version, serial_num, current_time, uptime))
 
     @check_instance
     def diff_config(self, second_host, mode='stanza'):
