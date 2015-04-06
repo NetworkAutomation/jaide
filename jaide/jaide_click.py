@@ -12,6 +12,7 @@ information can be found at the github page:
 
 https://github.com/NetworkAutomation/jaide
 """
+from __future__ import print_function
 # standard modules
 from os import path
 import multiprocessing
@@ -120,14 +121,14 @@ def write_out(input):
             try:
                 out_file = open(dest_file, 'a+b')
             except IOError as e:
-                print color("Could not open output file '%s' for writing. "
+                print(color("Could not open output file '%s' for writing. "
                             "Output would have been:\n%s" %
-                            (dest_file, output), 'error')
-                print color('Here is the error for opening the output file:' +
-                            str(e), 'error')
+                            (dest_file, output), 'error'))
+                print(color('Here is the error for opening the output file:' +
+                            str(e), 'error'))
             else:
                 click.echo(output, nl=False, file=out_file)
-                print color('%s output appended to: %s' % (ip, dest_file))
+                print(color('%s output appended to: %s' % (ip, dest_file)))
                 out_file.close()
 
 
