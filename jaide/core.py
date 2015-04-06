@@ -907,7 +907,6 @@ class Jaide():
     @host.setter
     def host(self, value):
         self.host = value
-        print(self.host)
 
     @property
     def conn_type(self):
