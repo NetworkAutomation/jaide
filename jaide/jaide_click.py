@@ -192,7 +192,6 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
               " this commits one set command: 'annotate system'")
 @click.option('--check/--no-check', default=False, help="Flag to indicate to"
               " only do a commit check. Defaults to False.")
-# TODO: blank cannot work since commands are required. (maybe only SRX doesn't allow 'annotate system')
 @click.option('--sync/--no-sync', default=False, help="Flag to indicate to"
               "make the commit synchronize between routing engines. Defaults"
               " to false.")
