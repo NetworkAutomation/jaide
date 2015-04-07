@@ -1,7 +1,6 @@
 """ jaide_cli utilities for manipulating output colors. """
 from colorama import Fore, init, Style
 import re
-import click
 
 
 def color(out_string, color="success"):
