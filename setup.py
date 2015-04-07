@@ -66,10 +66,11 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
+        'click>=4.0.0,<5.0.0',
+        'colorama>0.3.2',
         'ncclient>=0.4.2',
-        'scp>=0.8.0,<1.0.0',
         'paramiko>=1.14.0,<2.0.0',
-        'colorama>0.3.2'
+        'scp>=0.8.0,<1.0.0'
     ],
 
     # List additional groups of dependencies here (e.g. development dependencies).
@@ -98,7 +99,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'jaide=jaide.jaide_click:run',
+            'jaide=jaide.cli:run',
         ],
     },
 )

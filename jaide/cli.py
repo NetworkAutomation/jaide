@@ -601,6 +601,7 @@ def shell(ctx, commands):
 
 
 def run():
+    # TODO: set max_content_width to the width of the terminal dynamically?
     main(obj={}, max_content_width=120)
 
 if __name__ == '__main__':
