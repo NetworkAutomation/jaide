@@ -2,7 +2,7 @@ Basic Usage
 ===========  
 
 TODO: update links  
-This page is for Basic usage of both the CLI tool and the Jaide library. Expansive information can be found in the respective sections of the [documentation](READ THE DOCS page).  
+This page is for Basic usage of both the CLI tool and the Jaide library. Expansive information can be found in the respective sections of the [documentation](TODO: READ THE DOCS page).  
 
 ## Jaide CLI tool  
 If you installed jaide, you automatically have access to the `jaide` command anywhere in any terminal/command prompt on your machine. There are many options and commands to use with the Jaide CLI tool. The basic usage is as follows:  

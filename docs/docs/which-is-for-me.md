@@ -13,7 +13,7 @@ The `jaide-gui` package is a separate Github repository, for ease of change cont
 TODO: update links.  
 
  * **Are you wanting to easily manipulate Junos devices through a CLI tool that can be used on any OS?**  
- 	- We recommend following the [pip installation instructions](installation.md) and using the `jaide` command that is installed into your OS PATH variable. Basic command usage can be [found here](usage.md). Further specific examples are in the CLI examples section of the [docs](READTHEDOCS page).  
+ 	- We recommend following the [pip installation instructions](installation.md) and using the `jaide` command that is installed into your OS PATH variable. Basic command usage can be [found here](usage.md). Further specific examples are in the CLI examples section of the [docs](TODO: READTHEDOCS page).  
 
 
  * **Are you wanting to write python scripts that can manipulate Junos?**  

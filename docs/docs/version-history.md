@@ -1,19 +1,12 @@
 Version History
 ===============
 
-## Roadmap  
-TODO: update roadmap.  
-These are features we'd like to implement, but will likely take some additional time, or coordinating with other package writers to implement.  
-
-* Commit Confirmed fix
-	-	We have made a pull request on the ncclient repo to fix the commit confirmed functionality of the juniper RPC method in ncclient. The reason for this is we had found a bug in v1.0 of Jaide whereby commit confirmed operations would successfully commit initially, but would be immediately rolled back. We traced the problem to ncclient, and Junos itself. Turns out that Junos changed at some point between 11.4 and 12.3, modifying the expected XML RPC for a commit operation, and this broke commit confirms on ncclient. We have made a pull request to fix this against ncclient. In the meantime until they accept and pull in the change, we felt we should include a fixed version of ncclient directly in our project so that people can use the other additional features from Jaide v1.1.0 sooner rather than later, and with working commit confirmed.  
-
 ## v2.0.0  
 
 **Major Restructuring**, including the following:  
 
 * A new object class, Jaide() is available for extending Jaide into other scripts
-* The Jaide GUI has been separated into it's own [package](link to pypi package) and [github repo](https://github.com/NetworkAutomation/jaide-gui) for ease of tracking GUI specific docs/changes.  
+* The Jaide GUI has been separated into it's own [package](TODO: link to pypi package) and [github repo](https://github.com/NetworkAutomation/jaide-gui) for ease of tracking GUI specific docs/changes.  
 * Jaide is now available via pip. Along with this, the Jaide CLI tool is globally available due to setuptools installing the `jaide` command into the OS PATH variable.  
 * Two new commands have been added, allowing [comparison of the configuration between two devices](examples/cli/diff-config.md) and [comparing a list of set commands against the running config](examples/cli/show-compare.md).  
 * The Jaide CLI tool uses the Jaide class, for better code modularity.
@@ -24,7 +17,7 @@ These are features we'd like to implement, but will likely take some additional 
 * Better error handling for bad xpath expressions.
 * Added testing scripts to the /testing directory of the source code.  
 * Many changes to bring us in line with PEP 8 and PEP 257 (more comment changes to come to allow for read the docs support).  
-* Many documentation changes, including using `mkdocs` with `autodocs` for easy generation. All docs are now posted on [Read The Docs](link to READTHEDOCS page for jaide) as well.  
+* Many documentation changes, including using `mkdocs` with `autodocs` for easy generation. All docs are now posted on [Read The Docs](TODO: link to READTHEDOCS page for jaide) as well.  
 
 ## v1.1.0  
 

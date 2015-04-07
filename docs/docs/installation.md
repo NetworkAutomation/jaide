@@ -23,4 +23,4 @@ Pip should handle retrieving any necessary requirements, but we list them here f
 
 The CLI tool has the following additional requirements:  
 [COLORAMA 0.3.3](https://pypi.python.org/pypi/colorama) - https://pypi.python.org/pypi/colorama  
-[CLICK 3.3](http://click.pocoo.org/3/) - http://click.pocoo.org/3/  
+[CLICK 4.0](http://click.pocoo.org/3/) - http://click.pocoo.org/3/  
