@@ -170,7 +170,9 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
     containing IP/hostnames on each line is given for the IP option, the
     commands will be carried out simultaneously to each device.
     """
+    # build the list of hosts
     ctx.obj['hosts'] = [ip for ip in clean_lines(host)]
+    # set the connection parameters
     ctx.obj['conn'] = {
         "username": username,
         "password": password,
@@ -463,7 +465,7 @@ def device_info(ctx):
 
 
 @main.command(context_settings=CONTEXT_SETTINGS, help="Compare the "
-              "configuration differences between two devices.\n\nFor help on "
+              "config between two devices.\n\nFor help on "
               "reading the output, view the following page: "
               "http://www.git-tower.com/learn/ebook/command-line/advanced-"
               "topics/diffs")
@@ -599,7 +601,7 @@ def shell(ctx, commands):
 
 
 def run():
-    main(obj={})
+    main(obj={}, max_content_width=120)
 
 if __name__ == '__main__':
     run()
