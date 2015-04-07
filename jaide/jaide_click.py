@@ -23,7 +23,7 @@ from utils import clean_lines
 from color_utils import color
 # non-standard modules:
 import click
-
+# TODO: look into bash completion for click.
 # needed for '-h' to be a help option
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
