@@ -17,7 +17,7 @@ Version History
 * Better error handling for bad xpath expressions.
 * Added testing scripts to the /testing directory of the source code.  
 * Many changes to bring us in line with PEP 8 and PEP 257 (more comment changes to come to allow for read the docs support).  
-* Many documentation changes, including using `mkdocs` with `autodocs` for easy generation. All docs are now posted on [Read The Docs](TODO: link to READTHEDOCS page for jaide) as well.  
+* Many documentation changes, including using `mkdocs` for easy generation. All docs are now posted on [Read The Docs](TODO: link to READTHEDOCS page for jaide) as well.  
 
 ## v1.1.0  
 

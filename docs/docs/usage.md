@@ -1,8 +1,7 @@
 Basic Usage  
 ===========  
 
-TODO: update links  
-This page is for Basic usage of both the CLI tool and the Jaide library. Expansive information can be found in the respective sections of the [documentation](TODO: READ THE DOCS page).  
+This page is for Basic usage of both the CLI tool and the Jaide library. Expansive information can be found in the `CLI Examples` and Jaide Class Examples` sections of the documentation.  
 
 ## Jaide CLI tool  
 If you installed jaide, you automatically have access to the `jaide` command anywhere in any terminal/command prompt on your machine. There are many options and commands to use with the Jaide CLI tool. The basic usage is as follows:  
@@ -26,7 +25,7 @@ The first set of options (the first `[options]` instance in the command usage st
 | -T 	 | --connect-timeout | INTEGER | The timeout, in seconds, for declaring a device unreachable during connection establishment. Defaults to 5 seconds. |  
 | -u | --username | TEXT | The username for authenticating to the device(s). Will prompt if not in the command line arguments. |  
 | N/A | --version | N/A | Print the version of the jaide script (and jaide package) and exit. |  
-| -w | --write | TEXT FILEPATH | Write the output to one or multiple files, instead of printing to stdout. Useful when touching more than one device, as the 'm' or 'multiple' options will write the output for each device to a separate file. [More info here](#TODO: WRITE TO FILE DOC LINK) |  
+| -w | --write | TEXT FILEPATH | Write the output to one or multiple files, instead of printing to stdout. Useful when touching more than one device, as the 'm' or 'multiple' options will write the output for each device to a separate file. [More info here](examples/cli/writing-output-to-file.md) |  
 
 These are the available commands in the jaide CLI tool:  
 
@@ -48,7 +47,7 @@ More information on each of the above commands can be found in each of their CLI
 Check the target IP for interface errors on all its up/up interfaces, it will prompt for authentication.  
 `jaide -i 10.2.10.12 errors`  
 
-Backup the primary partition to the backup slice, increasing the timeout value so the connection doesn't time out waiting for the response.  
+Backup the primary partition to the backup slice, increasing the timeout value to an hour so the connection doesn't time out waiting for the response.  
 `jaide -i 10.10.10.10 -t 7200 op 'request system snapshot slice alternate'`  
 
 Send a list of set commands and commit them to a list of IPs, without being prompted for username/password.  
