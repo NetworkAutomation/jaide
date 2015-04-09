@@ -3,7 +3,7 @@ Junos Aide (Jaide) and the CLI tool
 ## About  
 Contributors: [Nathan Printz](https://github.com/nprintz) and [Geoff Rhodes](https://github.com/geoffrhodes)  
 [Jaide Repo](https://github.com/NetworkAutomation/jaide)  
-[Jaide GUI Repo](https://github.com/NetworkAutomation/jaide-gui)  
+[Jaide GUI Repo](https://github.com/NetworkAutomation/jaidegui)  
 [Pypi Page](link to pypi package)
 [Full documentation on Read The Docs](link to read the docs home page)
 [OSX/Windows Compiled Versions](JAIDE GUI latest release page)  
@@ -28,16 +28,16 @@ Jaide, and therefore the CLI tool and the Jaide GUI, leverage several connection
 
 ## Jaide vs the CLI tool vs the GUI  
 #### What are They?  
-The Jaide project is split into two packages, the `jaide` package, and the `jaide-gui` package.  
+The Jaide project is split into two packages, the `jaide` package, and the `jaidegui` package.  
 
 Currently, the `jaide` Python package includes two things: the Jaide class library for developers, and a CLI tool for network administrators and engineers.  
 
-The `jaide-gui` package is a separate Github repository, for ease of change control and management. It includes the GUI and the compiled versions, and can be found [here](https://github.com/NetworkAutomation/jaide-gui).  
+The `jaidegui` package is a separate Github repository, for ease of change control and management. It includes the GUI and the compiled versions, and can be found [here](https://github.com/NetworkAutomation/jaidegui).  
 
 #### Which is for me?  
 
  * **Are you wanting to easily manipulate Junos devices using a GUI instead of a CLI, and don't want to worry about Python or programming?**  
- 	- We recommend the latest compiled Mac or Windows version of the Jaide GUI available on the [Jaide GUI github page](https://github.com/NetworkAutomation/jaide-gui).  
+ 	- We recommend the latest compiled Mac or Windows version of the Jaide GUI available on the [Jaide GUI github page](https://github.com/NetworkAutomation/jaidegui).  
 
 TODO: update links.  
 
