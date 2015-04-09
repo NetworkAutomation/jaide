@@ -31,6 +31,7 @@ import click
 # TODO: Add color coding enhancement to github.
 # TODO: Add separating CLI from Jaide Class enhancement to github.
 # TODO: make this a decorator function, handing the Jaide object downstream?
+# TODO: comments in this file...
 def open_connection(ip, username, password, function, args, write=False,
                     conn_timeout=5, sess_timeout=300, port=22):
     """ Open a Jaide session with the device.
@@ -124,7 +125,7 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank):
         commands = 'annotate system ""'
     output = ""
     # add show | compare output
-    if commands != "" and not blank:
+    if commands != "":
         output += color("show | compare:\n", 'yel')
         try:
             output += color_diffs(jaide.compare_config(commands)) + '\n'
