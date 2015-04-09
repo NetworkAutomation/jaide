@@ -113,7 +113,7 @@ class Jaide():
         @type port: int
 
         @returns: an instance of the Jaide class
-        @rtype: object
+        @rtype: jaide.Jaide object
         """
         # store object properties and set initial values.
         self.host = host.strip()
@@ -311,10 +311,10 @@ class Jaide():
 
         @param commands: A string, filepath, or list of multiple commands
                        | that the device will compare with.
-        @type: str or list
+        @type commands: str or list
         @param req_format: The desired format of the response, defaults to
                          | 'text', but also accepts 'xml'
-        @type: str
+        @type req_format: str
 
         @returns: The reply from the device.
         @rtype: str
@@ -366,10 +366,10 @@ class Jaide():
 
         @param commands: A string, filepath, or list of multiple commands
                        | that the device will compare with.
-        @type: str or list
+        @type commands: str or list
         @param req_format: The desired format of the response, defaults to
                          | 'text', but also accepts 'xml'
-        @type: str
+        @type req_format: str
 
         @returns: The reply from the device.
         @rtype: str
@@ -464,7 +464,17 @@ class Jaide():
         """ Echo status of an SCP operation.
 
         Purpose: Callback function for an SCP operation. Used to show
-               | the progress of an actively running copy.
+               | the progress of an actively running copy. This directly
+               | prints to stdout, one line for each file as it's copied.
+
+        @param filename: The filename of file being copied.
+        @type filename: str
+        @param size: The total size of the current file being copied.
+        @type size: str or float
+        @param sent: The amount of data sent for the current file being copied.
+        @type sent: str or float
+
+        @returns: None
         """
         output = "Transferred %.0f%% of the file %s" % (
             (float(sent) / float(size) * 100), path.normpath(filename))
@@ -532,7 +542,7 @@ class Jaide():
         @param mode: string to signify 'set' mode or 'stanza' mode.
         @type mode: str
 
-        @returns: the string output of the comparison
+        @returns: iterable of strings
         @rtype: str
         """
         second_conn = manager.connect(
@@ -761,10 +771,11 @@ class Jaide():
 
         @param command: The single command that to retrieve output from the
                       | device. Any pipes will be taken into account.
-        @type: str
+        @type command: str
         @param req_format: The desired format of the response, defaults to
-                         | 'text', but also accepts 'xml'
-        @type: str
+                         | 'text', but also accepts 'xml'. **NOTE**: 'xml'
+                         | will still return a string, not a libxml ElementTree
+        @type req_format: str
 
         @returns: The reply from the device.
         @rtype: str
@@ -805,6 +816,7 @@ class Jaide():
 
         Purpose: By leveraging the _scp private variable, we make an scp pull
                | request to retrieve file(s) from a Junos device.
+
         @param src: string containing the source file or directory
         @type src: str
         @param dest: destination string of where to put the file(s)/dir
@@ -816,8 +828,9 @@ class Jaide():
         @type progress: bool or function pointer
         @param preserve_times: Set to false to have the times of the copied
                              | files set at the time of copy.
+        @type preserve_times: bool
 
-        @returns: True if the copy succeeds.
+        @returns: `True` if the copy succeeds.
         @rtype: bool
         """
         # set up the progress callback if they want to see the process
@@ -848,8 +861,9 @@ class Jaide():
         @type progress: bool or function pointer
         @param preserve_times: Set to false to have the times of the copied
                              | files set at the time of copy.
+        @type preserve_times: bool
 
-        @returns: True if the copy succeeds.
+        @returns: `True` if the copy succeeds.
         @rtype: bool
         """
         # set up the progress callback if they want to see the process
@@ -877,7 +891,7 @@ class Jaide():
 
         @param command: The single command that to retrieve output from the
                       | device.
-        @type: str
+        @type command: str
 
         @returns: The reply from the device.
         @rtype: str

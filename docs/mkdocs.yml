@@ -26,5 +26,6 @@ pages:
     - ['examples/cli/working-with-many-devices.md', 'CLI Examples', 'Working with Multiple Devices']
     - ['examples/cli/writing-output-to-file.md', 'CLI Examples', 'Writing Output to File(s)']
     - ['examples/lib/examples.md', 'Jaide Class Examples', 'Working with the Jaide class']
+    - ['api/api.md', 'API Reference']
     # - ['api/autodoc:core', 'API', 'Jaide']
 theme: readthedocs

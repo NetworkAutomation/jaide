@@ -64,6 +64,8 @@ Send a blank commit.
 
 ## Using the Jaide class  
 
+In addition to using the `jaide` command to use the CLI tool to manipulate Junos devices, you can also use the Jaide class in you python scripts to manipulate Junos directly in python!  
+
 Instantiating a Jaide object and manipulating a junos device can be quite easy:  
 ```python  
 from jaide import Jaide

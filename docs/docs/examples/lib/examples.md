@@ -1,7 +1,7 @@
 The Jaide class library  
 =======================  
 
-Extended documentation on the available properties and functions of the Jaide class are available in the [API section](TODO: link to API sections of docs) of the documentation.  
+Extended documentation on the available properties and functions of the Jaide class are available in the [API section](/api/api) of the documentation.  
 
 ## Basic example  
 
