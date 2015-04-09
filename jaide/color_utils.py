@@ -3,7 +3,7 @@ from colorama import Fore, init, Style
 import re
 
 
-def color(out_string, color="success"):
+def color(out_string, color='grn'):
     """ Highlight string for terminal color coding.
 
     @param out_string: the string to be colored
@@ -14,16 +14,23 @@ def color(out_string, color="success"):
     @returns: the modified string, including the ANSI/win32 color codes.
     @rtype: str
     """
-    # TODO: migrate to 3 letter color code index, 'grn', 'yel', etc
+    c = {
+        'blk': Fore.BLACK,
+        'blu': Fore.BLUE,
+        'cyn': Fore.CYAN,
+        'grn': Fore.GREEN,
+        'mag': Fore.MAGENTA,
+        'red': Fore.RED,
+        'wht': Fore.WHITE,
+        'yel': Fore.YELLOW,
+    }
     init()
-    if color == 'error':
-        return (Fore.RED + Style.BRIGHT + out_string + Fore.RESET +
-                Style.NORMAL)
-    if color == 'info':
-        return (Fore.YELLOW + Style.BRIGHT + out_string + Fore.RESET +
-                Style.NORMAL)
-    return (Fore.GREEN + Style.BRIGHT + out_string + Fore.RESET +
-            Style.NORMAL)
+    return (c[color] + Style.BRIGHT + out_string + Fore.RESET + Style.NORMAL)
+    # if color == 'yel':
+    #     return (c[] + Style.BRIGHT + out_string + Fore.RESET +
+    #             Style.NORMAL)
+    # return (Fore.GREEN + Style.BRIGHT + out_string + Fore.RESET +
+    #         Style.NORMAL)
 
 
 def strip_color(search):
@@ -53,9 +60,9 @@ def color_diffs(string):
     @returns: The new string with ANSI codes injected.
     @rtype: str
     """
-    string = string.replace('--- ', color('--- ', 'error'))
+    string = string.replace('--- ', color('--- ', 'red'))
     string = string.replace('\n+++ ', color('\n+++ '))
-    string = string.replace('\n-', color('\n-', 'error'))
+    string = string.replace('\n-', color('\n-', 'red'))
     string = string.replace('\n+', color('\n+'))
-    string = string.replace('\n@@ ', color('\n@@ ', 'info'))
+    string = string.replace('\n@@ ', color('\n@@ ', 'yel'))
     return string

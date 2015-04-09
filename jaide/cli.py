@@ -124,9 +124,9 @@ def write_out(input):
             except IOError as e:
                 print(color("Could not open output file '%s' for writing. "
                             "Output would have been:\n%s" %
-                            (dest_file, output), 'error'))
+                            (dest_file, output), 'red'))
                 print(color('Here is the error for opening the output file:' +
-                            str(e), 'error'))
+                            str(e), 'red'))
             else:
                 click.echo(output, nl=False, file=out_file)
                 print(color('%s output appended to: %s' % (ip, dest_file)))
@@ -477,6 +477,7 @@ def device_info(ctx):
               " either 'set' or 'stanza'. Defaults to 'set'")
 @click.pass_context
 def diff_config(ctx, second_host, mode):
+    # TODO: diff config broken between home SRX and EX?
     """ Config comparison between two devices.
 
     @param ctx: The click context paramter, for receiving the object dictionary

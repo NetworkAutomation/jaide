@@ -12,17 +12,17 @@ import os
 def op_commands(session, op_list):
     """ Run operational commands. """
     # Try a single op command
-    print color('Single op command: show interfaces terse | match lo0', 'info')
+    print color('Single op command: show interfaces terse | match lo0', 'yel')
     print session.op_cmd('show interfaces terse | match lo0')
 
     # single op command with xml output
     print color('Single op command in xml format: show interfaces terse'
-                ' | match lo0', 'info')
+                ' | match lo0', 'yel')
     print session.op_cmd('show interfaces terse | match lo0', req_format='xml')
 
     # single op command with xpath filtering
     print color('Single op command with xpath filtering on package-'
-                'information: show version', 'info')
+                'information: show version', 'yel')
     print session.op_cmd('show version', xpath_expr='//package-information')
 
     # Try a list of op commands, includes the following:
@@ -30,17 +30,17 @@ def op_commands(session, op_list):
     #     show version
     #     # command with piping
     #     show route | match 0.0.0.0
-    print color('Multiple op commands from file:', 'info')
+    print color('Multiple op commands from file:', 'yel')
     # loop over the commands in our file
     for cmd in clean_lines(op_list):
-        print color(cmd, 'info')
+        print color(cmd, 'yel')
         print session.op_cmd(cmd)
 
 
 def shell_commands(session, shell_list):
     """ Run shell commands. """
     # try a single shell command
-    print color('Single shell command: pwd', 'info')
+    print color('Single shell command: pwd', 'yel')
     print session.shell_cmd('pwd')
 
     # try a shell command file
@@ -51,10 +51,10 @@ def shell_commands(session, shell_list):
     #    ls -lap
     #    touch my-new-file
     #    ls -lap
-    print color('multiple shell commands from file:', 'info')
+    print color('multiple shell commands from file:', 'yel')
     # loop over the commands in our file.
     for cmd in clean_lines(shell_list):
-        print color(cmd, 'info')
+        print color(cmd, 'yel')
         print session.shell_cmd(cmd)
 
 
@@ -66,7 +66,7 @@ def conn_timeout_test(host):
         print color('The connection failed, as expected')
         return True
     print color('The connection did not fail, check settings for this test.',
-                'error')
+                'red')
 
 
 def commit_check_test(session, set_list):
@@ -81,30 +81,30 @@ def compare_config_test(session, set_list):
 
 def commit_tests(session):
     """ Attempt all manner of commit types. """
-    print color('Starting commit log', 'info')
+    print color('Starting commit log', 'yel')
     print session.op_cmd('show system commit')
 
-    print color('Attempting blank commit:', 'info')
+    print color('Attempting blank commit:', 'yel')
     print session.commit()
 
-    print color('Attempting blank commit with comment:', 'info')
+    print color('Attempting blank commit with comment:', 'yel')
     print session.commit(comment="blank with comment")
 
     print color('Attempting blank commit with comment and synchronize:',
-                'info')
+                'yel')
     print session.commit(comment="blank with comment and synch",
                          synchronize=True)
 
-    print color('Attempting blank commit confirmed for 20 minutes:', 'info')
+    print color('Attempting blank commit confirmed for 20 minutes:', 'yel')
     print session.commit(confirmed=1200)
 
-    print color('Attempting to confirm the commit confirmed:', 'info')
+    print color('Attempting to confirm the commit confirmed:', 'yel')
     print session.commit()
 
-    print color('Attempting to commit at:', 'info')
+    print color('Attempting to commit at:', 'yel')
     print session.commit(at_time='23:59')
 
-    print color('Ending commit Log:', 'info')
+    print color('Ending commit Log:', 'yel')
     print session.op_cmd('show system commit')
     print session.op_cmd('clear system commit')
 
@@ -117,19 +117,19 @@ def config_diff_test(session, second_host):
 
 def scp_tests(session, remote_dir, local_dir, remote_file, local_file):
     """ Try all four directions of SCP operations. """
-    print color('Copying a single file TO device', 'info')
+    print color('Copying a single file TO device', 'yel')
     print session.scp_push(local_file, remote_dir, True)
     session.shell_cmd('rm %s/%s' % (remote_dir, os.path.basename(local_file)))
 
-    print color('Copying a single file FROM device', 'info')
+    print color('Copying a single file FROM device', 'yel')
     print session.scp_pull(remote_file, local_dir + '/', True)
 
-    print color('Copying a directory TO device', 'info')
+    print color('Copying a directory TO device', 'yel')
     print session.scp_push(local_dir, remote_dir, True)
     session.shell_cmd('rm -R %s/%s' % (remote_dir,
                                        os.path.basename(local_dir)))
 
-    print color('Copying a directory FROM device', 'info')
+    print color('Copying a directory FROM device', 'yel')
     print session.scp_pull(remote_dir, local_dir, True)
 
 # needed for '-h' to be a help option
@@ -168,77 +168,77 @@ def main(host, username, password, second_host, second_password, third_host,
     """ Test suite for testing the jaide package core.py. """
     # open connection
     print color('Connecting to %s with %s / %s' % (host, username,
-                                                   password), 'info')
+                                                   password), 'yel')
     session = Jaide(host, username, password)
 
     # test op and shell commands
-    print color('Testing op commands', 'info')
+    print color('Testing op commands', 'yel')
     op_commands(session, op_list)
-    print color('Testing shell commands', 'info')
+    print color('Testing shell commands', 'yel')
     shell_commands(session, shell_list)
 
     # disconnect, change username/password/host, and do the commands again
-    print color('Disconnecting first session', 'info')
+    print color('Disconnecting first session', 'yel')
     session.disconnect()
 
     # changing to the root user will test other use case of migration from
     # shell to cli on initialization of the connection
     print color('\nChanging parameters to root:%s@%s' % (second_password,
-                                                         second_host), 'info')
+                                                         second_host), 'yel')
     session.username = 'root'
     session.password = second_password
     session.host = second_host
 
-    print color('Testing op commands', 'info')
+    print color('Testing op commands', 'yel')
     op_commands(session, op_list)
-    print color('Testing shell commands', 'info')
+    print color('Testing shell commands', 'yel')
     shell_commands(session, shell_list)
 
     # scp tests here
-    print color('Testing SCP operations', 'info')
+    print color('Testing SCP operations', 'yel')
     scp_tests(session, remote_dir, local_dir, remote_file, local_file)
 
     print color('\nTesting modifying conn_timeout to 10 seconds connection '
-                'that will fail:', 'info')
+                'that will fail:', 'yel')
     print color('the method \'connect\' should clock total time of 10 '
-                'seconds:', 'info')
+                'seconds:', 'yel')
     cProfile.runctx('conn_timeout_test(host)', globals(), {'host': third_host})
 
-    print color('Disconnecting session again.', 'info')
+    print color('Disconnecting session again.', 'yel')
     session.disconnect()
 
     # change back to non-root user for speed of tests.
-    print color('\nChanging parameters to operate:Op3r4t3@172.25.1.21', 'info')
+    print color('\nChanging parameters to operate:Op3r4t3@172.25.1.21', 'yel')
     session.username = username
     session.password = password
     session.host = host
 
     # config diff test
-    print color('Performing a config diff:', 'info')
+    print color('Performing a config diff:', 'yel')
     config_diff_test(session, second_host)
 
     # commit check test
-    print color('Performing a commit check:', 'info')
+    print color('Performing a commit check:', 'yel')
     commit_check_test(session, set_list)
 
     # show | compare test
-    print color('Performing a commit compare:', 'info')
+    print color('Performing a commit compare:', 'yel')
     compare_config_test(session, set_list)
 
     # commit option tests
-    print color('Performing commit tests:', 'info')
+    print color('Performing commit tests:', 'yel')
     commit_tests(session)
 
     # change session timeout
     print color('changing timeout to 1 second and doing an RSI, '
-                'which should timeout', 'info')
+                'which should timeout', 'yel')
     session.session_timeout = 1
     try:
         print session.op_cmd('request support information')
     except socket.timeout:
         print color('Timeout exceeded as expected')
 
-    # print color('trying a shell command to timeout', 'info')
+    # print color('trying a shell command to timeout', 'yel')
     # try:
     #     print session.shell_cmd('scp /var/tmp/gimp-2.8.14.dmg /var/tmp/gimp-copy')
     # except socket.timeout:

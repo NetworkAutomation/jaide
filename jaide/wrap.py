@@ -59,7 +59,7 @@ def open_connection(ip, username, password, function, args, write=False,
     @rtype: (str, bool) tuple
     """
     # start with the header line on the output.
-    output = color('=' * 50 + '\nResults from device: %s\n' % ip, 'info')
+    output = color('=' * 50 + '\nResults from device: %s\n' % ip, 'yel')
     try:
         # create the Jaide session object for the device.
         conn = Jaide(ip, username, password, connect_timeout=conn_timeout,
@@ -70,21 +70,21 @@ def open_connection(ip, username, password, function, args, write=False,
             return output + function(conn, *args)
     except errors.SSHError:
         output += color('Unable to connect to port %s on device: %s\n' %
-                        (str(port), ip), 'error')
+                        (str(port), ip), 'red')
     except errors.AuthenticationError:  # NCClient auth failure
-        output += color('Authentication failed for device: %s' % ip, 'error')
+        output += color('Authentication failed for device: %s' % ip, 'red')
     except AuthenticationException:  # Paramiko auth failure
-        output += color('Authentication failed for device: %s' % ip, 'error')
+        output += color('Authentication failed for device: %s' % ip, 'red')
     except SSHException as e:
         output += color('Error connecting to device: %s\nError: %s' %
-                        (ip, str(e)), 'error')
+                        (ip, str(e)), 'red')
     except socket.timeout:
-        output += color('Timeout exceeded connecting to device: %s' % ip, 'error')
+        output += color('Timeout exceeded connecting to device: %s' % ip, 'red')
     except socket.gaierror:
-        output += color('No route to host, or invalid hostname: %s' % ip, 'error')
+        output += color('No route to host, or invalid hostname: %s' % ip, 'red')
     except socket.error:
         output += color('The device refused the connection on port %s, or '
-                        'no route to host.' % port, 'error')
+                        'no route to host.' % port, 'red')
     if write is not False:
         return write, output
     else:
@@ -95,7 +95,7 @@ def command(jaide, commands, format="text", xpath=False):
     output = ""
     for cmd in clean_lines(commands):
         expression = ""
-        output += color('> ' + cmd + '\n', 'info')
+        output += color('> ' + cmd + '\n', 'yel')
         # Get xpath expression from the command, if it is there.
         # If there is an xpath expr, the output will be xml,
         # overriding the req_format parameter
@@ -112,7 +112,7 @@ def command(jaide, commands, format="text", xpath=False):
                                        xpath_expr=expression) + '\n'
             except lxml.etree.XMLSyntaxError:
                 output += color('Xpath expression resulted in no response.\n',
-                                'error')
+                                'red')
         else:
             output += jaide.op_cmd(cmd, req_format=format) + '\n'
     return output
@@ -125,7 +125,7 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank):
     output = ""
     # add show | compare output
     if commands != "" and not blank:
-        output += color("show | compare:\n", 'info')
+        output += color("show | compare:\n", 'yel')
         try:
             output += color_diffs(jaide.compare_config(commands)) + '\n'
         except RPCError as e:
@@ -134,27 +134,27 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank):
                             str(e))
     # If they just want to validate the config, without committing
     if check:
-        output += color("Commit check results from: %s\n" % jaide.host, 'info')
+        output += color("Commit check results from: %s\n" % jaide.host, 'yel')
         try:
             output += jaide.commit_check(commands) + '\n'
         except RPCError:
             output += color("Uncommitted changes left on the device or someone"
                             " else is in edit mode, couldn't lock the "
-                            "candidate configuration.\n", 'error')
+                            "candidate configuration.\n", 'red')
         except:
             output += color("Failed to commit check on device %s for an "
-                            "unknown reason.\n" % jaide.host, 'error')
+                            "unknown reason.\n" % jaide.host, 'red')
     # Actually make a commit
     else:
         output += color("Attempting to commit on device: %s\n" % jaide.host,
-                        'info')
+                        'yel')
         try:
             results = jaide.commit(confirmed=confirm, comment=comment,
                                    at_time=at_time, synchronize=sync,
                                    commands=commands)
         except RPCError as e:
             output += color('Commit could not be completed on this device, due'
-                            ' to the following error(s):\n' + str(e), 'error')
+                            ' to the following error(s):\n' + str(e), 'red')
         # Jaide command succeeded, parse results
         else:
             if 'commit complete' in results:
@@ -170,17 +170,17 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank):
             else:
                 if 'failed' in results:
                     output += (results.replace('failed', color('failed',
-                               'error')))
-                if 'error' in results:
-                    output += (results.replace('error', color('error',
-                               'error')))
+                               'red')))
+                if 'red' in results:
+                    output += (results.replace('red', color('red',
+                               'red')))
                 output += color('Commit Failed on device: %s\n' % jaide.host,
-                                'error')
+                                'red')
     return output
 
 
 def compare(jaide, commands):
-    output = color("show | compare:\n", 'info')
+    output = color("show | compare:\n", 'yel')
     return output + color_diffs(jaide.compare_config(commands))
 
 
@@ -195,28 +195,28 @@ def diff_config(jaide, second_host, mode):
                             jaide.diff_config(second_host, mode.lower())])
     except errors.SSHError:
         output = color('Unable to connect to port %s on device: %s\n' %
-                       (str(jaide.port), second_host), 'error')
+                       (str(jaide.port), second_host), 'red')
     except errors.AuthenticationError:  # NCClient auth failure
         output = color('Authentication failed for device: %s' %
-                       second_host, 'error')
+                       second_host, 'red')
     except AuthenticationException:  # Paramiko auth failure
         output = color('Authentication failed for device: %s' %
-                       second_host, 'error')
+                       second_host, 'red')
     except SSHException as e:
         output = color('Error connecting to device: %s\nError: %s' %
-                       (second_host, str(e)), 'error')
+                       (second_host, str(e)), 'red')
     except socket.timeout:
         output = color('Timeout exceeded connecting to device: %s' %
-                       second_host, 'error')
+                       second_host, 'red')
     except socket.gaierror:
         output = color('No route to host, or invalid hostname: %s' %
-                       second_host, 'error')
+                       second_host, 'red')
     except socket.error:
         output = color('The device refused the connection on port %s, or '
-                       'no route to host.' % jaide.port, 'error')
+                       'no route to host.' % jaide.port, 'red')
     if output.strip() == '':
         output = color("There were no config differences between %s and %s\n" %
-                       (jaide.host, second_host), 'info')
+                       (jaide.host, second_host), 'yel')
     else:
         # color removals red, and additions green
         return color_diffs(output)
@@ -232,12 +232,12 @@ def interface_errors(jaide):
     if 'No interface errors' in response:
         return response
     else:
-        return color(response, 'error')
+        return color(response, 'red')
 
 
 def pull(jaide, source, destination, progress, multi):
     output = color('Retrieving %s:%s, and putting it in %s\n' %
-                   (jaide.host, source, path.normpath(destination)), 'info')
+                   (jaide.host, source, path.normpath(destination)), 'yel')
     # Check if the destination ends in a '/', if not, we need to add it.
     destination = destination + '/' if destination[-1] != '/' else destination
     # If the source ends in a slash, we need to remove it. For copying
@@ -254,11 +254,11 @@ def pull(jaide, source, destination, progress, multi):
     except SCPException as e:
         output += color('!!! Error during copy from ' + jaide.host +
                         '. Some files may have failed to transfer. SCP Module'
-                        ' error:\n' + str(e) + ' !!!\n', 'error')
+                        ' error:\n' + str(e) + ' !!!\n', 'red')
     except (IOError, OSError) as e:
         output += color('!!! The local filepath was not found! Note that \'~\''
                         ' cannot be used. Error:\n' + str(e) + ' !!!\n',
-                        'error')
+                        'red')
     else:
         output += color('Received %s:%s and stored it in %s.\n' %
                         (jaide.host, source, path.normpath(dest_file)))
@@ -267,7 +267,7 @@ def pull(jaide, source, destination, progress, multi):
 
 def push(jaide, source, destination, progress, multi=False):
     output = color('Pushing %s to %s:%s\n' % (source, jaide.host, destination),
-                   'info')
+                   'yel')
     # Check if the destination ends in a '/', if not, we need to add it.
     destination = destination + '/' if destination[-1] != '/' else destination
     # If the source ends in a slash, we need to remove it. For copying
@@ -282,11 +282,11 @@ def push(jaide, source, destination, progress, multi=False):
     except SCPException as e:
         output += color('!!! Error during copy from ' + jaide.host +
                         '. Some files may have failed to transfer. SCP Module'
-                        ' error:\n' + str(e) + ' !!!\n', 'error')
+                        ' error:\n' + str(e) + ' !!!\n', 'red')
     except (IOError, OSError) as e:
         output += color('!!! The local filepath was not found! Note that \'~\''
                         ' cannot be used. Error:\n' + str(e) + ' !!!\n',
-                        'error')
+                        'red')
     else:
         output += color('Pushed %s to %s:%s\n' % (source, jaide.host,
                         destination))
@@ -296,6 +296,6 @@ def push(jaide, source, destination, progress, multi=False):
 def shell(jaide, commands):
     out = ""
     for cmd in clean_lines(commands):
-        out += color('> %s\n' % cmd, 'info')
+        out += color('> %s\n' % cmd, 'yel')
         out += jaide.shell_cmd(cmd) + '\n'
     return out
