@@ -7,6 +7,7 @@ Using the `info` command will gather the following information from a Junos devi
 * Junos Version
 * Chassis serial number (or master FPC serial number in an EX VC)
 * System Uptime
+* Current time according to the device.
 
 ## Single Device    
 

@@ -1,19 +1,21 @@
 Using SCP to copy files and folders
 ===================================
 
-Our implementation uses paramiko as a transport channel, with the SCP module handling the actual transfer. This means that the `--scp` argument must be qualified with one of two methods: `push` or `pull`. This explicitly states the direction of the file transfer. The source and destination file(s)/folder must also be specified immediately after the direction, which is detailed below in the examples. 
+Our implementation uses paramiko as a transport channel, with the SCP module handling the actual transfer. You *must* specify the direction of the copy (it is the command name) for the transfer: `push` or `pull`. This explicitly states the direction of the file transfer.  
 
-One of the benefits of using the `--scp` function with Jaide is that you can send push or pull files to/from many devices at the same time. We use multiprocessing to run many scp instances simultaneously, carrying out the copy commands for up to 2*(number of CPU cores) devices at the same time. If you are receiving a file or folder from multiple remote Junos devices, the received name will be prepended with the IP address of the device it was received from to help distinguish them.  
+Both the `pull` and `push` commands have the same required arguments, in the following format:  
 
-When using the Jaide to receive or push a file/folder to/from a single remote device, a callback function is used to show you the progress of the current file that is being copied.  
+	jaide push [OPTION] SOURCE_FILEPATH DEST_FILEPATH
 
-**Home Directory Alias -** Command line users running jaide.py will find that the `~` home directory alias will work. Unfortunately, this ability is lost in the GUI. Links will still be followed in the GUI, but you cannot use the `~` shortcut.  
+in the above case, we'd be copying a file or directory from the local system to one or more remote junos devices. the DEST_FILEPATH would be a Junos recognized folder path, such as `/var/tmp`. The `[OPTION]` can be a single optional argument `--no-progress`, to disable the output of the progress of the transfer as it happens. This does not apply to when copying to/from multiple devices, as this is suppressed automatically. If it wasn't, the output from each device would be jumbled up and printed simultaneously.  
+
+One of the benefits of using the `pull` or `push` functions with Jaide is that you can send files to/from many devices at the same time. We use multiprocessing to run many scp instances simultaneously, carrying out the copy commands for up to 2*(number of CPU cores) devices at the same time. If you are receiving a file or folder from multiple remote Junos devices, the received name will be prepended with the IP address of the device it was received from to help distinguish them.  
 
 ### Pulling remote files and folders to the local device
 
 In the first example, we pull the `/var/log/pfed` log file from one remote device.
 
-	$ python jaide.py -u operate -p Op3r4t3 -i 172.25.1.13 --scp pull /var/log/pfed ~/desktop-link/scp/
+	$ jaide -u username -p password -i 172.25.1.13 pull /var/log/pfed ~/desktop-link/scp/
 	==================================================
 	Results from device: 172.25.1.13
 	Retrieving 172.25.1.13:/var/log/pfed, and putting it in /Users/nprintz/desktop-link/scp/pfed
@@ -25,7 +27,7 @@ In the first example, we pull the `/var/log/pfed` log file from one remote devic
 
 In this example, we try to copy the `/var/log` folder from a device to the local machine, but we failed to copy all files due to a permissions issue. 
 
-	$ python jaide.py -i 172.25.1.21 --scp pull /var/log ~/desktop-link/scp/
+	$ jaide -i 172.25.1.21 pull /var/log ~/desktop-link/scp/
 	==================================================
 	Results from device: 172.25.1.21
 	Retrieving 172.25.1.21:/var/log, and putting it in /Users/nprintz/desktop-link/scp/log
@@ -67,9 +69,9 @@ In this example, we try to copy the `/var/log` folder from a device to the local
 	T1371178881 0 1371178824 0
 	!!!
 
-Here is copying the /var/log file from multiple devices successfully:
+Here is copying the `/var/log` folder from multiple devices successfully:
 
-	$ python jaide.py -i ~/desktop-link/iplist.txt --scp pull /var/log ~/desktop-link/scp/
+	$ jaide -i ~/desktop-link/iplist.txt pull /var/log ~/desktop-link/scp/
 	==================================================
 	Results from device: 172.25.1.60
 	Retrieving 172.25.1.60:/var/log, and putting it in /Users/nprintz/desktop-link/scp/172.25.1.60_log
@@ -94,13 +96,15 @@ Here is copying the /var/log file from multiple devices successfully:
 
 Here is pushing a single file to a single remote device:
 
-	$ python jaide.py -i 172.25.1.21 --scp push ~/desktop-link/scp/template /var/tmp
+	$ jaide -i 172.25.1.21 push ~/desktop-link/scp/template /var/tmp
+	==================================================
+	Results from device: 172.25.1.21
 	Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/
 
 	Transferred 100% of the file template                                                                                   
 	Pushed /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/
 
-	$ python jaide.py  -i 172.25.1.21 -shell "ls /var/tmp"
+	$ jaide  -i 172.25.1.21 -shell "ls /var/tmp"
 	==================================================
 	Results from device: 172.25.1.21
 	> ls /var/tmp
@@ -110,7 +114,7 @@ Here is pushing a single file to a single remote device:
 
 Here is pushing a directory to a remote device:
 
-	$ python jaide.py -i 172.25.1.21 --scp push ~/desktop-link/scp/172.25.1.21_log/ /var/tmp 
+	$ jaide -i 172.25.1.21 push ~/desktop-link/scp/172.25.1.21_log/ /var/tmp 
 	==================================================
 	Results from device: 172.25.1.21
 	Pushing /Users/nprintz/desktop-link/scp/172.25.1.21_log to 172.25.1.21:/var/tmp/
@@ -135,7 +139,7 @@ Here is pushing a directory to a remote device:
 	Transferred 100% of the file interactive-commands.1.gz                  
 	Transferred 100% of the file interactive-commands.2.gz                  
 	Transferred 100% of the file interactive-commands.3.gz                  
-	Transferred 100% of the file interactive-commands.4.gz                               
+	Transferred 100% of the file interactive-commands.4.gz
 	Transferred 100% of the file inventory                                  
 	Transferred 100% of the file license                                    
 	Transferred 100% of the file mastership                                 
@@ -143,7 +147,7 @@ Here is pushing a directory to a remote device:
 	Transferred 100% of the file messages.1.gz                              
 	Transferred 100% of the file messages.2.gz                              
 	Transferred 100% of the file messages.3.gz                              
-	Transferred 100% of the file messages.4.gz                                                      
+	Transferred 100% of the file messages.4.gz  
 	Transferred 100% of the file ospf3trace                                 
 	Transferred 100% of the file pfed                                       
 	Transferred 100% of the file pgmd                                       
@@ -164,7 +168,7 @@ Here is pushing a directory to a remote device:
 
 Here is pushing a file to multiple remote devices:
 
-	$ python jaide.py -i ~/desktop-link/iplist.txt --scp push ~/desktop-link/scp/template /var/tmp
+	$ jaide -i ~/desktop-link/iplist.txt push ~/desktop-link/scp/template /var/tmp
 	==================================================
 	Results from device: 172.25.1.21
 	Pushing /Users/nprintz/desktop-link/scp/template to 172.25.1.21:/var/tmp/

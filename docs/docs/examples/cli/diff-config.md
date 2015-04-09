@@ -1,16 +1,16 @@
 Comparing Config Differences Between two Devices
 ================================
 
-We use the standard python library `difflib` to run a comparison between the configuration of two devices. The output of this comparison is very similar to that of the change control system `git`. Therefore if it looks a little confusing to you, try checking out [this document](http://www.git-tower.com/learn/ebook/command-line/advanced-topics/diffs) for an explanation.
+We use the standard python library `difflib` to run a comparison between the configuration of two devices. The output of this comparison is very similar to that of the change control system `git`. Therefore if it looks a little confusing to you, try checking out [this document](http://www.git-tower.com/learn/ebook/command-line/advanced-topics/diffs) for an explanation or looking up `git diff output explained` on google.
 
 This actively pulls the running configuration from the devices for this comparison. There are options for this command, as follows:  
 
 | Option | Full Name Flag | Description |  
 | ------ | -------------- | ----------- |  
-| -i 	| --second-host | The second host to compare against. This is required. The connection will use the same username and password as the first host by default. |  
+| -i 	| --second-host | The second host to compare against. This is the only required option for this command. The connection will use the same username and password as the first host by default. |  
 | -m 	| --mode | This is how to view the differences, can be either `set` or `stanza`. Defaults to `set`. |  
-| -u 	| --second-username | The username to use for the secondary device. |  
-| -p 	| --second-password | The password to use for the secondary device. |  
+| -u 	| --second-username | The username to use for the secondary device. Defaults to the same username as the original connection. |  
+| -p 	| --second-password | The password to use for the secondary device. Defaults to the same password as the original connection. |  
 
 
 ## Example

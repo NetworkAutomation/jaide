@@ -5,16 +5,20 @@ Using Shell Commands
 
 Here we use the shell argument to simply print the working directory when logging in as root. 
 
-	$ python jaide.py -i 172.25.1.21 --shell pwd
+### Single Command example
+
+	$ jaide -i 172.25.1.21 shell pwd
 	==================================================
 	Results from device: 172.25.1.21
 	> pwd
 
 	/var/root
 
+### Comma Separated Command List  
+
 Here we use the shell argument to print the working directory, change directories and print again.
 
-	$ python jaide.py -i 172.25.1.21 --shell "pwd,cd /var/tmp, pwd"
+	$ jaide -i 172.25.1.21 shell "pwd,cd /var/tmp, pwd"
 	==================================================
 	Results from device: 172.25.1.21
 	> pwd
@@ -28,6 +32,8 @@ Here we use the shell argument to print the working directory, change directorie
 
 	/var/tmp
 
+### Example with a File of Shell Commands  
+
 Here we use a file containing the following contents:
 
 	pwd 
@@ -39,7 +45,7 @@ Here we use a file containing the following contents:
 
 These are carried out sequentially with session based context:
 
-	$ python jaide.py -i 172.25.1.21 --shell ~/Desktop/shelllist.txt 
+	$ jaide -i 172.25.1.21 shell ~/Desktop/shelllist.txt 
 	==================================================
 	Results from device: 172.25.1.21
 	> pwd

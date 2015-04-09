@@ -9,7 +9,7 @@ A known example of when this is necessary is the command `request system snapsho
 
 	$ jaide -i 172.25.1.21 -t 7200 operational "request system snapshot slice alternate"
 
-**Note -** We have used this command in our testing experience to ensure that it works. However, always take caution when executing any commands that could potentially harm the networking device or the network configuration. We are not responsible for mis-use of this script!  
+**Note -** We have used this command in our testing experience to ensure that it works. However, always take caution when executing any commands that could potentially harm the networking device or the network configuration. We are not responsible for mis-use of this tool!  
 
 ## Connect Timeout
 
