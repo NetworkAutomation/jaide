@@ -43,7 +43,12 @@ class Jaide():
     Methods include copying files, running show commands,
     shell commands, commit configuration changes, finding
     interface errors, and getting device status/information.
+
+    All of the listed above methods for touching Junos are wrapped by a
+    decorator function @check_instance, which handles ensuring the correct
+    connection is used to perform the requested operation.
     """
+    # TODO: run through core_test.py again, just to be sure all is good.
     # TODO: Modify connect timeout enhancement on github.
     def __init__(self, host, username, password, connect_timeout=5,
                  session_timeout=300, connect="paramiko", port=22):
@@ -54,6 +59,11 @@ class Jaide():
                | return a Jaide object, which can then be used to actually
                | send commands to the device. This function establishes the
                | connection to the device via a NCClient manager object.
+               | > **NOTE:** The connect parameter should be ignored under most
+               | > circumstances. Changing it only affects how Jaide first
+               | > connects to the device. The decorator function
+               | > @check_instance will handle moving between session
+               | > types for you.
 
         @param host: The IP or hostname of the device to connect to.
         @type host: str
@@ -70,33 +80,33 @@ class Jaide():
                               | timeframe, the session is declared dead,
                               | and times out.
         @type session_timeout: int
-        @param connect: The connection type that should be made. Several
+        @param connect: **NOTE: We default to 'paramiko', but this
+                        | parameter can be set to False to prevent connecting
+                        | on object instantiation. The @check_instance
+                        | decorator function will handle sliding between
+                        | session types depending on what function is being
+                        | called, meaning generally self.conn_type and this
+                        | connect parameter should be ignored.**
+                        |
+                        | The connection type that should be made. Several
                         | options are available: 'ncclient', 'scp', and
                         | 'paramiko', 'shell' and 'root'.
                         |
-                        | 'paramiko' is used for operational commands
+                        | 'paramiko' : is used for operational commands
                         | (couldn't use ncclient because of lack of pipes `|`
                         | support.
                         |
-                        | 'scp' is used for copying files to/from
+                        | 'scp' : is used for copying files to/from
                         | the device, and uses an SCP connection.
                         |
-                        | 'shell' is for sending shell commands.
+                        | 'shell' : is for sending shell commands.
                         |
-                        | 'root' is when the user is doing operational
+                        | 'root' : is when the user is doing operational
                         | commands, but is logged in as root, (requires
                         | handling separately, since this puts the session
                         | into a shell prompt)
                         |
-                        | 'ncclient' is used for all other commands.
-                        |
-                        | We default to 'paramiko', but this parameter can be
-                        | set to False to prevent connecting on object
-                        | instantiation. The @check_instance decorator function
-                        | will handle sliding between session types depending
-                        | on what function is being called, meaning generally
-                        | self.conn_type and this connect parameter can be
-                        | ignored.
+                        | 'ncclient' : is used for all other commands.
         @type connect: str
         @param port: The destination port on the device to attempt the
                    | connection.
@@ -129,6 +139,10 @@ class Jaide():
               | proper session type is in use. If it is not, it will
               | attempt to migrate _session to that type before moving
               | to the originally requested function.
+              | > **NOTE:** This function is a decorator, and should not be
+              | >  used directly. All other methods in this class that touch
+              | >  the Junos device are wrapped by this function to ensure the
+              | >  proper connection type is used.
 
         @param function: the function that is being wrapped around
         @type function: function
@@ -787,8 +801,10 @@ class Jaide():
 
     @check_instance
     def scp_pull(self, src, dest, progress=False, preserve_times=True):
-        """ Purpose: Makes an SCP pull request for the specified file(s)/dir.
+        """ Makes an SCP pull request for the specified file(s)/dir.
 
+        Purpose: By leveraging the _scp private variable, we make an scp pull
+               | request to retrieve file(s) from a Junos device.
         @param src: string containing the source file or directory
         @type src: str
         @param dest: destination string of where to put the file(s)/dir

@@ -6,9 +6,15 @@ import re
 def color(out_string, color='grn'):
     """ Highlight string for terminal color coding.
 
+    Purpose: We use this utility function to insert a ANSI/win32 color code
+           | and Bright style marker before a string, and reset the color and
+           | style after the string. We then return the string with these
+           | codes inserted.
     @param out_string: the string to be colored
     @type out_string: str
-    @param color: a string signifying which color to use.
+    @param color: a string signifying which color to use. Defaults to 'grn'.
+                | Accepts the following colors:
+                |     ['blk', 'blu', 'cyn', 'grn', 'mag', 'red', 'wht', 'yel']
     @type color: str
 
     @returns: the modified string, including the ANSI/win32 color codes.
@@ -26,11 +32,6 @@ def color(out_string, color='grn'):
     }
     init()
     return (c[color] + Style.BRIGHT + out_string + Fore.RESET + Style.NORMAL)
-    # if color == 'yel':
-    #     return (c[] + Style.BRIGHT + out_string + Fore.RESET +
-    #             Style.NORMAL)
-    # return (Fore.GREEN + Style.BRIGHT + out_string + Fore.RESET +
-    #         Style.NORMAL)
 
 
 def strip_color(search):

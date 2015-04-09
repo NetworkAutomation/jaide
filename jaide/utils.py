@@ -20,8 +20,8 @@ def clean_lines(commands):
            | without a problem.
 
     @param commands: This can be either a string that is a file
-                   | location, a comma separated string of strings,
-                   | or a python list of strings.
+                   | location, a comma separated string of strings
+                   | ('x,y,z,1,2,3'), or a python list of strings.
     @type commands: str or list
 
     @returns: Yields each command in order
