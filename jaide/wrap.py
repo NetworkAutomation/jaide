@@ -218,7 +218,7 @@ def diff_config(jaide, second_host, mode):
         output = color("There were no config differences between %s and %s\n" %
                        (jaide.host, second_host), 'info')
     else:
-        # color removals as errors, and additions as success
+        # color removals red, and additions green
         return color_diffs(output)
     return output
 

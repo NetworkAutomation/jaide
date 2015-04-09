@@ -189,7 +189,7 @@ class Jaide():
         return wrapper
 
     def cli_to_shell(self):
-        """Move _shell to the shell from the command line interface (CLI)."""
+        """ Move _shell to the shell from the command line interface (CLI). """
         if self._in_cli:
             self._shell.send("start shell\n")
             time.sleep(2)
@@ -227,7 +227,7 @@ class Jaide():
         @param synchronize: boolean set to true if desiring a commit
                           | synchronize operation.
         @type synchronize: bool
-        @param req_format: string to specificy the response format. Accepts
+        @param req_format: string to specify the response format. Accepts
                          | either 'text' or 'xml'
         @type req_format: str
 
@@ -797,7 +797,7 @@ class Jaide():
                        | printed as the operation is copying. Can also pass
                        | a function pointer to handoff the progress callback
                        | elsewhere.
-        @type progress: bool
+        @type progress: bool or function pointer
         @param preserve_times: Set to false to have the times of the copied
                              | files set at the time of copy.
 
@@ -829,7 +829,7 @@ class Jaide():
                        | printed as the operation is copying. Can also pass
                        | a function pointer to handoff the progress callback
                        | elsewhere.
-        @type progress: bool
+        @type progress: bool or function pointer
         @param preserve_times: Set to false to have the times of the copied
                              | files set at the time of copy.
 
@@ -889,7 +889,12 @@ class Jaide():
         return False
 
     def unlock(self):
-        """ Unlock the candidate config. Requires ncclient.manager.Manager. """
+        """ Unlock the candidate config.
+
+        Purpose: Unlocks the candidate configuration, so that other people can
+               | edit the device. Requires the _session private variable to be
+               | a type of a ncclient.manager.Manager.
+        """
         if isinstance(self._session, manager.Manager):
             self._session.unlock()
 
