@@ -49,7 +49,6 @@ class Jaide():
     connection is used to perform the requested operation.
     """
     # TODO: run through core_test.py again, just to be sure all is good.
-    # TODO: Modify connect timeout enhancement on github.
     def __init__(self, host, username, password, connect_timeout=5,
                  session_timeout=300, connect="paramiko", port=22):
         """ Initialize the Jaide object.
@@ -299,7 +298,6 @@ class Jaide():
             return out
         return False
 
-    # TODO: Add separating commit check form commit enhancement to github.
     @check_instance
     def commit_check(self, commands="", req_format="text"):
         """ Execute a commit check operation.
@@ -354,7 +352,6 @@ class Jaide():
                     out += i.tag + '\n'
         return out
 
-    # TODO: Add compare config enhancement to github.
     @check_instance
     def compare_config(self, commands="", req_format="text"):
         """ Execute a 'show | compare' against the specified commands.
@@ -506,7 +503,6 @@ class Jaide():
                               'comment')[0].text.split('[')[1].split(']')[0])
         # get uptime from 'show system uptime'
         resp = self._session.get_system_uptime_information(format='xml')
-        # TODO: Add time enhancement to github.
         current_time = resp.xpath('//current-time/date-time')[0].text
         uptime = resp.xpath('//uptime-information/up-time')[0].text
         # get serial number from 'show chassis hardware'
@@ -529,8 +525,7 @@ class Jaide():
                 ' %s\nUptime: %s\n' %
                 (hostname, model, version, serial_num, current_time, uptime))
 
-    # TODO: optional different username/password. 
-    # TODO: Add diff_config enhancement to github.
+    # TODO: optional different username/password.
     @check_instance
     def diff_config(self, second_host, mode='stanza'):
         """ Generate configuration differences with a second device.
@@ -680,7 +675,6 @@ class Jaide():
                 # EX/MX cpu/memory response tags
                 if i.xpath('memory-buffer-utilization') != []:
                     # TODO: had to add try blocks for EX2200-C which don't have cpu-temp. a better way to handle this?
-                    # TODO: add bug in github.
                     try:
                         mem = i.xpath('memory-buffer-utilization')[0].text
                     except IndexError:
@@ -714,7 +708,6 @@ class Jaide():
             output += proc[line_number] + '\n'
         return output
 
-    # TODO: Add Show int status in output as enhancement on github.
     @check_instance
     def interface_errors(self):
         """ Parse 'show interfaces extensive' and return interfaces with errors.

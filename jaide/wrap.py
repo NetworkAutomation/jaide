@@ -28,10 +28,7 @@ from scp import SCPException
 import click
 
 
-# TODO: Add color coding enhancement to github.
-# TODO: Add separating CLI from Jaide Class enhancement to github.
 # TODO: make this a decorator function, handing the Jaide object downstream?
-# TODO: comments in this file...
 def open_connection(ip, username, password, function, args, write=False,
                     conn_timeout=5, sess_timeout=300, port=22):
     """ Open a Jaide session with the device.
