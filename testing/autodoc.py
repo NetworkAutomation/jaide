@@ -26,7 +26,7 @@ def form_rep(line, pfx=''):
     line = re.sub(r'> Purpose:', r'\n> __Purpose:__', line)
     # bold/italicize parameters, types, and returns
     line = re.sub(r'\@param (\w+)\b', r'* __\1__', line)
-    line = re.sub(r'\@type (\w+)\b', r'  * _Type_', line)
+    line = re.sub(r'\@type (\w+)\b', '  1. _Type_', line)
     line = re.sub(r'> \@returns', r'\n> __Returns__', line)
     line = re.sub(r'\@rtype', r'_Return Type_', line)
     # properties

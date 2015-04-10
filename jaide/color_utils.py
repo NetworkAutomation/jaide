@@ -10,6 +10,7 @@ def color(out_string, color='grn'):
            | and Bright style marker before a string, and reset the color and
            | style after the string. We then return the string with these
            | codes inserted.
+
     @param out_string: the string to be colored
     @type out_string: str
     @param color: a string signifying which color to use. Defaults to 'grn'.
@@ -39,6 +40,7 @@ def strip_color(search):
 
     Purpose: Removes ANSI codes from a string. We use this to clean output
            | from a jaide command before writing it to a file.
+
     @param search: The string to search through to remove any ANSI codes.
     @type search: str
 

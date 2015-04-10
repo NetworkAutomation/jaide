@@ -101,4 +101,4 @@ session.disconnect()
 
 ## Notes  
 * 1) There are multiple ways to specify these pieces of information (Hostnames/IPs, op commands, shell commands, set commands). It can be a single instance, multiple in a quoted comma-separated list, or a filepath pointing to a file with one entry on each line. More information is in their respective detailed docs.  
-* 2) Pipes are very powerful, and should be learned for advanced command usage in [Junos natively](http://www.juniper.net/techpubs/en_US/junos14.2/topics/concept/junos-cli-pipe-filter-functions-overview.html). Xpath filtering is an added feature of Jaide, and can be learned of in our [operational command guide](#TODO: operational command guide link).  
+* 2) Pipes are very powerful, and should be learned for advanced command usage in [Junos natively](http://www.juniper.net/techpubs/en_US/junos14.2/topics/concept/junos-cli-pipe-filter-functions-overview.html). Xpath filtering is an added feature of Jaide, and can be learned of in our [operational command guide](examples/cli/operational-commands.md).  

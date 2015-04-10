@@ -69,12 +69,11 @@ Pip should handle retrieving any necessary requirements, but we list them here f
 
 [NCCLIENT >=0.4.2](https://github.com/leopoul/ncclient/)  -  https://github.com/leopoul/ncclient/  
 [PARAMIKO >=1.14.0](https://github.com/paramiko/paramiko)  -  https://github.com/paramiko/paramiko   
-[SCP 0.8.0](https://github.com/jbardin/scp.py)  -  https://github.com/jbardin/scp.py  
+[SCP >=0.8.0](https://github.com/jbardin/scp.py)  -  https://github.com/jbardin/scp.py  
 
 The CLI tool has the following additional requirements:  
 [COLORAMA 0.3.3](https://pypi.python.org/pypi/colorama) - https://pypi.python.org/pypi/colorama  
-TODO: maybe not?  
-[CLICK 3.3](http://click.pocoo.org/3/) - http://click.pocoo.org/3/  
+[CLICK >=3.3](http://click.pocoo.org/3/) - http://click.pocoo.org/3/  
 
 ## Usage: 
 Full [usage](READTHEDOCS basic usage page) documentation and [version history](READTHEDOCS version history page) can be found on the [Read The Docs site](link to READTHEDOCS main page).

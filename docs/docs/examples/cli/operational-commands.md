@@ -1,7 +1,7 @@
 Operational Commands
 ====================
 
-Jaide can be used to send a single or multiple commands to a single or multiple Junos devices. There are several options for how to specify commands. These methods are shared amongst operational commands, shell commands, set commands (for committing), and IP lists for multipel devices. They are a single quoted command, and quoted comma separated list of commands, or a filepath pointing to a file with a list of commands, each on a separate line. We will show these three methods in the following examples.
+Jaide can be used to send a single or multiple commands to a single or multiple Junos devices. There are several options for how to specify commands. These methods are shared amongst operational commands, shell commands, set commands (for committing), and IP lists for multiple devices. They are a single quoted command, and quoted comma separated list of commands, or a filepath pointing to a file with a list of commands, each on a separate line. We will show these three methods in the following examples.
 
 # Basic Usage
 

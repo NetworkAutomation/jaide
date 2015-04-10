@@ -3,13 +3,13 @@ API Reference
 
 ## Jaide Class  
 *class* **Jaide**(): 
->  Purpose: An object for manipulating a Junos device.
+>  __Purpose__: An object for manipulating a Junos device.
 > 
 > Methods include copying files, running show commands,
 > shell commands, commit configuration changes, finding
 > interface errors, and getting device status/information.
 > 
-> All of the listed above methods for touching Junos are wrapped by a
+> All of the methods listed below that touch Junos are wrapped by a
 > decorator function @check_instance, which handles ensuring the correct
 > connection is used to perform the requested operation.
 
@@ -29,20 +29,20 @@ API Reference
 > > types for you.
 > 
 > * __host__: The IP or hostname of the device to connect to.
->   * _Type_: str
+>   1. _Type_: str
 > * __username__: The username for the connection
->   * _Type_: str
+>   1. _Type_: str
 > * __password__: The password for the connection
->   * _Type_: str
+>   1. _Type_: str
 > * __connect_timeout__: The timeout value, in seconds, for attempting
 > to connect to the device.
->   * _Type_: int
+>   1. _Type_: int
 > * __session_timeout__: The timeout value, in seconds, for the
 > session. If a command is sent and nothing
 > is heard back from the device in this
 > timeframe, the session is declared dead,
 > and times out.
->   * _Type_: int
+>   1. _Type_: int
 > * __connect__: **NOTE: We default to 'paramiko', but this
 > parameter can be set to False to prevent connecting
 > on object instantiation. The @check_instance
@@ -64,10 +64,10 @@ API Reference
 > handling separately, since this puts the session
 > into a shell prompt)
 > 'ncclient' : is used for all other commands.
->   * _Type_: str
+>   1. _Type_: str
 > * __port__: The destination port on the device to attempt the
 > connection.
->   * _Type_: int
+>   1. _Type_: int
 > 
 
 > __Returns__: an instance of the Jaide class
@@ -88,7 +88,7 @@ API Reference
 > >  proper connection type is used.
 > 
 > * __function__: the function that is being wrapped around
->   * _Type_: function
+>   1. _Type_: function
 > 
 
 > __Returns__: the originally requested function
@@ -111,23 +111,23 @@ API Reference
 > multiple commands separated by commas, or
 > a filepath location of a file with multiple
 > commands, each on its own line.
->   * _Type_: str or list
+>   1. _Type_: str or list
 > * __confirmed__: integer value of the number of **seconds** to
 > confirm the commit for, if requested.
->   * _Type_: int
+>   1. _Type_: int
 > * __comment__: string that the user wants to comment the commit
 > with. Will show up in the 'show system commit' log.
->   * _Type_: str
+>   1. _Type_: str
 > * __at_time__: string designating the time at which the commit
 > should happen. Can be in one of two Junos approved
 > formats.
->   * _Type_: str
+>   1. _Type_: str
 > * __synchronize__: boolean set to true if desiring a commit
 > synchronize operation.
->   * _Type_: bool
+>   1. _Type_: bool
 > * __req_format__: string to specify the response format. Accepts
 > either 'text' or 'xml'
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: The reply from the device.
@@ -144,10 +144,10 @@ API Reference
 > 
 > * __commands__: A string, filepath, or list of multiple commands
 > that the device will compare with.
->   * _Type_: str or list
+>   1. _Type_: str or list
 > * __req_format__: The desired format of the response, defaults to
 > 'text', but also accepts 'xml'
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: The reply from the device.
@@ -164,10 +164,10 @@ API Reference
 > 
 > * __commands__: A string, filepath, or list of multiple commands
 > that the device will compare with.
->   * _Type_: str or list
+>   1. _Type_: str or list
 > * __req_format__: The desired format of the response, defaults to
 > 'text', but also accepts 'xml'
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: The reply from the device.
@@ -200,13 +200,16 @@ API Reference
 > __Purpose:__ Callback function for an SCP operation. Used to show
 > the progress of an actively running copy. This directly
 > prints to stdout, one line for each file as it's copied.
-> 
+> The parameters received by this function are those received from
+> the scp.put or scp.get function, as explained in the python
+> scp module docs.
+>
 > * __filename__: The filename of file being copied.
->   * _Type_: str
+>   1. _Type_: str
 > * __size__: The total size of the current file being copied.
->   * _Type_: str or float
+>   1. _Type_: str or float
 > * __sent__: The amount of data sent for the current file being copied.
->   * _Type_: str or float
+>   1. _Type_: str or float
 > 
 
 > __Returns__: None
@@ -232,9 +235,9 @@ API Reference
 > 
 > * __second_host__: the IP or hostname of the second device to
 > compare against.
->   * _Type_: str
+>   1. _Type_: str
 > * __mode__: string to signify 'set' mode or 'stanza' mode.
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: iterable of strings
@@ -261,10 +264,10 @@ API Reference
 > 
 > * __interface__: The xml output of the 'sh int ext' command for
 > the desired interface.
->   * _Type_: lxml.etree._Element object
+>   1. _Type_: lxml.etree._Element object
 > * __face__: The direction of the errors we're wanting. Either 'input'
 > or 'output' is accepted.
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: Yields each error that has a significant number
@@ -312,11 +315,11 @@ API Reference
 > 
 > * __command__: The single command that to retrieve output from the
 > device. Any pipes will be taken into account.
->   * _Type_: str
+>   1. _Type_: str
 > * __req_format__: The desired format of the response, defaults to
 > 'text', but also accepts 'xml'. **NOTE**: 'xml'
 > will still return a string, not a libxml ElementTree
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: The reply from the device.
@@ -330,17 +333,17 @@ API Reference
 > request to retrieve file(s) from a Junos device.
 > 
 > * __src__: string containing the source file or directory
->   * _Type_: str
+>   1. _Type_: str
 > * __dest__: destination string of where to put the file(s)/dir
->   * _Type_: str
+>   1. _Type_: str
 > * __progress__: set to `True` to have the progress callback be
 > printed as the operation is copying. Can also pass
 > a function pointer to handoff the progress callback
 > elsewhere.
->   * _Type_: bool or function pointer
+>   1. _Type_: bool or function pointer
 > * __preserve_times__: Set to false to have the times of the copied
 > files set at the time of copy.
->   * _Type_: bool
+>   1. _Type_: bool
 > 
 
 > __Returns__: `True` if the copy succeeds.
@@ -350,17 +353,17 @@ API Reference
 >  Purpose: Makes an SCP push request for the specified file(s)/dir.
 > 
 > * __src__: string containing the source file or directory
->   * _Type_: str
+>   1. _Type_: str
 > * __dest__: destination string of where to put the file(s)/dir
->   * _Type_: str
+>   1. _Type_: str
 > * __progress__: set to `True` to have the progress callback be
 > printed as the operation is copying. Can also pass
 > a function pointer to handoff the progress callback
 > elsewhere.
->   * _Type_: bool or function pointer
+>   1. _Type_: bool or function pointer
 > * __preserve_times__: Set to false to have the times of the copied
 > files set at the time of copy.
->   * _Type_: bool
+>   1. _Type_: bool
 > 
 
 > __Returns__: `True` if the copy succeeds.
@@ -378,7 +381,7 @@ API Reference
 > 
 > * __command__: The single command that to retrieve output from the
 > device.
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: The reply from the device.
@@ -428,7 +431,7 @@ jaide.utils.**clean_lines**(*commands*):
 > * __commands__: This can be either a string that is a file
 > location, a comma separated string of strings
 > ('x,y,z,1,2,3'), or a python list of strings.
->   * _Type_: str or list
+>   1. _Type_: str or list
 > 
 
 > __Returns__: Yields each command in order
@@ -444,12 +447,12 @@ jaide.utils.**xpath**(*source_xml, xpath_expr, req_format='string'*):
 > an xml object if desired.
 > 
 > * __source_xml__: Plain text XML that will be filtered
->   * _Type_: str or lxml.etree.ElementTree.Element object
+>   1. _Type_: str or lxml.etree.ElementTree.Element object
 > * __xpath_expr__: Xpath expression that we will filter the XML by.
->   * _Type_: str
+>   1. _Type_: str
 > * __req_format__: the desired format of the response, accepts string or
 > xml.
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: The filtered XML if filtering was successful. Otherwise,
@@ -466,12 +469,13 @@ jaide.color_utils.**color**(*out_string, color='grn'*):
 > and Bright style marker before a string, and reset the color and
 > style after the string. We then return the string with these
 > codes inserted.
+> 
 > * __out_string__: the string to be colored
->   * _Type_: str
+>   1. _Type_: str
 > * __color__: a string signifying which color to use. Defaults to 'grn'.
 > Accepts the following colors:
 >     ['blk', 'blu', 'cyn', 'grn', 'mag', 'red', 'wht', 'yel']
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: the modified string, including the ANSI/win32 color codes.
@@ -483,8 +487,9 @@ jaide.color_utils.**strip_color**(*search*):
 
 > __Purpose:__ Removes ANSI codes from a string. We use this to clean output
 > from a jaide command before writing it to a file.
+> 
 > * __search__: The string to search through to remove any ANSI codes.
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: The new string without any ANSI codes.
@@ -498,7 +503,7 @@ jaide.color_utils.**color_diffs**(*string*):
 > produced from difflib.
 > 
 > * __string__: The string to be replacing
->   * _Type_: str
+>   1. _Type_: str
 > 
 
 > __Returns__: The new string with ANSI codes injected.

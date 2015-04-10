@@ -44,7 +44,7 @@ class Jaide():
     shell commands, commit configuration changes, finding
     interface errors, and getting device status/information.
 
-    All of the listed above methods for touching Junos are wrapped by a
+    All of the methods listed below that touch Junos are wrapped by a
     decorator function @check_instance, which handles ensuring the correct
     connection is used to perform the requested operation.
     """
@@ -466,6 +466,9 @@ class Jaide():
         Purpose: Callback function for an SCP operation. Used to show
                | the progress of an actively running copy. This directly
                | prints to stdout, one line for each file as it's copied.
+               | The parameters received by this function are those received
+               | from the scp.put or scp.get function, as explained in the
+               | python scp module docs.
 
         @param filename: The filename of file being copied.
         @type filename: str
