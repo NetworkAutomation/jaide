@@ -6,7 +6,7 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the relevant file
-with open(path.join(here, 'DESCRIPTION.md'), encoding='utf-8') as f:
+with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
@@ -17,7 +17,7 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
     version='2.0.0',
 
-    description='A tool for manipulating Junos devices.',
+    description='A library and CLI tool for manipulating Junos devices.',
     long_description=long_description,
 
     # The project's main homepage.

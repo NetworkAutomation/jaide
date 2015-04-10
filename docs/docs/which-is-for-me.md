@@ -8,7 +8,7 @@ The `jaidegui` package is a separate Github repository, for ease of change contr
 ## Which is for me?  
 
  * **Are you wanting to easily manipulate Junos devices using a GUI instead of a CLI, and don't want to worry about Python or programming?**  
- 	- We recommend the latest compiled Mac or Windows version of the Jaide GUI available on the [Jaide GUI github page](https://github.com/NetworkAutomation/jaidegui).  
+ 	- We recommend the latest compiled Mac or Windows version of the Jaide GUI available on the [Jaide GUI github page](https://github.com/NetworkAutomation/jaidegui/releases/latest).  
 
 TODO: update links.  
 

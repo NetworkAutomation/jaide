@@ -9,7 +9,7 @@ Version History
   * core.py is the base framework, and includes the new Jaide() class that can be imported and used in other python scripts/packages for manipulating Junos devices.  
   * cli.py is the command line interface utility, and is what the user directly interfaces with using the new `jaide` command.  
   * wrap.py is the middle man between core.py and cli.py that provides the error-handling and pretty-printing of output from the Jaide class object that the CLI wants to show to the user.  
-* The Jaide GUI has been separated into it's own [package](TODO: link to pypi package) and [github repo](https://github.com/NetworkAutomation/jaidegui) for ease of tracking GUI specific docs/changes.  
+* The Jaide GUI has been separated into it's own [package](https://pypi.python.org/pypi/jaide) and [github repo](https://github.com/NetworkAutomation/jaidegui) for ease of tracking GUI specific docs/changes.  
 * Jaide is now utilizes setuptools for installing the package into the target python environment.  
   * This allows the Jaide CLI tool to be available system-wide due to setuptools installing the `jaide` command into the OS PATH variable.
 * Because Jaide uses setuptools now, it is also available via pip!    
