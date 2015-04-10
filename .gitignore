@@ -1,11 +1,17 @@
 # ignore compiled files
 *.pyc
+
 # ignore Sublime Code Intel config
 .codeintel/*
+
 # ignore gui defaults file
 *.ini
+
 # ignore pypi, setuptools, etc
 jaide.egg-info/*
 .pypirc
+dist/
+build/
+
 # mkdocs builds
 site/
