@@ -32,7 +32,7 @@ These are the available commands in the jaide CLI tool:
 | Command | Description |  
 | ------- | ----------- |  
 | commit  | Execute a commit operation. **[1](#notes)** Several options exist for further customization, such as confirming, commit check, comments, etc. |  
-| compare | Run a 'show pipe compare' for a list of set commands. **[1](#notes)** |  
+| compare | Run a 'show &#124; compare' for a list of set commands. **[1](#notes)** |  
 | diff_config | Compare the configuration differences between two devices. |  
 | errors | Get any interface errors from any interface. |  
 | health | Get alarm, CPU, RAM, and temperature status. |  
