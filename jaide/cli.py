@@ -14,7 +14,7 @@ https://github.com/NetworkAutomation/jaide
 """
 from __future__ import print_function
 # standard modules
-from os import path
+from os import path, popen
 import multiprocessing
 import re
 # intra-Jaide imports
@@ -23,9 +23,11 @@ from utils import clean_lines
 from color_utils import color
 # non-standard modules:
 import click
+
 # TODO: look into bash completion for click.
 # TODO: new option to suppress color highlighting?
 # TODO: documentation in this file needs a once-over
+
 # needed for '-h' to be a help option
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -364,8 +366,8 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time):
     mp_pool.join()
 
 
-@main.command(context_settings=CONTEXT_SETTINGS, help="Retrieve the comparison"
-              " of COMMANDS against the running configuration on the device.\n"
+@main.command(context_settings=CONTEXT_SETTINGS, help="Compare commands"
+              " against running config.\n"
               "\n COMMANDS can be a single set command, a comma separated list"
               " of commands, or a filepath pointing to a file of set commands "
               "on each line.")
@@ -718,8 +720,13 @@ def shell(ctx, commands):
 
 
 def run():
-    # TODO: set max_content_width to the width of the terminal dynamically?
-    main(obj={}, max_content_width=120)
+    # set max_content_width to the width of the terminal dynamically
+    # TEST: test that dynamic columns width works on windows.
+    rows, columns = popen('stty size', 'r').read().split()
+    # obj and max_column_width get passed into click, and don't actually
+    # proceed into the main() command group. Click handles the CLI
+    # user options and passing them into main().
+    main(obj={}, max_content_width=int(columns))
 
 if __name__ == '__main__':
     run()
