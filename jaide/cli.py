@@ -25,6 +25,7 @@ from color_utils import color
 import click
 # TODO: look into bash completion for click.
 # TODO: new option to suppress color highlighting?
+# TODO: documentation in this file needs a once-over
 # needed for '-h' to be a help option
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -49,7 +50,27 @@ class AliasedGroup(click.Group):
 
 
 def at_time_validate(ctx, param, value):
-    """ Callback validating the at_time commit option. """
+    """ Callback validating the at_time commit option.
+
+    Purpose: Validates the `at time` option for the commit command. Only the
+           | the following two formats are supported: 'hh:mm[:ss]' or
+           | 'yyyy-mm-dd hh:mm[:ss]' (seconds are optional).
+
+    @param ctx: The click context paramter, for receiving the object dictionary
+              | being manipulated by other previous functions. Needed by any
+              | function with the @click.pass_context decorator. Callback
+              | functions such as this one receive this automatically.
+    @type ctx: click.Context
+    @param param: param is passed into a validation callback function by click.
+                | We do not use it.
+    @type param: None
+    @param value: The value that the user supplied for the at_time option.
+    @type value: str
+
+    @returns: The value that the user supplied, if it passed validation.
+            | Otherwise, raises click.BadParameter
+    @rtype: str
+    """
     # if they are doing commit_at, ensure the input is formatted correctly.
     if value is not None:
         if (re.search(r'([0-2]\d)(:[0-5]\d){1,2}', value) is None and
@@ -60,11 +81,38 @@ def at_time_validate(ctx, param, value):
                                      "'yyyy-mm-dd hh:mm[:ss]' (seconds are "
                                      "optional).")
     ctx.obj['at_time'] = value
+    return value
 
 
 @click.pass_context
 def write_validate(ctx, param, value):
-    """ Validate the -w option. """
+    """ Validate the -w option.
+
+    Purpose: Validates the `-w`|`--write` option. Two arguments are expected.
+           | The first is the mode, which must be in ['s', 'single', 'm',
+           |  'multiple']. The mode determins if we're writing to one file for
+           | all device output, or to a separate file for each device being
+           | handled.
+           |
+           | The second expected argument is the filepath of the desired
+           | output file. This will automatically be prepended with the IP or
+           | hostname of the device if we're writing to multiple files.
+
+    @param ctx: The click context paramter, for receiving the object dictionary
+              | being manipulated by other previous functions. Needed by any
+              | function with the @click.pass_context decorator. Callback
+              | functions such as this one receive this automatically.
+    @type ctx: click.Context
+    @param param: param is passed into a validation callback function by click.
+                | We do not use it.
+    @type param: None
+    @param value: The value that the user supplied for the write option.
+    @type value: str
+
+    @returns: The value that the user supplied, if it passed validation.
+            | Otherwise, raises click.BadParameter
+    @rtype: str
+    """
     if value != ("default", "default"):
         try:
             mode, dest_file = (value[0], value[1])
@@ -91,7 +139,9 @@ def write_out(input):
 
     @param input: A tuple containing two things:
                 | 1. None or Tuple of file mode and destination filepath
-                | 2. The output to be dumped.
+                | 2. The output of the jaide command that will be either
+                |    written to sys.stdout or to a file, depending on the
+                |    first index in the tuple.
                 |
                 | If the first index of the tuple *is not* another tuple,
                 | the output will be written to sys.stdout. If the first
@@ -133,7 +183,12 @@ def write_out(input):
                 out_file.close()
 
 
-@click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
+@click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS,
+             help="Manipulate one or more Junos devices.\n\nWill connect to "
+             "one or more Junos devices, and manipulate them based on the "
+             "command you have chosen. If a comma separated list or a file "
+             "containing IP/hostnames on each line is given for the IP option,"
+             " the commands will be sent simultaneously to each device.")
 @click.option('-i', '--ip', 'host', prompt="IP or hostname of Junos device",
               help="The target hostname(s) or IP(s). Can be a comma separated"
               " list, or path to a file listing devices on individual lines.")
@@ -166,10 +221,39 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
          username):
     """ Manipulate one or more Junos devices.
 
-    Will connect to one or more Junos devices, and manipulate them based on
-    the command you have chosen. If a comma separated list or a file
-    containing IP/hostnames on each line is given for the IP option, the
-    commands will be carried out simultaneously to each device.
+    Purpose: The main function is the entry point for the jaide tool. Click
+           | handles arguments, commands and options. The parameters passed to
+           | this function are all potential options (required or not) that
+           | must come *before* the command from the group in the command line.
+
+    @param ctx: The click context paramter, for receiving the object dictionary
+              | being manipulated by other previous functions. Needed by any
+              | function with the @click.pass_context decorator.
+    @type ctx: click.Context
+    @param host: The IP(s) or hostname(s) of the devices to connect to.
+    @type host: str
+    @param password: The string password used to connect to the device.
+    @type password: str
+    @param port: The numerical port to establish the connection to. Defauls
+               | to 22.
+    @type port: int
+    @param quiet: An option that the user can set to suppress all output
+                | from jaide.
+    @type quiet: bool
+    @param session_timeout: Sets the session timeout value. A higher value may
+                          | be desired for long running commands, such as
+                          | 'request system snapshot slice alternate'
+    @type session_timeout: int
+    @param connect_timeout: Sets the connection timeout value. This is how
+                          | we'll wait when connecting before classifying
+                          | the device unreachable.
+    @type connect_timeout: int
+    @param username: The string username used to connect to the device.
+    @type useranme: str
+
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     # build the list of hosts
     ctx.obj['hosts'] = [ip for ip in clean_lines(host)]
@@ -186,7 +270,7 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
 
 
 @main.command(context_settings=CONTEXT_SETTINGS, help="Execute a commit "
-              "against the device.\n\nThis function will send set commands to"
+              "against the device.\n\nThis command will send set commands to"
               " a device, and commit the changes. Options exist for "
               "confirming, comments, synchronizing, checking, blank commits,"
               " or delaying to a later time/date.")
@@ -216,9 +300,10 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
 def commit(ctx, commands, blank, check, sync, comment, confirm, at_time):
     """ Execute a commit against the device.
 
-    This function will send set commands to a device, and commit
-    the changes. Options exist for confirming, comments,
-    synchronizing, checking, blank commits, or delaying to a later time/date.
+    Purpose: This function will send set commands to a device, and commit
+           | the changes. Options exist for confirming, comments,
+           | synchronizing, checking, blank commits, or delaying to a later
+           | time/date.
 
     @param ctx: The click context paramter, for receiving the object dictionary
               | being manipulated by other previous functions. Needed by any
@@ -278,11 +363,33 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time):
     mp_pool.join()
 
 
-@main.command(context_settings=CONTEXT_SETTINGS)
+@main.command(context_settings=CONTEXT_SETTINGS, help="Retrieve the comparison"
+              " of COMMANDS against the running configuration on the device.\n"
+              "\n COMMANDS can be a single set command, a comma separated list"
+              " of commands, or a filepath pointing to a file of set commands "
+              "on each line.")
 @click.argument('commands', required=True)
 @click.pass_context
 def compare(ctx, commands):
-    """ Run 'show | compare' for set commands. """
+    """ Run 'show | compare' for set commands.
+
+    @param ctx: The click context paramter, for receiving the object dictionary
+              | being manipulated by other previous functions. Needed by any
+              | function with the @click.pass_context decorator.
+    @type ctx: click.Context
+    @param commands: The Junos set commands that will be put into a candidate
+                   | configuration and used to create the 'show | compare'
+                   | against the running configuration. much like the commands
+                   | parameter for the commit() function, this can be one of
+                   | three things: a string containing a single command, a
+                   | string containing a comma separated list of commands, or
+                   | a string containing a filepath location for a file with
+                   | commands on each line.
+    @type commands: str
+
+    @returns: The output from the device
+    @rtype: str
+    """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
         mp_pool.apply_async(wrap.open_connection, args=(ip,
@@ -477,7 +584,6 @@ def device_info(ctx):
               " either 'set' or 'stanza'. Defaults to 'set'")
 @click.pass_context
 def diff_config(ctx, second_host, mode):
-    # TODO: diff config broken between home SRX and EX?
     """ Config comparison between two devices.
 
     @param ctx: The click context paramter, for receiving the object dictionary
