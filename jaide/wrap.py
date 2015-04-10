@@ -46,6 +46,17 @@ def open_connection(ip, username, password, function, args, write=False,
     @type useranme: str
     @param password: The string password used to connect to the device.
     @type password: str
+    @param function: The downstream jaide.wrap function we'll be handing
+                   | off the jaide.Jaide() object to execute the command
+                   | once we've established the connection.
+    @type function: function pointer.
+    @param args: The arguments that we will hand off to the downstream
+               | function.
+    @type args: list
+    @param write: If set, it would be a tuple that we pass back as part of
+                | our return statement, so that any callback function
+                | can know how and where to put the output from the device.
+    @type write: False or tuple.
     @param conn_timeout: Sets the connection timeout value. This is how
                        | we'll wait when connecting before classifying
                        | the device unreachable.
@@ -54,10 +65,13 @@ def open_connection(ip, username, password, function, args, write=False,
                        | be desired for long running commands, such as
                        | 'request system snapshot slice alternate'
     @type sess_timeout: int
+    @param port: The port to connect to the device on. Defaults to 22.
+    @type port: int
 
-    @returns: a tuple of the output of the jaide command being run, and a
-            | boolean whether the output is to be highlighted or not.
-    @rtype: (str, bool) tuple
+    @returns: We could return either just a string of the output from the
+            | device, or a tuple containing the information needed to write
+            | to a file and the string output from the device.
+    @rtype: Tuple or str
     """
     # start with the header line on the output.
     output = color('=' * 50 + '\nResults from device: %s\n' % ip, 'yel')
@@ -93,6 +107,22 @@ def open_connection(ip, username, password, function, args, write=False,
 
 
 def command(jaide, commands, format="text", xpath=False):
+    """ Run an operational command.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+    @param commands: the operational commands to send to the device.
+    @type commands: str or list
+    @param format: The desired output format from the device, either 'text'
+                 | or 'xml' is supported.
+    @type format: str
+    @param xpath: The xpath expression to filter the results from the device.
+                | If set, this forces the output to be requested in xml format.
+    @type xpath: str
+
+    @returns: The output from the device, and xpath filtered if desired.
+    @rtype: str
+    """
     output = ""
     for cmd in clean_lines(commands):
         expression = ""
@@ -120,6 +150,50 @@ def command(jaide, commands, format="text", xpath=False):
 
 
 def commit(jaide, commands, check, sync, comment, confirm, at_time, blank):
+    """ Execute a commit against the device.
+
+    Purpose: This function will send set commands to a device, and commit
+           | the changes. Options exist for confirming, comments,
+           | synchronizing, checking, blank commits, or delaying to a later
+           | time/date.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+    @param commands: String containing the set command to be sent to the
+                   | device. It can be a python list of strings, a single set
+                   | command, a comma separated string of commands, or a
+                   | string filepath pointing to a file with set commands
+                   | on each line.
+    @type commands: str or list
+    @param check: A bool set to true to only run a commit check, and not
+                | commit any changes. Useful for checking syntax of set
+                | commands.
+    @type check: bool
+    @param sync: A bool set to true to sync the commit across both REs.
+    @type sync: bool
+    @param comment: A string that will be logged to the commit log
+                  | describing the commit.
+    @type comment: str
+    @param confirm: An integer of seconds to commit confirm for.
+    @type confirm: int
+    @param at_time: A string containing the time or time and date of when
+                  | the commit should happen. Junos is expecting one of two
+                  | formats:
+                  | A time value of the form hh:mm[:ss] (hours, minutes,
+                  |     and optionally seconds)
+                  | A date and time value of the form yyyy-mm-dd hh:mm[:ss]
+                  |     (year, month, date, hours, minutes, and optionally
+                  |      seconds)
+    @type at_time: str
+    @param blank: A bool set to true to only make a blank commit. A blank
+                | commit makes a commit, but doesn't have any set commands
+                | associated with it, so no changes are made, but a commit
+                | does happen.
+    @type blank: bool
+
+    @returns: The output from the device.
+    @rtype: str
+    """
     # set the commands to do nothing if the user wants a blank commit.
     if blank:
         commands = 'annotate system ""'
@@ -181,15 +255,47 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank):
 
 
 def compare(jaide, commands):
+    """ Perform a show | compare with some set commands.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+    @param commands: The set commands to send to the device to compare with.
+    @type commands: str or list
+
+    @returns: The output from the device.
+    @rtype str
+    """
     output = color("show | compare:\n", 'yel')
     return output + color_diffs(jaide.compare_config(commands))
 
 
 def device_info(jaide):
+    """ Retrieve basic device information.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+
+    @returns: The output from the device.
+    @rtype str
+    """
     return jaide.device_info()
 
 
 def diff_config(jaide, second_host, mode):
+    """ Perform a show | compare with some set commands.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+    @param second_host: The device IP or hostname of the second host to
+                      | compare with.
+    @type second_host: str
+    @param mode: How to compare the configuration, either in 'set' mode or
+               | 'stanza' mode.
+    @type mode: str
+
+    @returns: The comparison between the two devices.
+    @rtype str
+    """
     try:
         # create a list of all the lines that differ, and merge it.
         output = '\n'.join([diff for diff in
@@ -225,10 +331,26 @@ def diff_config(jaide, second_host, mode):
 
 
 def health_check(jaide):
+    """ Retrieve alarm, CPU, RAM, and temperature status.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+
+    @returns: The output from the device.
+    @rtype str
+    """
     return jaide.health_check()
 
 
 def interface_errors(jaide):
+    """ Retrieve any interface errors from all interfaces on a device.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+
+    @returns: The output from the device.
+    @rtype str
+    """
     response = jaide.interface_errors()
     if 'No interface errors' in response:
         return response
@@ -237,6 +359,25 @@ def interface_errors(jaide):
 
 
 def pull(jaide, source, destination, progress, multi):
+    """ Copy file(s) from a device to the local machine.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+    @param source: The source filepath on the junos device to pull.
+    @type source: str
+    @param destination: the destination filepath on the local device for
+                      | the files.
+    @type destination: str
+    @param progress: Flagged to True if the user desires to see the status
+                   | as the copy happens.
+    @type progress: bool
+    @param multi: Flagged to true if we're copying from multiple devices.
+                | Used to name the destination files.
+    @type multi: bool
+
+    @returns: The output of the copy.
+    @rtype str
+    """
     output = color('Retrieving %s:%s, and putting it in %s\n' %
                    (jaide.host, source, path.normpath(destination)), 'yel')
     # Check if the destination ends in a '/', if not, we need to add it.
@@ -266,7 +407,27 @@ def pull(jaide, source, destination, progress, multi):
     return output
 
 
+# TODO: multi not needed here at all?
 def push(jaide, source, destination, progress, multi=False):
+    """ Copy file(s) from the local machine to a junos device.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+    @param source: The source filepath on the junos device to pull.
+    @type source: str
+    @param destination: the destination filepath on the local device for
+                      | the files.
+    @type destination: str
+    @param progress: Flagged to True if the user desires to see the status
+                   | as the copy happens.
+    @type progress: bool
+    @param multi: Flagged to true if we're copying from multiple devices.
+                | Not needed in this function
+    @type multi: bool
+
+    @returns: The output of the copy.
+    @rtype str
+    """
     output = color('Pushing %s to %s:%s\n' % (source, jaide.host, destination),
                    'yel')
     # Check if the destination ends in a '/', if not, we need to add it.
@@ -295,6 +456,16 @@ def push(jaide, source, destination, progress, multi=False):
 
 
 def shell(jaide, commands):
+    """ Send shell commands to a device.
+
+    @param jaide: The jaide connection to the device.
+    @type jaide: jaide.Jaide object
+    @param commands: The shell commands to send to the device.
+    @type commands: str or list.
+
+    @returns: The output of the commands.
+    @rtype str
+    """
     out = ""
     for cmd in clean_lines(commands):
         out += color('> %s\n' % cmd, 'yel')

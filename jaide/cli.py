@@ -341,8 +341,9 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time):
                   |      seconds)
     @type at_time: str
 
-    @returns: The output from the device.
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     if not blank and commands == 'annotate system ""':
         raise click.BadParameter("--blank and the commands argument cannot"
@@ -387,8 +388,9 @@ def compare(ctx, commands):
                    | commands on each line.
     @type commands: str
 
-    @returns: The output from the device
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
@@ -430,8 +432,9 @@ def pull(ctx, source, destination, progress):
                    | we're copying to/from multiple devices.
     @type progress: bool
 
-    @returns: the output from the copy operation
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     multi = True if len(ctx.obj['hosts']) > 1 else False
@@ -474,8 +477,9 @@ def push(ctx, source, destination, progress):
                    | we're copying to/from multiple devices.
     @type progress: bool
 
-    @returns: the output from the copy operation
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
@@ -530,8 +534,9 @@ def operational(ctx, commands, format, xpath):
                 | This enforces 'xml' for the format of the response.
     @type xpath: str
 
-    @returns: The output that should be shown to the user.
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
@@ -596,8 +601,9 @@ def diff_config(ctx, second_host, mode):
                | 'stanza')
     @type mode: str
 
-    @returns: The config differences between the two devices.
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
@@ -624,8 +630,9 @@ def health_check(ctx):
               | function with the @click.pass_context decorator.
     @type ctx: click.Context
 
-    @returns: The output from the device, and any Jaide formatting help.
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
@@ -652,8 +659,9 @@ def interface_errors(ctx):
               | function with the @click.pass_context decorator.
     @type ctx: click.Context
 
-    @returns: The output from the device, and any Jaide formatting help.
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
@@ -691,8 +699,9 @@ def shell(ctx, commands):
                    |         line.
     @type commands: str or list
 
-    @returns: The output from the device, and any Jaide formatting help.
-    @rtype: str
+    @returns: None. Functions part of click relating to the command group
+            | 'main' do not return anything. Click handles passing context
+            | between the functions and maintaing command order and chaining.
     """
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
