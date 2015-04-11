@@ -15,8 +15,8 @@ Contributors: [Geoff Rhodes](https://github.com/geoffrhodes) and [Nathan Printz]
 	- [What are They?](#what-are-they)  
 	- [Which is for me?](#which-is-for-me)  
 * [Installation](#installation)  
-* [Python Requirements](#python-requirements)  
 * [Usage](#usage)  
+* [Python Requirements](#python-requirements)  
 
 ## Description:
 
@@ -64,6 +64,16 @@ Manual installation can be accomplished by downloading the source code and runni
 
 	> python setup.py install  
 
+## Usage: 
+Full [usage](READTHEDOCS basic usage page) documentation and [version history](READTHEDOCS version history page) can be found on the [Read The Docs site](link to READTHEDOCS main page).  
+
+After the jaide packages is installed, you have access to the `jaide` command in any terminal window. To enable tab completion of jaide commands, add the following line to your os-relevant `~/.bashrc | ~/.bash_profile | ~/.profile`:
+
+	# Enable Jaide tab completion
+	eval "$(_JAIDE_COMPLETE=source jaide)"
+
+At this point you can type `jaide <TAB><TAB>` to see all commands, and `jaide -<TAB><TAB>` to see all options (notice the dash before the two tabs).
+
 ## Python Requirements:
 
 Jaide is unfortunately only available on Python version 2.7, due to a required package being Python 2.7 only compatible.
@@ -77,6 +87,3 @@ Pip should handle retrieving any necessary requirements, but we list them here f
 The CLI tool has the following additional requirements:  
 [COLORAMA 0.3.3](https://pypi.python.org/pypi/colorama) - https://pypi.python.org/pypi/colorama  
 [CLICK >=3.3](http://click.pocoo.org/3/) - http://click.pocoo.org/3/  
-
-## Usage: 
-Full [usage](READTHEDOCS basic usage page) documentation and [version history](READTHEDOCS version history page) can be found on the [Read The Docs site](link to READTHEDOCS main page).

@@ -44,6 +44,13 @@ These are the available commands in the jaide CLI tool:
 | push | Copy files from the local machine to the device(s). |  
 | shell | Send shell command(s) and display the output. **[1](#notes)** |  
 
+After the jaide packages is installed, you have access to the `jaide` command in any terminal window. To enable tab completion of jaide commands, add the following line to your os-relevant `~/.bashrc | ~/.bash_profile | ~/.profile`:
+
+	# Enable Jaide tab completion
+	eval "$(_JAIDE_COMPLETE=source jaide)"
+
+At this point you can type `jaide <TAB><TAB>` to see all commands, and `jaide -<TAB><TAB>` to see all options (notice the dash before the two tabs).
+
 More information on each of the above commands can be found in each of their CLI usage guides.  
 
 #### Example Jaide Commands:  
