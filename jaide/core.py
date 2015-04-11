@@ -525,7 +525,7 @@ class Jaide():
                 ' %s\nUptime: %s\n' %
                 (hostname, model, version, serial_num, current_time, uptime))
 
-    # TODO: optional different username/password.
+    # TODO: [2.1] @rfe optional different username/password.
     @check_instance
     def diff_config(self, second_host, mode='stanza'):
         """ Generate configuration differences with a second device.

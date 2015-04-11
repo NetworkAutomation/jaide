@@ -27,7 +27,6 @@ import click
 
 # TODO: look into bash completion for click.
 # TODO: new option to suppress color highlighting?
-# TODO: documentation in this file needs a once-over
 
 # needed for '-h' to be a help option
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
