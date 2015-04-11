@@ -14,6 +14,7 @@ https://github.com/NetworkAutomation/jaide
 """
 from __future__ import print_function
 # standard modules
+import os
 from os import path, popen
 import multiprocessing
 import re
@@ -720,13 +721,16 @@ def shell(ctx, commands):
 
 
 def run():
-    # set max_content_width to the width of the terminal dynamically
-    # TEST: test that dynamic columns width works on windows.
-    rows, columns = popen('stty size', 'r').read().split()
-    # obj and max_column_width get passed into click, and don't actually
-    # proceed into the main() command group. Click handles the CLI
-    # user options and passing them into main().
-    main(obj={}, max_content_width=int(columns))
+    if os.name == 'posix':
+        # set max_content_width to the width of the terminal dynamically
+        # TEST: test that dynamic columns width works on windows.
+        rows, columns = popen('stty size', 'r').read().split()
+        # obj and max_column_width get passed into click, and don't actually
+        # proceed into the main() command group. Click handles the CLI
+        # user options and passing them into main().
+        main(obj={}, max_content_width=int(columns))
+    else:
+        main(obj={})
 
 if __name__ == '__main__':
     run()
