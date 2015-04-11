@@ -3,7 +3,7 @@ Installation and Requirements
 
 ## Installation
 
-The easiest way to install Jaide is through pip:  
+The easiest way to install Jaide is through pip, which comes loaded with version 2.7.9 of [python](http://www.python.org/). If you don't have pip installed, you should follow their [instructions](https://pip.pypa.io/en/latest/installing.html). Once you have pip installed, jaide and all it's requirements can be installed via the following command (admin/root access might be necessary):  
 
 	> pip install jaide  
 

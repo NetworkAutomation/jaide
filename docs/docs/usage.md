@@ -1,7 +1,7 @@
 Basic Usage  
 ===========  
 
-This page is for Basic usage of both the CLI tool and the Jaide library. Expansive information can be found in the `CLI Examples` and Jaide Class Examples` sections of the documentation.  
+This page is for Basic usage of both the CLI tool and the Jaide library. Expansive information can be found in the `CLI Examples` and `Jaide Class Examples` sections of the documentation.  
 
 ## Jaide CLI tool  
 If you installed jaide, you automatically have access to the `jaide` command anywhere in any terminal/command prompt on your machine. There are many options and commands to use with the Jaide CLI tool. The basic usage is as follows:  
@@ -27,6 +27,8 @@ The first set of options (the first `[options]` instance in the command usage st
 | N/A | --version | N/A | Print the version of the jaide script (and jaide package) and exit. |  
 | -w | --write | TEXT FILEPATH | Write the output to one or multiple files, instead of printing to stdout. Useful when touching more than one device, as the 'm' or 'multiple' options will write the output for each device to a separate file. [More info here](examples/cli/writing-output-to-file.md) |  
 
+#### Jaide Commands  
+
 These are the available commands in the jaide CLI tool:  
 
 | Command | Description |  
@@ -42,10 +44,16 @@ These are the available commands in the jaide CLI tool:
 | push | Copy files from the local machine to the device(s). |  
 | shell | Send shell command(s) and display the output. **[1](#notes)** |  
 
-More information on each of the above commands can be found in each of their CLI usage guides.
-#### Example Jaide Commands:
-Check the target IP for interface errors on all its up/up interfaces, it will prompt for authentication.  
+More information on each of the above commands can be found in each of their CLI usage guides.  
+
+#### Example Jaide Commands:  
+
+Check the target IP for interface errors on all interfaces, it will prompt for authentication.  
 `jaide -i 10.2.10.12 errors`  
+
+
+Retrieve some bask operational command output from two devices:  
+`jaide -i 172.25.1.1,10.0.0.10 -u user -p password op "show ospf neigh, show route, show bgp summary"`  
 
 Backup the primary partition to the backup slice, increasing the timeout value to an hour so the connection doesn't time out waiting for the response.  
 `jaide -i 10.10.10.10 -t 7200 op 'request system snapshot slice alternate'`  
@@ -53,14 +61,20 @@ Backup the primary partition to the backup slice, increasing the timeout value t
 Send a list of set commands and commit them to a list of IPs, without being prompted for username/password.  
 `jaide -u user -p mypassword -i /var/iplist.txt commit "~/Desktop/list_of_set_commands.txt"`  
 
+Send a blank commit.  
+`jaide -u user -p mypassword -i 10.0.0.123 commit --blank`  
+
+Compare the configuration differences between `10.0.0.10` and `172.25.1.1`  
+`jaide -u user -p password -i 10.0.0.10 diff -i 172.25.1.1`  
+
 SCP push the local code file */code/jinstall-ex-2200.tgz* file to an IP list and put it in the */var/tmp* folder.  
 `jaide -u user -p mypassword -i /var/iplist.txt push /code/jinstall-ex-2200.tgz /var/tmp/`  
 
 SCP pull the remote */var/tmp* directory on an IP list to the local */Users/self/Desktop/IPaddress_tmp* folders.  
 `jaide -u user -p mypassword -i /var/iplist.txt pull /var/tmp /Users/self/Desktop/`  
 
-Send a blank commit.  
-`jaide -u user -p mypassword -i 10.0.0.123 commit --blank`  
+Run a file of shell commands against two devices:  
+`jaide -i 172.25.1.1,192.168.50.50 -u user -p password shell "/path/to/file/of/shell_commands.txt"`  
 
 ## Using the Jaide class  
 
