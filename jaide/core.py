@@ -641,8 +641,8 @@ class Jaide():
         chassis_alarms = chassis_alarms.xpath('//alarm-detail')
         system_alarms = self._session.command("show system alarms")
         system_alarms = system_alarms.xpath('//alarm-detail')
-        re_info = self._session.command(command="show chassis routing-engine",
-                                        format='xml').xpath('//route-engine')
+        chass = self._session.command(command="show chassis routing-engine",
+                                      format='text').xpath('//output')[0].text
         proc = self._session.command("show system processes extensive")
         proc = proc.xpath('output')[0].text.split('\n')
         if chassis_alarms == []:  # Chassis Alarms
@@ -662,45 +662,8 @@ class Jaide():
                            '\t\t' + i.xpath('alarm-time')[0].text.strip() +
                            '\n\t' +
                            i.xpath('alarm-description')[0].text.strip() + '\n')
-        output += '\nRouting Engine Information:'
-        if re_info == []:  # RE information
-            output += '\nNo Routing Engines found...\n'
-        else:
-            for i in re_info:  # loop through all REs for info.
-                # for multi-RE systems, print slot and mastership status.
-                if i.xpath('slot') != []:
-                    output += ('\nRE' + i.xpath('slot')[0].text + 'Status: \t'
-                               + i.xpath('status')[0].text + '\n\tMastership: '
-                               + '\t' + i.xpath('mastership-state')[0].text)
-                # EX/MX cpu/memory response tags
-                if i.xpath('memory-buffer-utilization') != []:
-                    # TODO: had to add try blocks for EX2200-C which don't have cpu-temp. a better way to handle this?
-                    try:
-                        mem = i.xpath('memory-buffer-utilization')[0].text
-                    except IndexError:
-                        pass
-                    else:
-                        try:
-                            temp = i.xpath('cpu-tempature')[0].text
-                        except IndexError:
-                            pass
-                        else:
-                            output += ('\n\tUsed Memory %: \t%s\n\tCPU Temp:'
-                                       ' \t%s' % (mem, temp))
-                # SRX cpu/memory response tags
-                if i.xpath('memory-system-total-util') != []:
-                    output += ('\n\tUsed Memory %: \t' +
-                               i.xpath('memory-system-total-util')[0].text +
-                               '\n\tCPU Temp: \t' +
-                               i.xpath('temperature')[0].text)
-                output += ('\n\tIdle CPU%: \t' + i.xpath('cpu-idle')[0].text)
-                # serial number not shown on single RE MX chassis.
-                if i.xpath('serial-number') != []:
-                    output += ('\n\tSerial Number: \t' +
-                               i.xpath('serial-number')[0].text)
-                output += ('\n\tLast Reboot: \t' +
-                           i.xpath('last-reboot-reason')[0].text +
-                           '\n\tUptime: \t' + i.xpath('up-time')[0].text)
+        # add the output of the show chassis routing-engine to the command.
+        output += '\n' + chass
         # Grabs the top 5 processes and the header line.
         output += ('\n\nTop 5 busiest processes (high mgd values likely from '
                    'script execution):\n')

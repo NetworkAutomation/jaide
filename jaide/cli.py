@@ -723,7 +723,6 @@ def shell(ctx, commands):
 def run():
     if os.name == 'posix':
         # set max_content_width to the width of the terminal dynamically
-        # TEST: test that dynamic columns width works on windows.
         rows, columns = popen('stty size', 'r').read().split()
         # obj and max_column_width get passed into click, and don't actually
         # proceed into the main() command group. Click handles the CLI
