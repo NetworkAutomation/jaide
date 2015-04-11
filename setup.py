@@ -70,7 +70,9 @@ setup(
         'colorama>0.3.2',
         'ncclient>=0.4.2',
         'paramiko>=1.14.0,<2.0.0',
-        'scp>=0.8.0,<1.0.0'
+        'scp>=0.8.0,<1.0.0',
+        'ecdsa>=0.11',
+        'pycrypto>=2.1,!=2.4'
     ],
 
     # List additional groups of dependencies here (e.g. development dependencies).
