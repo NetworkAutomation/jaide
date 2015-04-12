@@ -22,7 +22,7 @@ Version History
 * Adding several testing and building scripts in the source code /testing folder to make our development lies easier.  
 * Many changes to bring us in line with PEP 8 and PEP 257.  
 * Many documentation changes, including using `mkdocs` for easy generation.  
-  * All docs are now posted on [Read The Docs](TODO: link to READTHEDOCS page for jaide) as well.  
+  * All docs are now posted on [Read The Docs](http://jaide.readthedocs.org/) as well.  
 
 ## v1.1.0  
 

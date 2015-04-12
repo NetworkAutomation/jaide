@@ -1,7 +1,7 @@
 Junos Aide (Jaide) and the CLI tool  
 ===================================  
 ## Quick Info  
-[Read The Docs](TODO: link to read the docs home page)  
+[Read The Docs](http://jaide.readthedocs.org/)  
 [Jaide Github](https://github.com/NetworkAutomation/jaide)  
 [Jaide GUI Github](https://github.com/NetworkAutomation/jaidegui)  
 [Pypi Page](https://pypi.python.org/pypi/jaide)  
