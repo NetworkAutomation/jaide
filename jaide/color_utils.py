@@ -31,8 +31,11 @@ def color(out_string, color='grn'):
         'wht': Fore.WHITE,
         'yel': Fore.YELLOW,
     }
-    init()
-    return (c[color] + Style.BRIGHT + out_string + Fore.RESET + Style.NORMAL)
+    try:
+        init()
+        return (c[color] + Style.BRIGHT + out_string + Fore.RESET + Style.NORMAL)
+    except AttributeError:
+        return out_string
 
 
 def strip_color(search):
