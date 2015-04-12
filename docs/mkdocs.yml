@@ -19,7 +19,7 @@ pages:
     - ['examples/cli/getting-health-checks.md', 'CLI Examples', 'Health Checks']
     - ['examples/cli/operational-commands.md', 'CLI Examples', 'Operational Commands']
     - ['examples/cli/shell-commands.md', 'CLI Examples', 'Shell Commands']
-    - ['examples/cli/show-compare.md', 'CLI Examples', 'Show | Compare Set Commands']
+    - ['examples/cli/show-compare.md', 'CLI Examples', 'Comparing Set Commands']
     - ['examples/cli/custom-timeout.md', 'CLI Examples', 'Specifying Custom Timeouts']
     - ['examples/cli/working-with-many-devices.md', 'CLI Examples', 'Working with Multiple Devices']
     - ['examples/cli/writing-output-to-file.md', 'CLI Examples', 'Writing Output to File(s)']
