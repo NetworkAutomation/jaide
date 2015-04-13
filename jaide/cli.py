@@ -25,7 +25,6 @@ from color_utils import color
 # non-standard modules:
 import click
 
-# TODO: look into bash completion for click.
 # TODO: new option to suppress color highlighting?
 
 # needed for '-h' to be a help option

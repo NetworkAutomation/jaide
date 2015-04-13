@@ -404,7 +404,6 @@ def pull(jaide, source, destination, progress, multi):
     return output
 
 
-# TODO: multi not needed here at all?
 def push(jaide, source, destination, progress, multi=False):
     """ Copy file(s) from the local machine to a junos device.
 

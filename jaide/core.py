@@ -48,7 +48,6 @@ class Jaide():
     decorator function @check_instance, which handles ensuring the correct
     connection is used to perform the requested operation.
     """
-    # TODO: run through core_test.py again, just to be sure all is good.
     def __init__(self, host, username, password, connect_timeout=5,
                  session_timeout=300, connect="paramiko", port=22):
         """ Initialize the Jaide object.
