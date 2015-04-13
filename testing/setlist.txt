@@ -1,0 +1,11 @@
+# move into routing options
+edit routing-options
+
+# annotate
+annotate static "new annotation here"
+
+# move back to top
+top 
+
+# change a description
+set interfaces ge-0/0/4 description asdf

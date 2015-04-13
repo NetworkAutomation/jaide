@@ -1,0 +1,7 @@
+pwd 
+cd /var/tmp
+pwd
+ls -lap
+touch my-new-file
+ls -lap
+rm my-new-file

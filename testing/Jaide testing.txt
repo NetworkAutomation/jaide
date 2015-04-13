@@ -1,0 +1,83 @@
+#####################
+# Jaide_cli testing commands to be used for a full suite of testing the CLI script.
+# All of these should be tested against single and multiple devices:
+#####################
+# Op / shell commands
+
+# non-root user
+jaide -c "show system uptime, show version % //host-name, show route 10.0.0.10"
+
+jaide -c "show route 10.0.0.10 | match 10"
+
+jaide -c "show route 10.0.0.10 | count"
+
+jaide -c "show system uptime, show version % //host-name, show route 10.0.0.10" -w s ~/Desktop/opcommand_outputfile1.txt
+
+jaide -c "show system uptime, show version % //host-name, show route 10.0.0.10" -w m ~/Desktop/opcommand_outputfile1.txt
+
+jaide -c ~/Desktop/oplist.txt
+
+jaide -c ~/Desktop/oplist.txt -f xml
+
+jaide -c "show system uptime, show version % //host-name, show route 10.0.0.10" -f xml
+
+jaide --shell "pwd, ls"
+
+jaide --shell "pwd, ls" -f xml
+
+# as root
+jaide --shell "pwd, ls"
+
+jaide -c ~/Desktop/oplist.txt
+
+#####################
+# Errors, Health check, info, config diff
+
+jaide -e
+
+jaide -H
+
+jaide -I
+
+jaide -d second_device set
+
+jaide -d second_device stanza
+
+#####################
+# SCP
+
+# Test the following matrix for both against 1 device, and multiple devices:
+# Also make sure to try with both root and non-root accounts, as well as test auth failure. 
+
+# |    SCP:        | push Single file   | push Directory | Pull Single File | Pull Directory
+# ========================================================================================
+# |print to screen |					|				 |					|				
+# |output to 1 file|					|				 |					|		
+# If against multiple devices, also do the line below:
+# |output to multi |					|				 |					|
+
+#####################
+# Set commands
+
+# non-root user
+jaide -s "set interfaces ge-0/0/0 description testing123" --check
+
+jaide -s "set interfaces ge-0/0/0 description asdf321" --comment "super comment" -y
+
+jaide -s "set interfaces ge-0/0/0 description testing123" --confirm 600
+
+jaide --blank
+
+jaide -s "set interfaces ge-0/0/0 description asdf321" --at 23:59
+
+jaide -s ~/Desktop/setlist.txt --comment "test set list" --confirm 600 
+
+# as root
+jaide -s "set interfaces ge-0/0/0 description testing123" --confirm 600
+
+jaide -s "set interfaces ge-0/0/0 description testing123, set interfaces ge-0/0/1 description testing123" --check
+
+###############
+# test using bad credentials (auth failure expected)
+# test non-reachable device (connection timeout expected)
+# test setting session timeout to 1 second and requesting an RSI (session timeout expected)

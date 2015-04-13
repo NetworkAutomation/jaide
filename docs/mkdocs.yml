@@ -1,0 +1,30 @@
+site_name: Jaide
+site_author: Nathan Printz
+site_description: Jaide library and CLI tool for manipulating Junos devices.
+repo_url: https://github.com/NetworkAutomation/jaide
+# mkdocs_extensions:
+    # - mkdocs_autodoc
+pages:
+    - ['index.md', 'Home']
+    - ['description.md', 'Jaide Basic Description']
+    - ['which-is-for-me.md', 'Jaide vs the CLI tool vs the GUI']
+    - ['installation.md', 'Installation and Requirements']
+    - ['usage.md', 'Basic Usage']
+    - ['examples/cli/authentication.md', 'CLI Examples', 'Authenticating and Connecting']
+    - ['examples/cli/get-device-info.md', 'CLI Examples', 'Basic Device Information']
+    - ['examples/cli/checking-interface-errors.md', 'CLI Examples', 'Checking Interface Errors']
+    - ['examples/cli/making-commits.md', 'CLI Examples', 'Commit Changes']
+    - ['examples/cli/diff-config.md', 'CLI Examples', 'Compare Differences with Another Device']
+    - ['examples/cli/scp-files-and-folders.md', 'CLI Examples', 'Copying Files']
+    - ['examples/cli/getting-health-checks.md', 'CLI Examples', 'Health Checks']
+    - ['examples/cli/operational-commands.md', 'CLI Examples', 'Operational Commands']
+    - ['examples/cli/shell-commands.md', 'CLI Examples', 'Shell Commands']
+    - ['examples/cli/show-compare.md', 'CLI Examples', 'Comparing Set Commands']
+    - ['examples/cli/custom-timeout.md', 'CLI Examples', 'Specifying Custom Timeouts']
+    - ['examples/cli/working-with-many-devices.md', 'CLI Examples', 'Working with Multiple Devices']
+    - ['examples/cli/writing-output-to-file.md', 'CLI Examples', 'Writing Output to File(s)']
+    - ['examples/lib/examples.md', 'Jaide Class Examples', 'Working with the Jaide class']
+    - ['api/api.md', 'API Reference']
+    - ['about.md', 'About Us']
+    - ['version-history.md', 'Version History']
+theme: readthedocs

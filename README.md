@@ -1,160 +1,87 @@
-Junos Aide (Jaide) and JGUI
-===========================
+Junos Aide (Jaide) and the CLI tool
+===================================
 ## About  
 Contributors: [Geoff Rhodes](https://github.com/geoffrhodes) and [Nathan Printz](https://github.com/nprintz)  
-[Source Repo](https://github.com/NetworkAutomation/jaide)  
-[OSX/Windows Compiled Versions](https://github.com/NetworkAutomation/jaide/releases/latest)  
+[Read The Docs](http://jaide.readthedocs.org/)  
+[Jaide Github](https://github.com/NetworkAutomation/jaide)  
+[Jaide GUI Github](https://github.com/NetworkAutomation/jaidegui)  
+[Pypi Page](https://pypi.python.org/pypi/jaide)  
+[OSX/Windows Compiled Versions](https://github.com/NetworkAutomation/jaidegui/releases/latest)  
 
 ## Table of Contents:
 * [About](#about)  
 * [Description](#description)  
-* [Python Requirements](#python-requirements)  
-	- [For Command Line Version](#for-command-line-version)  
-	- [For GUI Users](#for-gui-users)  
+* [Jaide vs the CLI tool vs the GUI](#jaide-vs-the-cli-tool-vs-the-gui)  
+	- [What are They?](#what-are-they)  
+	- [Which is for me?](#which-is-for-me)  
+* [Installation](#installation)  
 * [Usage](#usage)  
-	- [Jaide GUI Users](#jaide-gui-users)  
-	- [Jaide.py Command Line Arguments](#jaidepy-command-line-arguments)  
-	- [Example Jaide.py Commands](#example-jaidepy-commands)  
-	- [Detailed Examples, Tips, and Help](#detailed-examples-tips-and-help)  
-	- [Currently Known Limitations](#currently-known-limitations)  
-	- [Roadmap](#roadmap)  
-* [Version History](#version-history)  
+* [Python Requirements](#python-requirements)  
 
 ## Description:
-Jaide contains two parts: a python script and GUI that allows an engineer to do everything the script does. The function of Jaide is to augment an engineer's ability to configure and manipulate multiple JunOS devices at the same time. The command line arguments allow for performing a range of functions. Some features include being able to poll devices for interface errors, grab basic system information, send any operational mode commands, or send and commit a file containing a list of set commands. A full list of features and their usage is available in the [Usage](#usage) section below.
 
-The GUI that comes along with the script maintains ease-of-use for the average network administrator. The GUI has a method to perform every function that the command line can do, all from one easy to use interface. More information on the GUI can be [found below](#jaide-gui-users).
+The `jaide` package contains two parts: a class library for developers (here called Jaide), and a CLI tool for network engineers (referred to as the CLI tool). The function of the Jaide class is to allow an engineer or developer to create and use a Jaide object for manipulating Junos devices. Similarly, the CLI tool can be used to manipulate or retrieve information/files/output from one or many devices. Not surprisingly, the CLI tool uses the Jaide class for its internal operations. Some features of both Jaide and the CLI tool include being able to poll devices for interface errors, grab basic system information, send any operational mode commands, send and commit a file containing a list of set commands, copy files to/from devices, get a configuration diff between two devices, perform a commit check, and run shell commands. A full list of features and their usage is available in the [documentation](http://jaide.readthedocs.org/).
 
-Jaide and the JGUI leverage netconf connections to JunOS devices using python and the python modules: ncclient, paramiko, and scp. With this base of modules, our goal is the ability to perform as many functions that you can do by directly connecting to a device from our remote interface. Since we can do these remotely from this interface, you can also therefore perform these functions rapidly against multiple devices very easily. Pushing code and upgrading 20 devices within a network is a simple task with the Jaide tool in hand. 
+There is also a GUI available that wraps the CLI tool. More on it can be found at the [Jaide GUI github page](https://github.com/NetworkAutomation/jaidegui).
+
+Jaide, and therefore the CLI tool and the Jaide GUI, leverage several connection types to JunOS devices using python, including: ncclient, paramiko, and scp. With this base of modules, our goal is the ability to perform as many functions that you can do by directly connecting to a device from a remote interface (either Jaide object, or the CLI tool). Since we can do these remotely from one interface, these functions rapidly against multiple devices very easily. The CLI tool leverages multiprocessing for handling multiple connections simultaneously. Pushing code and upgrading 20 devices is quite a simple task with the Jaide tool in hand. 
 
 **NOTE** This tool is most beneficial to those who have a basic understanding of JUNOS. This tool can be used to perform several functions against multiple Juniper devices running Junos very easily.  Please understand the ramifications of your actions when using this script before executing it. You can push very significant changes or CPU intensive commands to a lot of devices in the network from one command or GUI execution. This tool should be used with forethought, and we are not responsible for negligence, misuse, time, outages, damages or other repercussions as a result of using this tool.  
 
-## Python Requirements:
 
-This has been developed on version 2.7 of python. The requirements below are for the non-compiled versions of Jaide and the Jaide GUI. 
+## Jaide vs the CLI tool vs the GUI  
+#### What are They?  
+The Jaide project is split into two packages, the `jaide` package, and the `jaidegui` package.  
 
-#### For Command Line version:
-The versions of these modules below are the ones that we've tested with. 
-[NCCLIENT (custom version included)](https://github.com/leopoul/ncclient/)  -  https://github.com/leopoul/ncclient/  
-[PARAMIKO 1.14.0](https://github.com/paramiko/paramiko)  -  https://github.com/paramiko/paramiko  
+Currently, the `jaide` Python package includes two things: the Jaide class library for developers, and a CLI tool for network administrators and engineers.  
 
-For using the scp argument, the SCP module is also needed:  
-[SCP 0.8.0](https://github.com/jbardin/scp.py)  -  https://github.com/jbardin/scp.py
+The `jaidegui` package is a separate Github repository, for ease of change control and management. It includes the GUI and the compiled versions, and can be found [here](https://github.com/NetworkAutomation/jaidegui).  
 
-**Windows** users also require PyCrypto to help with ssh key handling:  
-[PyCrypto (included with ncclient)](http://www.voidspace.org.uk/python/modules.shtml#pycrypto)  -  http://www.voidspace.org.uk/python/modules.shtml#pycrypto
+#### Which is for me?  
 
-**Linux (Debian/Ubuntu) Note -** We had to get the python-dev package in addition to libxml2-dev and xlst1-dev for NCClient to install, even though they only list the latter two being needed.  
+ * **Are you wanting to easily manipulate Junos devices using a GUI instead of a CLI, and don't want to worry about Python or programming?**  
+ 	- We recommend the latest compiled Mac or Windows version of the Jaide GUI available on the [Jaide GUI releases page](https://github.com/NetworkAutomation/jaidegui).  
 
-#### For GUI users:
-Compiled versions for Mac and Windows come with all pre-reqs packaged in. However, when running jgui.py from the command line, the Jaide GUI requires **all** of the command line prerequisites. In addition, Jaide GUI users on all platforms also require PMW:  
-[PMW 1.3.3](http://pmw.sourceforge.net/)  -  http://pmw.sourceforge.net/
+ * **Are you wanting to easily manipulate Junos devices through a CLI tool that can be used on any OS?**  
+ 	- We recommend following the [pip installation instructions](#installation) and using the `jaide` command that is installed into your OS PATH variable. Basic command usage and further specific examples are in the [docs](http://jaide.readthedocs.org/).  
 
-**Linux (Debian/Ubuntu)** users of the Jaide GUI will need to get the `python-tk` package as well.
+
+ * **Are you wanting to write python scripts that can manipulate Junos?**  
+ 	- Follow the [pip installation instructions](#installation) and take a look at the Jaide Class Examples section of the [docs](http://jaide.readthedocs.org/).  
+
+ * **Are you wanting to help work on the Jaide project, or just want to take a look under the hood of the CLI tool or Jaide library?**  
+ 	- [Download](https://github.com/NetworkAutomation/jaide) the source code, and start poking around!
+
+## Installation
+
+The easiest way to install Jaide is through pip:  
+
+	> pip install jaide  
+
+Manual installation can be accomplished by downloading the source code and running the following command:  
+
+	> python setup.py install  
 
 ## Usage: 
-#### Jaide GUI Users:
-To launch and use the GUI, there are two methods available. The first is to use the compiled version for your operating system for either [Windows or Mac](https://github.com/NetworkAutomation/jaide/releases/latest). The second is initiating the GUI by navigating to the source folder with jgui.py in terminal and executing: `python jgui.py`. Further information on the Jaide GUI and operating it can be found in the GUI help file [here](examples/working-with-jgui.md).  
+Full usage documentation and version history can be found on the [Read The Docs site](http://jaide.readthedocs.org/).  
 
-#### Jaide.py Command Line Arguments:
-There are many combinations of arguments that can be used to perform all functions available using the Jaide.py command line tool. Two arguments are always required: the `-i` target device(s), and one of the arguments for performing a given function [ -b | -c | -e | --health | --info | -s | --scp | --shell ]. These functions are detailed below in the second table. 
+After the jaide packages is installed, you have access to the `jaide` command in any terminal window. To enable tab completion of jaide commands, add the following line to your os-relevant `~/.bashrc | ~/.bash_profile | ~/.profile`:
 
-**A destination IP or IP list is required:**  The script will accept a single IP address, a quoted comma separated list, or a file with a list of IPs, separated by newlines. DNS hosts will work as well; resolution uses your machine's specified DNS server(s).  
+	# Enable Jaide tab completion
+	eval "$(_JAIDE_COMPLETE=source jaide)"
 
-| Single | Comma Separated List | Filepath |  
-| ------ | -------------------- | -------- |  
-| `-i/--ip ip.add.re.ss` | `-i/--ip "ip.add.re.ss1, ip.add.re.ss2, DNS.entry.com"` | `-i/--ip /path/to/file/of/ip/addresses.txt` |  
+At this point you can type `jaide <TAB><TAB>` to see all commands, and `jaide -<TAB><TAB>` to see all options (notice the dash before the two tabs).
 
-These are the main operations that can be performed. **One and only one of the following is required:**  
+## Python Requirements:
 
-| Argument | Description |  
-| -------- | ----------- |  
-| `-c/--command "quoted operational mode command(s)"` | Send a single operational mode command, a comma separated list of commands, or a filepath to a file containing commands on each line. Can include `show`, `request`, `traceroute`, op scripts, etc. |  
-| `-e/--errors` | Check all up/up ports for interface errors |  
-| `-H/--health` | Pull a health check from the device |  
-| `-I/--info` | Retrieve basic device information (Serial, model, etc) |  
-| `-s/--set "quoted set command(s)"` | Send a single set command, a quoted comma separated list of commands, or specify a file containing one set command on each line. |  
-| `-b/--blank` | Make a commit with no set commands, a 'commit blank'. Useful for confirming a commit confirmed. |  
-| `-S/--scp [push OR pull] /source/file/or/folder /destination/file/or/folder` | SCP push or pull operation |  
-| `-l/--shell "quoted shell command(s)"` | Similar to `-c`, except it will run shell commands. |  
- 
-Authentication arguments are optional on the command line. If they are not provided the script will prompt for them, with the benefit of the password not being echoed to the user.  
+Jaide is unfortunately only available on Python version 2.7, due to a required package being Python 2.7 only compatible.
 
-| Argument | Description |  
-| -------- | ----------- |  
-| `-u/--username USERNAME` | The username for the device connection(s) |  
-| `-p/--password PASSWORD` | The password for the device connection(s) |  
-  
-The `-s` argument can take one or none of the three following optional arguments for changing the commit type:  
+Pip should handle retrieving any necessary requirements, but we list them here for verbosity. The versions of these packages below are the ones that we've tested with.  
 
-| Argument | Description |  
-| -------- | ----------- |  
-| `-m/--confirm INTEGER_OF_MINUTES` | Will change the commit operation to a commit confirmed for the integer_of_minutes length of time  |  
-| `-k/--check` | Instead of committing, this will do a 'commit check' and return the output, letting you know if it passed or not, and why.  | 
-  
-Other optional arguments:  
-
-| Argument | Description |  
-| -------- | ----------- |  
-| `-f/--format [text OR xml]` | This changes the output of the command returned from the device. It defaults to 'text', and will only take effect on operational mode commands. With or without -f, you can do xpath filtering, by putting ` % XPATH_EXPRESSION` after your operational command. For example: `show route % //rt-entry`. |  
-| `-q/--quiet` | Used in conjunction with `-S/--scp`, when copying to/from a single device, to prevent seeing the callback status of the transfer as it happens. |  
-| `-t/--timeout INTEGER_OF_SECONDS` | Will change the timeout for operation sent to the device. Defaults to 300 seconds. Check the help file for timeout. |  
-| `-w/--write s/single_OR_m/multiple OUTPUT_FILENAME` | Write the output of the script to a file(s). `-w s ~/Desktop/output.txt` will write all output to one file, whereas `-w multiple ~/Desktop/output.txt` will write one file for each device connecting to, resulting in `~/Desktop/IP_OF_DEVICE_output.txt` being written for each device. |  
-
-#### Example jaide.py commands:
-Check the target IP for interface errors on all its up/up interfaces, it will prompt for authentication.  
-`python jaide.py -i 10.2.10.12 -e`
-
-Backup the primary partition to the backup slice, increasing the timeout value so the NCClient connection doesn't get lost.  
-`python jaide.py -i 10.10.10.10 -c 'request system snapshot slice alternate' -t 1800`
-
-Send a list of set commands and commit them to a list of IPs, without being prompted for username/password.  
-`python jaide.py -u user -p mypassword -i ~/Downloads/iplist.txt -s ~/Desktop/list_of_set_commands.txt`
-
-SCP push the local code file *~/Downloads/jinstall-ex-2200-12.3R3.4-domestic-signed.tgz* file to an IP list and put it in the */var/tmp* folder.  
-`python jaide.py -u user -p mypassword -i ~/Downloads/iplist.txt --scp push ~/Downloads/jinstall-ex-2200-12.3R3.4-domestic-signed.tgz /var/tmp/`
-
-SCP pull the remote */var/tmp* directory on an IP list to the local *~/Desktop/IPaddress_tmp* folders.  
-`python jaide.py -u user -p mypassword -i ~/Downloads/iplist.txt --scp pull /var/tmp ~/Desktop/`  
-
-Send a blank commit.  
-`python jaide.py -u user -p mypassword -i 10.0.0.123 --blank`  
-
-#### Detailed Examples, Tips, and Help:
-
-* [Some JGUI Tips and Notes](examples/working-with-jgui.md)  
-* [Authentication Options - The `-u` and `-p` arguments](examples/working-with-authentication.md)  
-* [Checking Interface Errors - The `-e` argument](examples/checking-interface-errors.md)  
-* [Getting Device Info - The `-I` argument](examples/get-device-info.md)  
-* [Getting Health Checks - The `-H` argument](examples/getting-health-checks.md)  
-* [Making Commits - The `-s` argument](examples/making-commits.md)  
-* [Modifying Timeout Values](examples/working-with-timeout.md)  
-* [Shell and Operational Commands - The `-l` and `-c` arguments](examples/shell-and-operational-commands.md)  
-* [Working with Multiple Devices - The `-i` argument](examples/working-with-many-devices.md)  
-* [Working with Pipes inside commands](examples/working-with-pipes.md)  
-* [Working with SCP - The `-S` argument](examples/scp-files-and-folders.md)  
-* [Working with XML - The `-f` argument](examples/working-with-xml.md)  
-
-#### Currently Known Limitations  
-* The SCP command is known to break in two scenarios. If it comes across a file that the user credentials used to authenticate doesn't have permissions for, it will stop transferring. The other case is if you are transferring a file to a location where a folder exists by the same name. In both of these cases, the transfer will stop, and anything after that file will not be transferred (if the transfer was recursive). We have posed this to the creators of the SCP module, and are awaiting a new version/feedback.  
-
-#### Roadmap  
-These are features we'd like to implement, but will likely take some additional time, or coordinating with other module writers to implement.  
-
-* Commit Confirmed fix
-	-	We have made a pull request on the ncclient repo to fix the commit confirmed functionality of the juniper RPC method in ncclient. The reason for this is we had found a bug in v1.0 of Jaide whereby commit confirmed operations would successfully commit initially, but would be immediately rolled back. We traced the problem to ncclient, and Junos itself. Turns out that Junos changed at some point between 11.4 and 12.3, modifying the expected XML RPC for a commit operation, and this broke commit confirms on ncclient. We have made a pull request to fix this against ncclient. In the meantime until they accept and pull in the change, we felt we should include a fixed version of ncclient directly in our project so that people can use the other additional features from Jaide v1.1.0 sooner rather than later, and with working commit confirmed.  
-
-## Version History:
-* v1.1.0
-	-	Added Commit Comment, Commit Synchronize, and Commit At modifiers for commit options.  
-	-	We have rewritten how templates are saved and loaded to a more streamlined method. This ensures that we can add any number of more options without ordering being an issue. Any old templates *should* still work, but if you have problems, try making a new one and using it before opening an issue.  
-	-	Added defaults to JGUI. A defaults.ini file is a special template that can be used to prepopulate data into the options on program load. You can save the current options as the defaults from the `File` menu.  
-	-	A new argument (-f/--format) is available to print any command with xml output instead of text. This also allows for xml xpath filtering. More information can be found in the Working with XML document. Shoutout to [Jeff Loughridge](https://github.com/jeffbrl) for his driving support on this feature.  
-	-	Writing output to a file in Jaide/JGUI now supports splitting the output on a per device basis. Check the documentation for the -w parameter of Jaide.  
-	-	Added some additional error checking and improved input validation in JGUI.
-	-	Reworked GUI look and feel a little bit for a better experience. 
-	-	Commit Confirmed now works as intended. Fixed the instant rollback bug on Junos version >11.4. Note this requires using the custom version of ncclient shipped with our source (compiled version users don't need to worry). 
-	-	Converted all function comments to use the reST standard.  
-* v1.0.0  -  Enveloped the binary files on the release page, updated docs to reflect this change. Rolled over to version 1.0.0. 
-* v0.9.1  -  Updated the links in all example files for the github repo. Updated the readme with some other documentation and about info. 
-* v0.9.0  -  Initial Release. Includes jaide.py script for the command line feature set and jgui.py for the additional GUI wrapper. 
+[NCCLIENT >=0.4.2](https://github.com/leopoul/ncclient/)  -  https://github.com/leopoul/ncclient/  
+[PARAMIKO >=1.14.0](https://github.com/paramiko/paramiko)  -  https://github.com/paramiko/paramiko   
+[SCP >=0.8.0](https://github.com/jbardin/scp.py)  -  https://github.com/jbardin/scp.py  
+[COLORAMA 0.3.3](https://pypi.python.org/pypi/colorama) - https://pypi.python.org/pypi/colorama  
+[CLICK >=3.3](http://click.pocoo.org/3/) - http://click.pocoo.org/3/  
+[ECDSA >=0.11](https://pypi.python.org/pypi/ecdsa) - https://pypi.python.org/pypi/ecdsa
+[PYCRYPTO >=2.1,!=2.4](https://pypi.python.org/pypi/pycrypto) - https://pypi.python.org/pypi/pycrypto
