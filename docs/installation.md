@@ -1,6 +1,12 @@
 Installation and Requirements
 =========
 
+## Compiled Version  
+
+For those who simply want the GUI to manipulate devices, the easiest way to install the Jaide GUI is to download the [compiled version](http://github.com/NetworkAutomation/jaidegui/releases/latest) for your OS (Mac or Windows) and simply run the application. There are no other requirements necessary when using this method, as everything is packaged in with our executable.   
+
+The instructions below are for those who wish to use the Jaide class in their python scripts, or use the `jaide` command line utility that the GUI extends.  
+
 ## Installation
 
 The easiest way to install Jaide is through pip, which comes loaded with version 2.7.9 of [python](http://www.python.org/). If you don't have pip installed, you should follow their [instructions](https://pip.pypa.io/en/latest/installing.html). Once you have pip installed, jaide and all it's requirements can be installed via the following command (admin/root access might be necessary):  
