@@ -12,20 +12,20 @@ If you installed jaide, you automatically have access to the `jaide` command any
 `jaide -h` for generic help and `jaide COMMAND -h` for command-specific help/options.  
 
 #### Basic Jaide Options  
-The first set of options (the first `[options]` instance in the command usage string above) contain the following possibilities:
+The first set of options (the first `[options]` instance in the command usage string above) contain the following possibilities:  
 
-| Option | Full Option Flag | Type | Description |
-| ------ | ---------------- | ---- | ----------- |
-| -h 	 | --help  			| N/A  | Print the basic help information for Jaide and exit. |  
-| -i 	 | --ip 			| TEXT | The target hostname(s) or IP(s). **[1](#notes)** Will prompt if not in the command line arguments. |  
-| -p 	 | --password 		| TEXT | The password for authenticating to the device(s). Will prompt if not in the command line arguments. |  
-| -P 	 | --port 			| INTEGER | The port to connect to the device on. Defaults to port 22 (SSH) |  
-| --quiet | --no-quiet 	| N/A | Boolean flag for suppressing all output from the script. Defaults to False (--no-quiet) |  
-| -t 	  | --session-timeout | INTEGER | The session timeout, in seconds, for declaring a lost session. Default is 300 seconds. This should be increased when no return output could be seen for more than 5 minutes (for example requesting a system snapshot). |  
-| -T 	 | --connect-timeout | INTEGER | The timeout, in seconds, for declaring a device unreachable during connection establishment. Defaults to 5 seconds. |  
-| -u | --username | TEXT | The username for authenticating to the device(s). Will prompt if not in the command line arguments. |  
-| N/A | --version | N/A | Print the version of the jaide script (and jaide package) and exit. |  
-| -w | --write | TEXT FILEPATH | Write the output to one or multiple files, instead of printing to stdout. Useful when touching more than one device, as the 'm' or 'multiple' options will write the output for each device to a separate file. [More info here](examples/cli/writing-output-to-file.md) |  
+Option | Type | Description |
+-------- | -------- | ----------- |
+-h 	 &#124; --help  			| N/A  | Print the basic help information for Jaide and exit. |  
+-i 	 &#124; --ip 			| TEXT | The target hostname(s) or IP(s). **[1](#notes)** Will prompt if not in the command line arguments. |  
+-p 	 &#124; --password 		| TEXT | The password for authenticating to the device(s). Will prompt if not in the command line arguments. |  
+-P 	 &#124; --port 			| INTEGER | The port to connect to the device on. Defaults to port 22 (SSH) |  
+--quiet &#124; --no-quiet 	| N/A | Boolean flag for suppressing all output from the script. Defaults to False (--no-quiet) |  
+-t 	  &#124; --session-timeout | INTEGER | The session timeout, in seconds, for declaring a lost session. Default is 300 seconds. This should be increased when no return output could be seen for more than 5 minutes (for example requesting a system snapshot). |  
+-T 	 &#124; --connect-timeout | INTEGER | The timeout, in seconds, for declaring a device unreachable during connection establishment. Defaults to 5 seconds. |  
+-u &#124; --username | TEXT | The username for authenticating to the device(s). Will prompt if not in the command line arguments. |  
+N/A &#124; --version | N/A | Print the version of the jaide script (and jaide package) and exit. |  
+-w &#124; --write | TEXT FILEPATH | Write the output to one or multiple files, instead of printing to stdout. Useful when touching more than one device, as the 'm' or 'multiple' options will write the output for each device to a separate file. [More info here](examples/cli/writing-output-to-file.md) |  
 
 #### Jaide Commands  
 
@@ -43,6 +43,8 @@ These are the available commands in the jaide CLI tool:
 | pull | Copy files from the device(s) to the local machine. |  
 | push | Copy files from the local machine to the device(s). |  
 | shell | Send shell command(s) and display the output. **[1](#notes)** |  
+
+#### Tab Completion  
 
 After the jaide packages is installed, you have access to the `jaide` command in any terminal window. To enable tab completion of jaide commands, add the following line to your os-relevant `~/.bashrc | ~/.bash_profile | ~/.profile`:
 

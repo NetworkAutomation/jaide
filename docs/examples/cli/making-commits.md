@@ -187,7 +187,7 @@ Commit at (`commit -a`, or `commit --at`)can be used to delay the commit operati
 * hh:mm[:ss]  
 * yyyy-mm-dd hh:mm[:ss]  
 
-*NOTE* `commit at` and `commit --comfirm` are mutually exclusive and connect be used together. Each of them can be used with any other commit modifier however.
+*NOTE* `commit --at` and `commit --comfirm` are mutually exclusive and connect be used together. Each of them can be used with any other commit modifier however.
 
 Example output:  
 
