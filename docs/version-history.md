@@ -6,12 +6,12 @@ Version History
 **Major Restructuring**, including the following:  
 
 * What used to be the `jaide.py` CLI script has now been broken up into several files for modularity and extensibility:  
-  * core.py is the base framework, and includes the new Jaide() class that can be imported and used in other python scripts/packages for manipulating Junos devices.  
-  * cli.py is the command line interface utility, and is what the user directly interfaces with using the new `jaide` command.  
-  * wrap.py is the middle man between core.py and cli.py that provides the error-handling and pretty-printing of output from the Jaide class object that the CLI wants to show to the user.  
+	* core.py is the base framework, and includes the new Jaide() class that can be imported and used in other python scripts/packages for manipulating Junos devices.  
+	* cli.py is the command line interface utility, and is what the user directly interfaces with using the new `jaide` command.  
+	* wrap.py is the middle man between core.py and cli.py that provides the error-handling and pretty-printing of output from the Jaide class object that the CLI wants to show to the user.  
 * The Jaide GUI has been separated into it's own [package](https://pypi.python.org/pypi/jaidegui) and [github repo](https://github.com/NetworkAutomation/jaidegui) for ease of tracking GUI specific docs/changes.  
 * Jaide is now utilizes setuptools for installing the package into the target python environment.  
-  * This allows the Jaide CLI tool to be available system-wide due to setuptools installing the `jaide` command into the OS PATH variable.
+	* This allows the Jaide CLI tool to be available system-wide due to setuptools installing the `jaide` command into the OS PATH variable.
 * Because Jaide uses setuptools now, it is also available via pip!    
 * Two new commands have been added, allowing [comparison of the configuration between two devices](examples/cli/diff-config.md) and [comparing a list of set commands against the running config](examples/cli/show-compare.md).  
 * The Jaide CLI tool now uses `click` instead of `argparse`, for a better CLI experience. This has modified how the jaide command is used. Refer to the [documentation](usage.md) for the Jaide CLI tool and the CLI examples documentation.  
@@ -22,7 +22,7 @@ Version History
 * Adding several testing and building scripts in the source code /testing folder to make our development lies easier.  
 * Many changes to bring us in line with PEP 8 and PEP 257.  
 * Many documentation changes, including using `mkdocs` for easy generation.  
-  * All docs are now posted on [Read The Docs](http://jaide.readthedocs.org/) as well.  
+	* All docs are now posted on [Read The Docs](http://jaide.readthedocs.org/) as well.  
 
 ## v1.1.0  
 
