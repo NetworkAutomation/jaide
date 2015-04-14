@@ -1,5 +1,8 @@
 Junos Aide (Jaide) and the CLI tool
 ===================================
+
+[![Documentation Status](https://readthedocs.org/projects/jaide/badge/?version=latest)](https://readthedocs.org/projects/jaide/?badge=latest)  
+
 ## About  
 Contributors: [Geoff Rhodes](https://github.com/geoffrhodes) and [Nathan Printz](https://github.com/nprintz)  
 [Read The Docs](http://jaide.readthedocs.org/)  
