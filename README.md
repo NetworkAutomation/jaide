@@ -86,5 +86,5 @@ Pip should handle retrieving any necessary requirements, but we list them here f
 [SCP >=0.8.0](https://github.com/jbardin/scp.py)  -  https://github.com/jbardin/scp.py  
 [COLORAMA 0.3.3](https://pypi.python.org/pypi/colorama) - https://pypi.python.org/pypi/colorama  
 [CLICK >=3.3](http://click.pocoo.org/3/) - http://click.pocoo.org/3/  
-[ECDSA >=0.11](https://pypi.python.org/pypi/ecdsa) - https://pypi.python.org/pypi/ecdsa
+[ECDSA >=0.11](https://pypi.python.org/pypi/ecdsa) - https://pypi.python.org/pypi/ecdsa  
 [PYCRYPTO >=2.1,!=2.4](https://pypi.python.org/pypi/pycrypto) - https://pypi.python.org/pypi/pycrypto
