@@ -18,6 +18,7 @@ import os
 from os import path, popen
 import multiprocessing
 import re
+import sys
 # intra-Jaide imports
 import wrap
 from utils import clean_lines
@@ -719,7 +720,7 @@ def shell(ctx, commands):
 
 
 def run():
-    if os.name == 'posix':
+    if os.name == 'posix' and sys.stdin.isatty():
         # set max_content_width to the width of the terminal dynamically
         rows, columns = popen('stty size', 'r').read().split()
         # obj and max_column_width get passed into click, and don't actually
