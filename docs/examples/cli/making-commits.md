@@ -207,7 +207,7 @@ Example output:
 
 	Commit complete on device: 192.168.50.95
 
-#### Comment Comment  
+#### Commit Comment  
 
 Commit comment (`commit -c` or `commit --comment`) is a useful modifier that allows a string to be put into the `show system commit` log next to the corresponding commit. The syntax is as follows:
 
