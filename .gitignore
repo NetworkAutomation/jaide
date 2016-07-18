@@ -15,3 +15,6 @@ build/
 
 # mkdocs builds
 site/
+
+# osx meta data
+*.DS_Store
