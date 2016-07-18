@@ -366,7 +366,7 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, config_
         config_format = 'text'
     # if using stanza, format is xml and action must be stanza or override
     elif config_format == 'stanza':
-        if action != 'merge' && action != 'override':
+        if action != 'merge' and action != 'override':
             raise click.BadParameter('When using stanza config format, action must be merge or override')
         else:
             config_format='xml'
@@ -432,7 +432,7 @@ def compare(ctx, commands, config_format, action):
         config_format = 'text'
     # if using stanza, format is xml and action must be stanza or override
     elif config_format == 'stanza':
-        if action != 'merge' && action != 'override':
+        if action != 'merge' and action != 'override':
             raise click.BadParameter('When using stanza config format, action must be merge or override')
         else:
             config_format='xml'
