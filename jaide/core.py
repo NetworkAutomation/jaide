@@ -212,7 +212,7 @@ class Jaide():
 
     @check_instance
     def commit(self, commands="", confirmed=None, comment=None,
-               at_time=None, synchronize=False, req_format='text'):
+               at_time=None, synchronize=False, req_format='text', action="set", config_format="text"):
         """ Perform a commit operation.
 
         Purpose: Executes a commit operation. All parameters are optional.
@@ -250,12 +250,15 @@ class Jaide():
         # passed, use 'annotate system' to make a blank commit
         if not commands:
             commands = 'annotate system ""'
-        clean_cmds = []
-        for cmd in clean_lines(commands):
-            clean_cmds.append(cmd)
+        if config_format == "text":
+            clean_cmds = []
+            for cmd in clean_lines(commands):
+                clean_cmds.append(cmd)
+        else:
+            clean_cmds = commands
         # try to lock the candidate config so we can make changes.
         self.lock()
-        self._session.load_configuration(action='set', config=commands)
+        self._session.load_configuration(action=action, config=commands, format=config_format)
         results = ""
         # confirmed and commit at are mutually exclusive. commit confirm
         # takes precedence.
@@ -298,7 +301,7 @@ class Jaide():
         return False
 
     @check_instance
-    def commit_check(self, commands="", req_format="text"):
+    def commit_check(self, commands="", req_format="text", action="set", config_format="text"):
         """ Execute a commit check operation.
 
         Purpose: This method will take in string of multiple commands,
@@ -318,11 +321,14 @@ class Jaide():
         """
         if not commands:
             raise InvalidCommandError('No commands specified')
-        clean_cmds = []
-        for cmd in clean_lines(commands):
-            clean_cmds.append(cmd)
+        if config_format == 'text':
+            clean_cmds = []
+            for cmd in clean_lines(commands):
+                clean_cmds.append(cmd)
+        else:
+            clean_cmds = commands
         self.lock()
-        self._session.load_configuration(action='set', config=clean_cmds)
+        self._session.load_configuration(action=action, config=clean_cmds, format=config_format)
         # conn.validate() DOES NOT return a parse-able xml tree, so we
         # convert it to an ElementTree xml tree.
         results = ET.fromstring(self._session.validate(
@@ -352,7 +358,7 @@ class Jaide():
         return out
 
     @check_instance
-    def compare_config(self, commands="", req_format="text"):
+    def compare_config(self, commands="", req_format="text", action="set", config_format="text"):
         """ Execute a 'show | compare' against the specified commands.
 
         Purpose: This method will take in string of multiple commands,
@@ -372,9 +378,12 @@ class Jaide():
         """
         if not commands:
             raise InvalidCommandError('No commands specified')
-        clean_cmds = [cmd for cmd in clean_lines(commands)]
+        if config_format == "text":
+            clean_cmds = [cmd for cmd in clean_lines(commands)]
+        else:
+            clean_cmds = commands
         self.lock()
-        self._session.load_configuration(action='set', config=clean_cmds)
+        self._session.load_configuration(action=action, config=clean_cmds, format=config_format )
         out = self._session.compare_configuration()
         self.unlock()
         if req_format.lower() == "xml":
