@@ -496,30 +496,93 @@ class Jaide():
         """
         # get hostname, model, and version from 'show version'
         resp = self._session.get_software_information(format='xml')
+
         hostname = resp.xpath('//software-information/host-name')[0].text
         model = resp.xpath('//software-information/product-model')[0].text
-        version = (resp.xpath('//software-information/package-information/'
-                              'comment')[0].text.split('[')[1].split(']')[0])
+
+        version = 'Unknown'
+        if resp.xpath('//junos-version'):
+            """ case:
+                <junos-version>15.1</junos-version>
+            """
+            try:
+                version = resp.xpath('//junos-version')[0].text
+            except IndexError:
+                pass
+        elif resp.xpath("//package-information[name = 'junos-version']"):
+            """ case:
+                <package-information>
+                    <name>junos-version</name>
+                    <comment>Junos: 14.2R4</comment>
+                </package-information>
+           """
+            try:
+                version = (resp.xpath(
+                    "//package-information[name = 'junos-version']/comment"
+                    )[0].text).split()[1]
+            except IndexError:
+                pass
+        else:
+            """ case:
+                <package-information>
+                    <name>junos</name>
+                    <comment>JUNOS Base OS boot [12.3R5]</comment>
+                </package-information>
+            """
+            try:
+                version = ((resp.xpath(
+                    '//software-information/package-information/comment'
+                    )[0].text.split('[')[1].split(']')[0]))
+            except IndexError:
+                pass
+
+        # try looking for 'junos-version' for >= 14.2
+#        for element in resp.xpath('//software-information'):
+#            version = element.findtext('junos-version')
+
+#        if not version:
+#            try:
+#                version = ((resp.xpath(
+#                    '//software-information/package-information/comment')
+#                    [0].text.split('[')[1].split(']')[0]))
+#            except IndexError:
+#                version = 'Unknown'
+
         # get uptime from 'show system uptime'
         resp = self._session.get_system_uptime_information(format='xml')
-        current_time = resp.xpath('//current-time/date-time')[0].text
-        uptime = resp.xpath('//uptime-information/up-time')[0].text
+        try:
+            current_time = resp.xpath('//current-time/date-time')[0].text
+        except IndexError:
+            current_time = 'Unknown'
+        try:
+            uptime = resp.xpath('//uptime-information/up-time')[0].text
+        except IndexError:
+            uptime = 'Unknown'
         # get serial number from 'show chassis hardware'
         show_hardware = self._session.get_chassis_inventory(format='xml')
         # If we're hitting an EX, grab each Routing Engine Serial number
         # to get all RE SNs in a VC
-        if (('EX' or 'ex' or 'Ex') in
-            show_hardware.xpath('//chassis-inventory/chassis/chassis-module'
-                                '/description')[0].text):
-            serial_num = ""
-            for eng in show_hardware.xpath('//chassis-inventory/chassis/chassis-module'):
+        try:
+            chassis_module = show_hardware.xpath(
+                '//chassis-inventory/chassis/chassis-module/description'
+                )[0].text
+        except IndexError:
+            chassis_module = 'Unknown'
+
+        if ('EX' or 'ex' or 'Ex') in chassis_module:
+            serial_num = ''
+            for eng in show_hardware.xpath(
+                    '//chassis-inventory/chassis/chassis-module'):
                 if 'Routing Engine' in eng.xpath('name')[0].text:
                     serial_num += (eng.xpath('name')[0].text + ' Serial #: ' +
                                    eng.xpath('serial-number')[0].text)
         else:  # Any other device type, just grab chassis SN
-            serial_num = ('Chassis Serial Number: ' +
-                          show_hardware.xpath('//chassis-inventory/chassis/'
-                                              'serial-number')[0].text)
+            try:
+                serial_num = ('Chassis Serial Number: ' + show_hardware.xpath(
+                    '//chassis-inventory/chassis/serial-number')[0].text)
+            except IndexError:
+                serial_num = 'Chassis Serial Number: ' \
+                    + 'Unknown (virtual machine?)'
         return ('Hostname: %s\nModel: %s\nJunos Version: %s\n%s\nCurrent Time:'
                 ' %s\nUptime: %s\n' %
                 (hostname, model, version, serial_num, current_time, uptime))
