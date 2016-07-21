@@ -135,7 +135,34 @@ def write_validate(ctx, param, value):
     else:  # they didn't use -w, so set the context variable accordingly.
         ctx.obj['out'] = None
 
+@click.pass_context
+def action_validate(ctx, param, value):
+    """ Validate the -a option.
 
+    Purpose: Validates the `-a`|`--action` option. It must either be `override`
+           | or `merge`, corresponding to the commit type.
+
+    @param ctx: The click context paramter, for receiving the object dictionary
+              | being manipulated by other previous functions. Needed by any
+              | function with the @click.pass_context decorator. Callback
+              | functions such as this one receive this automatically.
+    @type ctx: click.Context
+    @param param: param is passed into a validation callback function by click.
+                | We do not use it.
+    @type param: None
+    @param value: The value that the user supplied for the action option.
+    @type value: str
+
+    @returns: The value that the user supplied, if it passed validation.
+            | Otherwise, raises click.BadParameter
+    @rtype: str
+    """
+    print(value)
+    if value.lower() not in ('set', 'merge', 'override', 'replace', 'update'):
+        raise click.BadParameter('-a / --action must be one of the following: '
+                            ' `set`, `merge`, `override`, `replace`, `update`')
+    else:
+        ctx.obj['action'] = value.lower()
 def write_out(input):
     """ Callback function to write the output from the script.
 
@@ -298,10 +325,10 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
               "--at and --confirm are mutually exclusive, and confirm will"
               " override. Can be in one of two formats: hh:mm[:ss]  or  "
               "yyyy-mm-dd hh:mm[:ss]")
-@click.option('-f', '--format', default='set', help="Specify set or stanza mode for the configuration")
-@click.option('-a', '--action', default='merge', help='If using stanza config, action can be merge or override')
+@click.option('-A', '--action', default='set', callback=action_validate, help='Specify the method to load the configuration: '
+              '`set`, `merge`, `override`, `replace`, `update`')
 @click.pass_context
-def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, config_format, action):
+def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, action):
     """ Execute a commit against the device.
 
     Purpose: This function will send set commands to a device, and commit
@@ -345,11 +372,8 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, config_
                   |      seconds)
     @type at_time: str
 
-    @param action: A string set to either merge or override, to be used with stanza config_format
+    @param action: #######
     @type action: str
-    @param config_format: A string set to either set or stanza to denote the format 
-                 | of the configuration to be commited. Defaults to set.
-    @type config_format: str
 
     @returns: None. Functions part of click relating to the command group
             | 'main' do not return anything. Click handles passing context
@@ -358,20 +382,7 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, config_
     if not blank and commands == 'annotate system ""':
         raise click.BadParameter("--blank and the commands argument cannot"
                                  " both be omitted.")
-    config_format = config_format.lower()
-    action = action.lower()
-    # if using set, then format is text and action is set
-    if config_format == 'set':
-        action = 'set'
-        config_format = 'text'
-    # if using stanza, format is xml and action must be stanza or override
-    elif config_format == 'stanza':
-        if action != 'merge' and action != 'override':
-            raise click.BadParameter('When using stanza config format, action must be merge or override')
-        else:
-            config_format='xml'
-    else:
-        raise click.BadParameter("--format must be set or stanza.")
+    clean_cmds = [x for x in clean_lines(commands)]
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
         mp_pool.apply_async(wrap.open_connection, args=(ip,
@@ -379,7 +390,7 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, config_
                             ctx.obj['conn']['password'],
                             wrap.commit,
                             [commands, check, sync, comment, confirm,
-                             ctx.obj['at_time'], blank, config_format, action],
+                             ctx.obj['at_time'], blank, action],
                             ctx.obj['out'],
                             ctx.obj['conn']['connect_timeout'],
                             ctx.obj['conn']['session_timeout'],
@@ -394,10 +405,10 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, config_
               " of commands, or a filepath pointing to a file of set commands "
               "on each line.")
 @click.argument('commands', required=True)
-@click.option('-f', '--format', default='set', help="Specify set or stanza mode for the configuration")
-@click.option('-a', '--action', default='merge', help='If using stanza config, action can be merge or override')
+@click.option('-A', '--action', default='set', callback=action_validate, help='Specify the method to load the configuration: '
+              '`set`, `merge`, `override`, `replace`, `update`')
 @click.pass_context
-def compare(ctx, commands, config_format, action):
+def compare(ctx, commands, action):
     """ Run 'show | compare' for set commands.
 
     @param ctx: The click context paramter, for receiving the object dictionary
@@ -414,37 +425,20 @@ def compare(ctx, commands, config_format, action):
                    | commands on each line.
     @type commands: str
     
-    @param action: A string set to either merge or override, to be used with stanza config_format
+    @param action: #####
     @type action: str
-    @param config_format: A string set to either set or stanza to denote the format 
-                 | of the configuration to be commited. Defaults to set.
-    @type config_format: str
 
     @returns: None. Functions part of click relating to the command group
             | 'main' do not return anything. Click handles passing context
             | between the functions and maintaing command order and chaining.
     """
-    config_format = config_format.lower()
-    action = action.lower()
-    # if using set, then format is text and action is set
-    if config_format == 'set':
-        action = 'set'
-        config_format = 'text'
-    # if using stanza, format is xml and action must be stanza or override
-    elif config_format == 'stanza':
-        if action != 'merge' and action != 'override':
-            raise click.BadParameter('When using stanza config format, action must be merge or override')
-        else:
-            config_format='xml'
-    else:
-        raise click.BadParameter("--format must be set or stanza.")
-        
+    clean_cmds = [x for x in clean_lines(commands)]
     mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
         mp_pool.apply_async(wrap.open_connection, args=(ip,
                             ctx.obj['conn']['username'],
                             ctx.obj['conn']['password'],
-                            wrap.compare, [commands, action, config_format],
+                            wrap.compare, [clean_cmds, action],
                             ctx.obj['out'],
                             ctx.obj['conn']['connect_timeout'],
                             ctx.obj['conn']['session_timeout'],
