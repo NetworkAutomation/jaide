@@ -146,7 +146,7 @@ def command(jaide, commands, format="text", xpath=False):
     return output
 
 
-def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, config_format, action):
+def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, action, config_format):
     """ Execute a commit against the device.
 
     Purpose: This function will send set commands to a device, and commit
@@ -257,7 +257,7 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, confi
     return output
 
 
-def compare(jaide, commands, config_format, action):
+def compare(jaide, commands, action, config_format):
     """ Perform a show | compare with some set commands.
 
     @param jaide: The jaide connection to the device.

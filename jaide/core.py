@@ -258,7 +258,7 @@ class Jaide():
             clean_cmds = commands
         # try to lock the candidate config so we can make changes.
         self.lock()
-        self._session.load_configuration(action=action, config=commands, format=config_format)
+        self._session.load_configuration(action=action, config=clean_cmds, format=config_format)
         results = ""
         # confirmed and commit at are mutually exclusive. commit confirm
         # takes precedence.
@@ -383,7 +383,7 @@ class Jaide():
         else:
             clean_cmds = commands
         self.lock()
-        self._session.load_configuration(action=action, config=clean_cmds, format=config_format )
+        self._session.load_configuration(action=action, config=clean_cmds, format=config_format)
         out = self._session.compare_configuration()
         self.unlock()
         if req_format.lower() == "xml":
