@@ -358,7 +358,7 @@ class Jaide():
         return out
 
     @check_instance
-    def compare_config(self, commands="", req_format="text", action="set", config_format="text"):
+    def compare_config(self, commands="", req_format="text", action="set"):
         """ Execute a 'show | compare' against the specified commands.
 
         Purpose: This method will take in string of multiple commands,
@@ -378,12 +378,9 @@ class Jaide():
         """
         if not commands:
             raise InvalidCommandError('No commands specified')
-        if config_format == "text":
-            clean_cmds = [cmd for cmd in clean_lines(commands)]
-        else:
-            clean_cmds = commands
+        clean_cmds = [cmd for cmd in clean_lines(commands)]
         self.lock()
-        self._session.load_configuration(action=action, config=clean_cmds, format=config_format)
+        self._session.load_configuration(action=action, config=clean_cmds, format="text")
         out = self._session.compare_configuration()
         self.unlock()
         if req_format.lower() == "xml":

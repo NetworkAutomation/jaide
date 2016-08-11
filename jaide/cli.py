@@ -157,12 +157,11 @@ def action_validate(ctx, param, value):
             | Otherwise, raises click.BadParameter
     @rtype: str
     """
-    print(value)
     if value.lower() not in ('set', 'merge', 'override', 'replace', 'update'):
         raise click.BadParameter('-a / --action must be one of the following: '
                             ' `set`, `merge`, `override`, `replace`, `update`')
     else:
-        ctx.obj['action'] = value.lower()
+        return value.lower()
 def write_out(input):
     """ Callback function to write the output from the script.
 
@@ -325,13 +324,13 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
               "--at and --confirm are mutually exclusive, and confirm will"
               " override. Can be in one of two formats: hh:mm[:ss]  or  "
               "yyyy-mm-dd hh:mm[:ss]")
-@click.option('-A', '--action', default='set', callback=action_validate, help='Specify the method to load the configuration: '
-              '`set`, `merge`, `override`, `replace`, `update`')
+@click.option('-A', '--action', 'action', default='set', callback=action_validate, help="Specify the method to load the configuration: "
+              "`set`, `merge`, `override`, `replace`, `update`")
 @click.pass_context
 def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, action):
     """ Execute a commit against the device.
 
-    Purpose: This function will send set commands to a device, and commit
+    Purpose: This function will send set commands to a device, an1d commit
            | the changes. Options exist for confirming, comments,
            | synchronizing, checking, blank commits, or delaying to a later
            | time/date.
@@ -383,20 +382,30 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, action)
         raise click.BadParameter("--blank and the commands argument cannot"
                                  " both be omitted.")
     clean_cmds = [x for x in clean_lines(commands)]
-    mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
+    #mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
-        mp_pool.apply_async(wrap.open_connection, args=(ip,
-                            ctx.obj['conn']['username'],
-                            ctx.obj['conn']['password'],
-                            wrap.commit,
-                            [commands, check, sync, comment, confirm,
-                             ctx.obj['at_time'], blank, action],
-                            ctx.obj['out'],
-                            ctx.obj['conn']['connect_timeout'],
-                            ctx.obj['conn']['session_timeout'],
-                            ctx.obj['conn']['port'],), callback=write_out)
-    mp_pool.close()
-    mp_pool.join()
+        write_out(wrap.open_connection(ip,
+                    ctx.obj['conn']['username'],
+                    ctx.obj['conn']['password'],
+                    wrap.commit,
+                    [commands, check, sync, comment, confirm,
+                        ctx.obj['at_time'], blank, action],
+                    ctx.obj['out'],
+                    ctx.obj['conn']['connect_timeout'],
+                    ctx.obj['conn']['session_timeout'],
+                    ctx.obj['conn']['port'],))
+        # mp_pool.apply_async(wrap.open_connection, args=(ip,
+        #                     ctx.obj['conn']['username'],
+        #                     ctx.obj['conn']['password'],
+        #                     wrap.commit,
+        #                     [commands, check, sync, comment, confirm,
+        #                      ctx.obj['at_time'], blank, action],
+        #                     ctx.obj['out'],
+        #                     ctx.obj['conn']['connect_timeout'],
+        #                     ctx.obj['conn']['session_timeout'],
+        #                     ctx.obj['conn']['port'],), callback=write_out)
+    # mp_pool.close()
+    # mp_pool.join()
 
 
 @main.command(context_settings=CONTEXT_SETTINGS, help="Compare commands"

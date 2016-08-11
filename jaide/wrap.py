@@ -146,7 +146,7 @@ def command(jaide, commands, format="text", xpath=False):
     return output
 
 
-def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, action, config_format):
+def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, action):
     """ Execute a commit against the device.
 
     Purpose: This function will send set commands to a device, and commit
@@ -205,7 +205,7 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, actio
     if commands != "":
         output += color("show | compare:\n", 'yel')
         try:
-            output += color_diffs(jaide.compare_config(commands=commands, action=action, config_format=config_format)) + '\n'
+            output += color_diffs(jaide.compare_config(commands=commands, action=action)) + '\n'
         except RPCError as e:
             output += color("Could not get config comparison results before"
                             " committing due to the following error:\n%s" %
@@ -214,7 +214,7 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, actio
     if check:
         output += color("Commit check results from: %s\n" % jaide.host, 'yel')
         try:
-            output += jaide.commit_check(commands=commands, action=action, config_format=config_format) + '\n'
+            output += jaide.commit_check(commands=commands, action=action) + '\n'
         except RPCError:
             output += color("Uncommitted changes left on the device or someone"
                             " else is in edit mode, couldn't lock the "
@@ -229,7 +229,7 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, actio
         try:
             results = jaide.commit(confirmed=confirm, comment=comment,
                                    at_time=at_time, synchronize=sync,
-                                   commands=commands, action=action, config_format=config_format)
+                                   commands=commands, action=action)
         except RPCError as e:
             output += color('Commit could not be completed on this device, due'
                             ' to the following error(s):\n' + str(e), 'red')
@@ -257,7 +257,7 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, actio
     return output
 
 
-def compare(jaide, commands, action, config_format):
+def compare(jaide, commands, action):
     """ Perform a show | compare with some set commands.
 
     @param jaide: The jaide connection to the device.
@@ -269,7 +269,7 @@ def compare(jaide, commands, action, config_format):
     @rtype str
     """
     output = color("show | compare:\n", 'yel')
-    return output + color_diffs(jaide.compare_config(commands=commands, action=action, config_format=config_format))
+    return output + color_diffs(jaide.compare_config(commands=commands, action=action))
 
 
 def device_info(jaide):
