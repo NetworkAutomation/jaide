@@ -330,7 +330,7 @@ def main(ctx, host, password, port, quiet, session_timeout, connect_timeout,
 def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, action):
     """ Execute a commit against the device.
 
-    Purpose: This function will send set commands to a device, an1d commit
+    Purpose: This function will send set commands to a device, and commit
            | the changes. Options exist for confirming, comments,
            | synchronizing, checking, blank commits, or delaying to a later
            | time/date.
@@ -382,30 +382,20 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, action)
         raise click.BadParameter("--blank and the commands argument cannot"
                                  " both be omitted.")
     clean_cmds = [x for x in clean_lines(commands)]
-    #mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
+    mp_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     for ip in ctx.obj['hosts']:
-        write_out(wrap.open_connection(ip,
-                    ctx.obj['conn']['username'],
-                    ctx.obj['conn']['password'],
-                    wrap.commit,
-                    [commands, check, sync, comment, confirm,
-                        ctx.obj['at_time'], blank, action],
-                    ctx.obj['out'],
-                    ctx.obj['conn']['connect_timeout'],
-                    ctx.obj['conn']['session_timeout'],
-                    ctx.obj['conn']['port'],))
-        # mp_pool.apply_async(wrap.open_connection, args=(ip,
-        #                     ctx.obj['conn']['username'],
-        #                     ctx.obj['conn']['password'],
-        #                     wrap.commit,
-        #                     [commands, check, sync, comment, confirm,
-        #                      ctx.obj['at_time'], blank, action],
-        #                     ctx.obj['out'],
-        #                     ctx.obj['conn']['connect_timeout'],
-        #                     ctx.obj['conn']['session_timeout'],
-        #                     ctx.obj['conn']['port'],), callback=write_out)
-    # mp_pool.close()
-    # mp_pool.join()
+        mp_pool.apply_async(wrap.open_connection, args=(ip,
+                            ctx.obj['conn']['username'],
+                            ctx.obj['conn']['password'],
+                            wrap.commit,
+                            [commands, check, sync, comment, confirm,
+                             ctx.obj['at_time'], blank, action],
+                            ctx.obj['out'],
+                            ctx.obj['conn']['connect_timeout'],
+                            ctx.obj['conn']['session_timeout'],
+                            ctx.obj['conn']['port'],), callback=write_out)
+    mp_pool.close()
+    mp_pool.join()
 
 
 @main.command(context_settings=CONTEXT_SETTINGS, help="Compare commands"
