@@ -371,7 +371,7 @@ def commit(ctx, commands, blank, check, sync, comment, confirm, at_time, action)
                   |      seconds)
     @type at_time: str
 
-    @param action: #######
+    @param action: A string containing the way the configuration should be loaded (set, override, merge, update, replace)
     @type action: str
 
     @returns: None. Functions part of click relating to the command group
@@ -434,7 +434,7 @@ def compare(ctx, commands, action):
                    | commands on each line.
     @type commands: str
     
-    @param action: #####
+    @param action: A string containing the way the configuration should be loaded (set, override, merge, update, replace)
     @type action: str
 
     @returns: None. Functions part of click relating to the command group

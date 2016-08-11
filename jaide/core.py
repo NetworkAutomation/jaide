@@ -212,7 +212,7 @@ class Jaide():
 
     @check_instance
     def commit(self, commands="", confirmed=None, comment=None,
-               at_time=None, synchronize=False, req_format='text', action="set", config_format="text"):
+               at_time=None, synchronize=False, req_format='text', action="set"):
         """ Perform a commit operation.
 
         Purpose: Executes a commit operation. All parameters are optional.
@@ -242,6 +242,8 @@ class Jaide():
         @param req_format: string to specify the response format. Accepts
                          | either 'text' or 'xml'
         @type req_format: str
+        @param action: A string containing the way the configuration should be loaded (set, override, merge, update, replace)
+        @type action: str
 
         @returns: The reply from the device.
         @rtype: str
@@ -250,15 +252,10 @@ class Jaide():
         # passed, use 'annotate system' to make a blank commit
         if not commands:
             commands = 'annotate system ""'
-        if config_format == "text":
-            clean_cmds = []
-            for cmd in clean_lines(commands):
-                clean_cmds.append(cmd)
-        else:
-            clean_cmds = commands
+        clean_cmds = [x for x in clean_lines(commands)]
         # try to lock the candidate config so we can make changes.
         self.lock()
-        self._session.load_configuration(action=action, config=clean_cmds, format=config_format)
+        self._session.load_configuration(action=action, config=clean_cmds, format="text")
         results = ""
         # confirmed and commit at are mutually exclusive. commit confirm
         # takes precedence.
@@ -301,7 +298,7 @@ class Jaide():
         return False
 
     @check_instance
-    def commit_check(self, commands="", req_format="text", action="set", config_format="text"):
+    def commit_check(self, commands="", req_format="text", action="set"):
         """ Execute a commit check operation.
 
         Purpose: This method will take in string of multiple commands,
@@ -315,20 +312,18 @@ class Jaide():
         @param req_format: The desired format of the response, defaults to
                          | 'text', but also accepts 'xml'
         @type req_format: str
+        @param action: A string containing the way the configuration should be loaded (set, override, merge, update, replace)
+        @type action: str
 
         @returns: The reply from the device.
         @rtype: str
         """
         if not commands:
             raise InvalidCommandError('No commands specified')
-        if config_format == 'text':
-            clean_cmds = []
-            for cmd in clean_lines(commands):
-                clean_cmds.append(cmd)
-        else:
-            clean_cmds = commands
+        clean_cmds = [x for x in clean_lines(commands)]
+
         self.lock()
-        self._session.load_configuration(action=action, config=clean_cmds, format=config_format)
+        self._session.load_configuration(action=action, config=clean_cmds, format="text")
         # conn.validate() DOES NOT return a parse-able xml tree, so we
         # convert it to an ElementTree xml tree.
         results = ET.fromstring(self._session.validate(
@@ -372,6 +367,8 @@ class Jaide():
         @param req_format: The desired format of the response, defaults to
                          | 'text', but also accepts 'xml'
         @type req_format: str
+        @param action: A string containing the way the configuration should be loaded (set, override, merge, update, replace)
+        @type action: str
 
         @returns: The reply from the device.
         @rtype: str

@@ -186,13 +186,10 @@ def commit(jaide, commands, check, sync, comment, confirm, at_time, blank, actio
                 | commit makes a commit, but doesn't have any set commands
                 | associated with it, so no changes are made, but a commit
                 | does happen.
-    @type blank: bool
-    
-    @param action: A string set to either merge or override, to be used with stanza config_format
+    @type blank: bool    
+    @param action: A string containing the way the configuration should be loaded (set, override, merge, update, replace)
     @type action: str
-    @param config_format: A string set to either set or stanza to denote the format 
-                 | of the configuration to be commited. Defaults to set.
-    @type config_format: str
+
 
     @returns: The output from the device.
     @rtype: str
@@ -264,6 +261,8 @@ def compare(jaide, commands, action):
     @type jaide: jaide.Jaide object
     @param commands: The set commands to send to the device to compare with.
     @type commands: str or list
+    @param action: A string containing the way the configuration should be loaded (set, override, merge, update, replace)
+    @type action: str
 
     @returns: The output from the device.
     @rtype str
